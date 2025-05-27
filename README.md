@@ -1,5 +1,3 @@
-# FStudyMate
-
 # Vin Multiple Choice Application
 
 This is a modern web application built with Spring Boot for the backend and React for the frontend.
@@ -79,7 +77,7 @@ This will create a single JAR file that includes both the backend and frontend.
 3. Run the application:
 
 ```bash
-java -jar target/VinMultipleChoiceFE-1.0-SNAPSHOT.jar
+java -jar target/FStudyMate-1.0-SNAPSHOT.jar
 ```
 
 ## Features

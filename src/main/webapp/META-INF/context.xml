@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context path="/FStudyMate">
+  <Resource
+    name="jdbc/FStudyMate"
+    auth="Container"
+    type="javax.sql.DataSource"
+    driverClassName="com.mysql.cj.jdbc.Driver"
+    url="jdbc:mysql://toandz.ddns.net:3306/fstudymate"
+    username="fstudy"
+    password="toandz@secretpassword"
+    maxTotal="100"
+    maxIdle="30"
+    maxWaitMillis="10000"
+    removeAbandonedOnBorrow="true"
+    removeAbandonedTimeout="60"
+    logAbandoned="true"
+  />
+</Context>

@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basic Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Dark Mode Variables */
+:root {
+  --background: #f3f4f6;
+  --foreground: #111827;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --secondary: #f3f4f6;
+  --secondary-hover: #e5e7eb;
+  --success: #10b981;
+  --error: #ef4444;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  
+  /* Form input styling */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-text: #111827;
+  --input-placeholder: #6b7280;
+}
+
+/* Dark Mode Theme */
+body.dark-mode {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --secondary: #374151;
+  --secondary-hover: #4b5563;
+  --success: #059669;
+  --error: #dc2626;
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  
+  /* Form input styling */
+  --input-bg: #475569;
+  --input-border: #64748b;
+  --input-text: #f8fafc;
+  --input-placeholder: #cbd5e1;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Animation for theme toggle */
+.theme-transition {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* Dark mode form elements */
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--input-text);
+}
+
+.dark-mode input::placeholder,
+.dark-mode select::placeholder,
+.dark-mode textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+.dark-mode .bg-gray-50,
+.dark-mode .bg-gray-100,
+.dark-mode .bg-white {
+  background-color: var(--card-bg) !important;
+  color: var(--foreground) !important;
+}
+
+/* Apply dark text colors to light elements and vice versa */
+.dark-mode .text-gray-600,
+.dark-mode .text-gray-700,
+.dark-mode .text-gray-800,
+.dark-mode .text-gray-900 {
+  color: var(--foreground) !important;
+}
+
+/* Override bg colors for sections that should be dark in dark mode */
+html.dark-mode,
+body.dark-mode,
+.dark-mode .min-h-screen {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Improved dark mode component styling */
+.dark-mode .bg-white,
+.dark-mode .bg-gray-50,
+.dark-mode .bg-gray-100 {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+}
+
+/* Add subtle borders to cards in dark mode for better definition */
+.dark-mode .shadow-lg,
+.dark-mode .shadow-md,
+.dark-mode .shadow {
+  box-shadow: 0 0 0 1px var(--card-border), 0 4px 6px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Make headers stand out in dark mode */
+.dark-mode h1, 
+.dark-mode h2, 
+.dark-mode h3 {
+  color: white !important;
+}
+
+/* Button styling in dark mode */
+.dark-mode button:not([class*="bg-"]) {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+/* Add contrasting borders to inputs in dark mode */
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  border: 1px solid var(--input-border);
+}
+
+/* Style select dropdowns in dark mode */
+.dark-mode select option {
+  background-color: var(--card-bg);
+  color: var(--foreground);
+} 
