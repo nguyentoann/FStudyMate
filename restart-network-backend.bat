@@ -15,7 +15,7 @@ echo Your backend will be accessible at http://YOUR_IP:8080
 echo.
 
 cd target
-start cmd /k "java -jar -Dserver.address=0.0.0.0 -Dlogging.level.org.springframework.web.cors=TRACE vinmultiplechoice-0.0.1-SNAPSHOT.jar"
+start cmd /k "java -jar -Dserver.address=0.0.0.0 -Dlogging.level.org.springframework.web.cors=TRACE fstudymate-0.0.1-SNAPSHOT.jar"
 
 echo.
 echo Backend restarted with CORS debugging enabled

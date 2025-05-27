@@ -1,5 +1,5 @@
 @echo off
-echo Starting Vin Multiple Choice Application with NETWORK ACCESS
+echo Starting FStudyMate Application with NETWORK ACCESS
 echo.
 
 echo Loading environment variables...
@@ -13,7 +13,7 @@ echo Use the IP address above to access the application from other devices.
 echo.
 
 echo Starting Spring Boot backend with network access...
-start cmd /k "cd target && java -jar -Dserver.address=0.0.0.0 vinmultiplechoice-0.0.1-SNAPSHOT.jar"
+start cmd /k "cd target && java -jar -Dserver.address=0.0.0.0 fstudymate-0.0.1-SNAPSHOT.jar"
 
 echo Wait for backend to start...
 timeout /t 10

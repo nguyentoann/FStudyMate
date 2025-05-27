@@ -1,6 +1,6 @@
 # User Activity Monitoring System
 
-This document explains the user activity monitoring system implemented in the VinMultipleChoice application.
+This document explains the user activity monitoring system implemented in the FStudyMate application.
 
 ## Overview
 

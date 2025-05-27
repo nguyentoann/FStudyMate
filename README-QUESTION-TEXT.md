@@ -12,7 +12,7 @@ This update adds support for displaying question text with Markdown formatting i
 ## Model Changes
 
 1. Added the `questionText` field to the `Question` model in:
-   - `FStudyMate/src/main/java/com/mycompany/vinmultiplechoice/model/Question.java`
+   - `FStudyMate/src/main/java/com/mycompany/fstudymate/model/Question.java`
    - `FStudyMate/src/main/java/model/Question.java`
 
 2. Updated the DAO class to retrieve the question text from the database:

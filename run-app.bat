@@ -1,11 +1,11 @@
 @echo off
-echo Starting Vin Multiple Choice Application
+echo Starting FStudyMate Application
 
 echo Loading environment variables...
 call load-env.bat
 
 echo Starting Spring Boot backend with network access...
-start cmd /k "cd target && java -jar -Dserver.address=0.0.0.0 vinmultiplechoice-0.0.1-SNAPSHOT.jar"
+start cmd /k "cd target && java -jar -Dserver.address=0.0.0.0 fstudymate-0.0.1-SNAPSHOT.jar"
 
 echo Wait for backend to start...
 timeout /t 10

@@ -1,4 +1,4 @@
-# Vin Multiple Choice Application
+# FStudyMate Application
 
 This is a modern web application built with Spring Boot for the backend and React for the frontend.
 
@@ -15,7 +15,7 @@ This is a modern web application built with Spring Boot for the backend and Reac
 
 ## Database Setup
 
-1. Create a MySQL database named `vinmultiplechoice`
+1. Create a MySQL database named `fstudymate`
 2. The application will create the necessary tables on first run
 
 ## Backend Setup (Spring Boot)
