@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { 
   tomorrow as darkTheme, 
@@ -9,8 +11,9 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { getLessonById } from '../services/api';
 import MarkdownTableRenderer from './MarkdownTableRenderer';
+import 'katex/dist/katex.min.css'; // Import KaTeX CSS
 
-// LessonViewer v2.0 - Enhanced with custom table parsing and rendering
+// LessonViewer v2.1 - Enhanced with math rendering using KaTeX
 const LessonViewer = ({ lessonId, content = null, onError = () => {} }) => {
   const { darkMode } = useTheme();
   const [lesson, setLesson] = useState(null);
@@ -500,19 +503,24 @@ const LessonViewer = ({ lessonId, content = null, onError = () => {} }) => {
   }
 
   return (
-    <div className={mdStyles.content}>
-      {/* Use our custom table renderer directly for tables in the content */}
-      {extractTables(lesson?.content).map((table, index) => (
-        <MarkdownTableRenderer key={`table-${index}`} content={table} />
-      ))}
-      
-      {/* Use ReactMarkdown for the rest of the content */}
-      <ReactMarkdown 
-        components={markdownComponents}
-        remarkPlugins={[remarkGfm]}
-      >
-        {processContent(lesson?.content) || ''}
-      </ReactMarkdown>
+    <div className={`lessonViewer ${loading ? 'opacity-50' : ''}`}>
+      {lesson && lesson.content && (
+        <div className={mdStyles.content}>
+          {/* Use our custom table renderer directly for tables in the content */}
+          {extractTables(lesson.content).map((table, index) => (
+            <MarkdownTableRenderer key={`table-${index}`} content={table} />
+          ))}
+          
+          {/* Use ReactMarkdown for the rest of the content */}
+          <ReactMarkdown 
+            children={processContent(lesson.content)}
+            remarkPlugins={[remarkGfm, remarkMath]} 
+            rehypePlugins={[rehypeKatex]}
+            components={markdownComponents}
+          />
+        </div>
+      )}
+      {loading && <div className="flex justify-center my-8">Loading lesson content...</div>}
     </div>
   );
   
