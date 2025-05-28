@@ -219,6 +219,41 @@ function App() {
                     background-color: #121212 !important;
                     color: #f3f4f6 !important;
                 }
+
+                @keyframes float {
+                  0% {
+                    transform: translateY(0px);
+                  }
+                  50% {
+                    transform: translateY(-10px);
+                  }
+                  100% {
+                    transform: translateY(0px);
+                  }
+                }
+
+                .animate-float {
+                  animation: float 6s ease-in-out infinite;
+                }
+
+                @keyframes blob {
+                  0% {
+                    transform: scale(1) translate(0px, 0px);
+                  }
+                  33% {
+                    transform: scale(1.05) translate(5px, -5px);
+                  }
+                  66% {
+                    transform: scale(0.95) translate(-5px, 5px);
+                  }
+                  100% {
+                    transform: scale(1) translate(0px, 0px);
+                  }
+                }
+
+                .animate-blob {
+                  animation: blob 8s ease-in-out infinite;
+                }
               `}</style>
             </ThemeProvider>
           </DirectWebRTCProvider>
