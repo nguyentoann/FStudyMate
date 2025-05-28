@@ -112,7 +112,7 @@ const DashboardLayout = ({ children }) => {
                   Change Password
                 </Link>
                 <Link
-                  to="/"
+                  to={getDashboardUrl()}
                   className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 >
                   Home
@@ -215,7 +215,7 @@ const DashboardLayout = ({ children }) => {
                     Change Password
                   </Link>
                   <Link
-                    to="/"
+                    to={getDashboardUrl()}
                     className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                   >
                     Home

@@ -6,6 +6,20 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Get the dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (!user || !user.role) return '/dashboard';
+    
+    switch (user.role.toLowerCase()) {
+      case 'student': return '/student/dashboard';
+      case 'lecturer': return '/lecturer/dashboard';
+      case 'admin': return '/admin/dashboard';
+      case 'guest': return '/guest/dashboard';
+      case 'outsrc_student': return '/outsource/dashboard';
+      default: return '/dashboard';
+    }
+  };
+  
   return (
     <nav className="bg-indigo-600 text-white shadow-md py-2 px-4 fixed top-0 left-0 right-0 z-[95]">
       <div className="container mx-auto flex justify-between items-center">
@@ -23,14 +37,14 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
           </button>
           
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-2">
+          <Link to={user ? getDashboardUrl() : "/"} className="flex items-center space-x-2">
             <img 
               src="https://png.pngtree.com/png-vector/20220617/ourmid/pngtree-yellow-frog-with-happy-face-clipping-clipart-nature-vector-png-image_37070992.png" 
               alt="FStudyMate Logo" 
               className="h-10 w-10 object-contain bg-white rounded-full p-1"
             />
             <span className="text-xl font-bold text-white">FStudyMate</span>
-          </div>
+          </Link>
         </div>
         
         {/* Center - Search Bar */}

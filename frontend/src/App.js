@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Quiz from './pages/Quiz';
 import NotFound from './pages/NotFound';
@@ -10,6 +10,7 @@ import PasswordChange from './pages/PasswordChange';
 import UserManagement from './pages/admin/UserManagement';
 import UserEdit from './pages/admin/UserEdit';
 import MathTest from './pages/MathTest';
+import AuthenticatedRedirect from './components/AuthenticatedRedirect';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
@@ -44,8 +45,16 @@ function App() {
             <ThemeProvider>
               <Router>
                 <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/home" element={<Home />} />
+                  <Route path="/" element={
+                    <AuthenticatedRedirect>
+                      <LandingPage />
+                    </AuthenticatedRedirect>
+                  } />
+                  <Route path="/home" element={
+                    <AuthenticatedRedirect>
+                      <Home />
+                    </AuthenticatedRedirect>
+                  } />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/verify-otp" element={<VerifyOtp />} />

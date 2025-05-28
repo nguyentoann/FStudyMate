@@ -30,8 +30,8 @@ const initActivityTracking = (user) => {
   fetchIPAddress();
   
   // Track page changes
-  const originalPushState = history.pushState;
-  history.pushState = function(state, title, url) {
+  const originalPushState = window.history.pushState;
+  window.history.pushState = function(state, title, url) {
     originalPushState.apply(this, [state, title, url]);
     trackPageView(url);
   };
