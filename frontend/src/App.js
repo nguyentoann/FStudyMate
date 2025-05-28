@@ -29,6 +29,8 @@ import LandingPage from './pages/LandingPage';
 import QuizGamePage from './pages/QuizGamePage';
 import VerifyOtp from './pages/VerifyOtp';
 import DeveloperTools from './components/DeveloperTools';
+import QuizManager from './pages/lecturer/QuizManager';
+import CreateQuiz from './pages/lecturer/CreateQuiz';
 import './styles/globals.css';
 
 // Show developer tools only in development environment
@@ -134,6 +136,28 @@ function App() {
                   <Route path="/admin/users/:userId" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <UserEdit />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Quiz Manager routes */}
+                  <Route path="/lecturer/quiz-manager" element={
+                    <ProtectedRoute allowedRoles={['lecturer']}>
+                      <QuizManager />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/lecturer/create-quiz" element={
+                    <ProtectedRoute allowedRoles={['lecturer']}>
+                      <CreateQuiz />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/lecturer/edit-quiz/:id" element={
+                    <ProtectedRoute allowedRoles={['lecturer']}>
+                      <CreateQuiz />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/lecturer/clone-quiz/:id" element={
+                    <ProtectedRoute allowedRoles={['lecturer']}>
+                      <CreateQuiz />
                     </ProtectedRoute>
                   } />
                   

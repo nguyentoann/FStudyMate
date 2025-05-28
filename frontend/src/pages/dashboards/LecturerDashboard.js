@@ -11,6 +11,7 @@ import { EditorState, convertToRaw, ContentState } from 'draft-js';
 import { Editor } from 'react-draft-wysiwyg';
 import draftToMarkdown from 'draftjs-to-markdown';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import { useNavigate } from 'react-router-dom';
 
 const markdownToDraft = (markdown) => {
   if (!markdown) return EditorState.createEmpty();
@@ -58,6 +59,9 @@ const LecturerDashboard = () => {
   const [showOcrModal, setShowOcrModal] = useState(false);
   const dropZoneRef = React.useRef(null);
   
+  // Add navigation to the quiz manager pages
+  const navigate = useNavigate();
+  
   useEffect(() => {
     // In a real app, you would fetch these stats from your API
     setStats({
@@ -75,7 +79,7 @@ const LecturerDashboard = () => {
     }
   }, [selectedSubject]);
   
-    const fetchSubjects = async () => {    try {      setLoading(true);      const data = await getSubjects();      setSubjects(data);      if (data.length > 0 && !selectedSubject) {        setSelectedSubject(data[0].id);      }      setLoading(false);    } catch (error) {      setError('Failed to fetch subjects');      setLoading(false);    }  };
+  const fetchSubjects = async () => {    try {      setLoading(true);      const data = await getSubjects();      setSubjects(data);      if (data.length > 0 && !selectedSubject) {        setSelectedSubject(data[0].id);      }      setLoading(false);    } catch (error) {      setError('Failed to fetch subjects');      setLoading(false);    }  };
   
   const fetchLessons = async (subjectId) => {
     setLoading(true);
@@ -478,6 +482,15 @@ const LecturerDashboard = () => {
     return cleanedContent;
   };
   
+  // Add navigation to the quiz manager pages
+  const goToQuizManager = () => {
+    navigate('/lecturer/quiz-manager');
+  };
+  
+  const goToCreateQuiz = () => {
+    navigate('/lecturer/create-quiz');
+  };
+  
   return (
     <DashboardLayout>
       <div>
@@ -541,6 +554,20 @@ const LecturerDashboard = () => {
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="text-gray-500 text-sm">Quizzes Created</p>
             <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
+            <div className="mt-2 flex space-x-2">
+              <button
+                onClick={goToQuizManager}
+                className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                Manage Quizzes
+              </button>
+              <button
+                onClick={goToCreateQuiz}
+                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Create Quiz
+              </button>
+            </div>
           </div>
           
           <div className="bg-white p-4 rounded-lg shadow">

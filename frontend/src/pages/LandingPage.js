@@ -138,7 +138,7 @@ const LandingPage = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-[#ffcf59] opacity-20 rounded-[30px] transform scale-90"></div>
               <img 
-                src="https://storage.googleapis.com/a1aa/image/33d383a7-7a15-4f75-a475-58f6be6f68bc.jpg" 
+                src="https://toandz.ddns.net/fstudy/img/landing.png" 
                 alt="Student learning" 
                 className="relative z-10 rounded-[30px] shadow-lg w-full max-w-[450px] mx-auto" 
               />
