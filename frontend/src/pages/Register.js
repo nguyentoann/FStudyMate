@@ -414,120 +414,161 @@ const Register = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} py-12 px-4 sm:px-6 lg:px-8`}>
-      <div className={`max-w-md w-full space-y-8 ${darkMode ? 'bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700' : ''}`}>
-        <div>
-          <h2 className={`mt-6 text-center text-3xl font-extrabold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+    <div className="min-h-screen w-full flex items-center justify-center bg-blue-600 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl w-full bg-white rounded-lg shadow-xl overflow-hidden flex">
+        {/* Left side with mountain image */}
+        <div className="hidden md:block w-1/2 bg-cover bg-center" 
+             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')" }}>
+        </div>
+        
+        {/* Right side with registration form */}
+        <div className="w-full md:w-1/2 py-6 px-8 overflow-y-auto max-h-[90vh]">
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
             Create an account
           </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          
           {error && (
-            <div className={`rounded-md ${darkMode ? 'bg-red-900' : 'bg-red-50'} p-4`}>
-              <div className={`text-sm ${darkMode ? 'text-red-200' : 'text-red-700'}`}>{error}</div>
+            <div className="rounded-md bg-red-50 p-4 mb-4">
+              <div className="text-sm text-red-700">{error}</div>
             </div>
           )}
-          {debug && (
-            <div className={`rounded-md ${darkMode ? 'bg-blue-900' : 'bg-blue-50'} p-4 whitespace-pre-wrap`}>
-              <div className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-700'} break-words`}>{debug}</div>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Email address"
-                value={formData.email}
-                onChange={handleChange}
-              />
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
             </div>
+            
             <div>
-              <label htmlFor="username" className="sr-only">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                 Username
               </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Username"
-                value={formData.username}
-                onChange={handleChange}
-              />
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
             </div>
+            
             <div>
-              <label htmlFor="fullName" className="sr-only">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
                 Full Name
               </label>
               <input
+                type="text"
                 id="fullName"
                 name="fullName"
-                type="text"
-                required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Full Name"
                 value={formData.fullName}
                 onChange={handleChange}
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
               />
             </div>
+            
             <div>
-              <label htmlFor="phoneNumber" className="sr-only">
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
                 Phone Number
               </label>
               <input
+                type="tel"
                 id="phoneNumber"
                 name="phoneNumber"
-                type="tel"
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Phone Number"
                 value={formData.phoneNumber}
                 onChange={handleChange}
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
               />
             </div>
+            
             <div>
-              <label htmlFor="role" className="sr-only">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
                 Role
               </label>
               <select
                 id="role"
                 name="role"
-                required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 value={formData.role}
                 onChange={handleChange}
+                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
               >
                 <option value="student">Student</option>
                 <option value="lecturer">Lecturer</option>
-                <option value="outsrc_student">Outsource Student</option>
                 <option value="guest">Guest</option>
+                <option value="outsrc_student">Outsource Student</option>
               </select>
             </div>
             
@@ -535,97 +576,24 @@ const Register = () => {
             {renderRoleSpecificFields()}
             
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-              />
+              <button
+                type="submit"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 uppercase"
+              >
+                Register
+              </button>
             </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
-                  darkMode 
-                    ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-                    : 'border-gray-300 placeholder-gray-500 text-gray-900'
-                } rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
+            
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                  Login here
+                </Link>
+              </p>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button
-              type="button"
-              onClick={testPublicEndpoint}
-              className={`flex-1 py-2 px-2 text-xs border border-transparent font-medium rounded-md text-white ${
-                darkMode ? 'bg-green-700 hover:bg-green-800' : 'bg-green-600 hover:bg-green-700'
-              } focus:outline-none`}
-            >
-              Test Public API
-            </button>
-            
-            <button
-              type="button"
-              onClick={testEmergencyEndpoint}
-              className={`flex-1 py-2 px-2 text-xs border border-transparent font-medium rounded-md text-white ${
-                darkMode ? 'bg-purple-700 hover:bg-purple-800' : 'bg-purple-600 hover:bg-purple-700'
-              } focus:outline-none`}
-            >
-              Test Emergency
-            </button>
-            
-            <button
-              type="button"
-              onClick={testOpenEndpoint}
-              className={`flex-1 py-2 px-2 text-xs border border-transparent font-medium rounded-md text-white ${
-                darkMode ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'
-              } focus:outline-none`}
-            >
-              Test Open
-            </button>
-          </div>
-          
-          <div>
-            <button
-              type="submit"
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                darkMode ? 'bg-indigo-700 hover:bg-indigo-800' : 'bg-indigo-600 hover:bg-indigo-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-            >
-              Register
-            </button>
-          </div>
-          
-          <div className="text-center">
-            <p className={`mt-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-indigo-500 hover:text-indigo-400">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
