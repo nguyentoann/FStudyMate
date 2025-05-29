@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
@@ -281,7 +281,7 @@ const DashboardLayout = ({ children }) => {
           </div>
         )}
         
-        <main className="flex-1 relative overflow-y-auto focus:outline-none p-4 mt-4">
+        <main className="flex-1 relative overflow-y-auto focus:outline-none p-4 mt-16">
           {children}
         </main>
       </div>
