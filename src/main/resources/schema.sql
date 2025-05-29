@@ -237,6 +237,18 @@ CREATE TABLE `role_permissions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+
+
+
+
+
+
+
+
+
+
+
+
 DROP TABLE IF EXISTS `students`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -253,4 +265,79 @@ CREATE TABLE `students` (
   KEY `idx_students_class_id` (`class_id`),
   CONSTRAINT `students_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+
+
+
+DROP TABLE IF EXISTS `user_activity_details`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user_activity_details` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `session_id` int(11) NOT NULL,
+  `device_info` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`device_info`)),
+  `browser_name` varchar(100) DEFAULT NULL,
+  `browser_version` varchar(50) DEFAULT NULL,
+  `os_name` varchar(100) DEFAULT NULL,
+  `os_version` varchar(50) DEFAULT NULL,
+  `is_mobile` tinyint(1) DEFAULT NULL,
+  `device_fingerprint` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_session_id` (`session_id`),
+  CONSTRAINT `user_activity_details_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `user_sessions` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user_sessions`
+--
+
+DROP TABLE IF EXISTS `user_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user_sessions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `session_token` varchar(255) NOT NULL,
+  `last_activity` timestamp NOT NULL DEFAULT current_timestamp(),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `current_page` varchar(255) DEFAULT NULL,
+  `page_views` int(11) DEFAULT 1,
+  `duration` int(11) DEFAULT 0,
+  `ip_address` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_sessions_user_id` (`user_id`),
+  KEY `idx_user_sessions_token` (`session_token`),
+  KEY `idx_user_sessions_last_activity` (`last_activity`),
+  KEY `idx_user_sessions_created_at` (`created_at`),
+  KEY `idx_user_session_token` (`session_token`),
+  KEY `idx_user_session_last_activity` (`last_activity`),
+  KEY `idx_user_session_user_id` (`user_id`),
+  CONSTRAINT `user_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1595 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role` varchar(255) DEFAULT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `phone_number` varchar(20) DEFAULT NULL,
+  `profile_image_url` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `verified` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=3215 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
