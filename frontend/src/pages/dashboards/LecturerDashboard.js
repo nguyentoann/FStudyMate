@@ -79,7 +79,7 @@ const LecturerDashboard = () => {
     }
   }, [selectedSubject]);
   
-  const fetchSubjects = async () => {    try {      setLoading(true);      const data = await getSubjects();      setSubjects(data);      if (data.length > 0 && !selectedSubject) {        setSelectedSubject(data[0].id);      }      setLoading(false);    } catch (error) {      setError('Failed to fetch subjects');      setLoading(false);    }  };
+    const fetchSubjects = async () => {    try {      setLoading(true);      const data = await getSubjects();      setSubjects(data);      if (data.length > 0 && !selectedSubject) {        setSelectedSubject(data[0].id);      }      setLoading(false);    } catch (error) {      setError('Failed to fetch subjects');      setLoading(false);    }  };
   
   const fetchLessons = async (subjectId) => {
     setLoading(true);

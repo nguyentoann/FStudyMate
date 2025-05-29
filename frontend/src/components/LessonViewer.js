@@ -505,18 +505,18 @@ const LessonViewer = ({ lessonId, content = null, onError = () => {} }) => {
   return (
     <div className={`lessonViewer ${loading ? 'opacity-50' : ''}`}>
       {lesson && lesson.content && (
-        <div className={mdStyles.content}>
-          {/* Use our custom table renderer directly for tables in the content */}
+    <div className={mdStyles.content}>
+      {/* Use our custom table renderer directly for tables in the content */}
           {extractTables(lesson.content).map((table, index) => (
-            <MarkdownTableRenderer key={`table-${index}`} content={table} />
-          ))}
-          
-          {/* Use ReactMarkdown for the rest of the content */}
-          <ReactMarkdown 
+        <MarkdownTableRenderer key={`table-${index}`} content={table} />
+      ))}
+      
+      {/* Use ReactMarkdown for the rest of the content */}
+      <ReactMarkdown 
             children={processContent(lesson.content)}
             remarkPlugins={[remarkGfm, remarkMath]} 
             rehypePlugins={[rehypeKatex]}
-            components={markdownComponents}
+        components={markdownComponents}
           />
         </div>
       )}
