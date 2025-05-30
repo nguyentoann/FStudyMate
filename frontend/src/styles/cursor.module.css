@@ -1,0 +1,40 @@
+/* Cursor module styles */
+.cursorImage {
+  position: fixed;
+  width: 32px; /* Adjust size as needed based on your cursor PNG size */
+  height: 32px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  transform: translate(0, 0); /* Adjust offset based on hotspot position in your images */
+  pointer-events: none;
+  z-index: 10000;
+}
+
+/* Hide default cursor on the entire page */
+:global(body.custom-cursor) {
+  cursor: none !important;
+}
+
+/* Hide default cursor on all clickable elements */
+:global(body.custom-cursor *) {
+  cursor: none !important;
+}
+
+/* Specifically target interactive elements */
+:global(body.custom-cursor a),
+:global(body.custom-cursor button),
+:global(body.custom-cursor [role="button"]),
+:global(body.custom-cursor input),
+:global(body.custom-cursor select),
+:global(body.custom-cursor textarea),
+:global(body.custom-cursor .clickable),
+:global(body.custom-cursor .cursor-pointer) {
+  cursor: none !important;
+}
+
+/* For touch devices, disable custom cursor */
+@media (hover: none) and (pointer: coarse) {
+  .cursorImage {
+    display: none;
+  }
+} 

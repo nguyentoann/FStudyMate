@@ -31,6 +31,7 @@ import VerifyOtp from './pages/VerifyOtp';
 import DeveloperTools from './components/DeveloperTools';
 import QuizManager from './pages/lecturer/QuizManager';
 import CreateQuiz from './pages/lecturer/CreateQuiz';
+import BlueCursor from './components/BlueCursor';
 import './styles/globals.css';
 
 // Show developer tools only in development environment
@@ -46,6 +47,7 @@ function App() {
           <DirectWebRTCProvider>
             <ThemeProvider>
               <Router>
+                <BlueCursor />
                 <Routes>
                   <Route path="/" element={
                     <AuthenticatedRedirect>
