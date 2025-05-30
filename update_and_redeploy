@@ -1,0 +1,27 @@
+#!/bin/bash
+cd /root/FStudyMate || exit
+
+# Fetch latest changes
+git fetch origin main
+
+LOCAL=$(git rev-parse @)
+REMOTE=$(git rev-parse @{u})
+
+if ! git diff --quiet || ! git diff --cached --quiet || [ "$LOCAL" != "$REMOTE" ]; then
+
+  echo "Changes detected, pulling latest..."
+  git pull origin main
+
+  pkill -f npm
+  pkill -f node
+
+  pkill -f run-app.sh
+
+  sleep 1
+
+  # Redeploy
+  chmod +x run-app.sh
+  ./run-app.sh
+else
+  echo "No changes."
+fi
