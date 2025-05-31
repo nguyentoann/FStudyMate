@@ -1,6 +1,8 @@
 # FStudyMate - Learning Management System
 
-![FStudyMate Logo](frontend/public/logo192.png)
+
+![image](https://github.com/user-attachments/assets/bf067d0f-71a8-42fe-a555-3418b8876b17)
+
 
 FStudyMate is a comprehensive learning management system designed specifically for FPT University students. It provides course materials, mock exams, progress tracking, and interactive learning features to enhance the educational experience.
 
