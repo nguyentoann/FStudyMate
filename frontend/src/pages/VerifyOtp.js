@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL, EMERGENCY_URL } from '../services/config';
@@ -15,6 +15,7 @@ const VerifyOtp = () => {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(30); // Timer for resending OTP
   const [canResend, setCanResend] = useState(false);
+  const [verified, setVerified] = useState(false); // Track if verification is successful
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +49,22 @@ const VerifyOtp = () => {
     
     return () => clearInterval(interval);
   }, [location, timer]);
+  
+  // Only redirect to login after successful verification and user confirmation
+  useEffect(() => {
+    let redirectTimeout;
+    if (verified) {
+      redirectTimeout = setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    }
+    
+    return () => {
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
+    };
+  }, [verified, navigate]);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,13 +100,14 @@ const VerifyOtp = () => {
           credentials: 'omit'
         });
         
+        const apiData = await apiResponse.json().catch(() => ({}));
+        
         if (apiResponse.ok) {
-          const data = await apiResponse.json();
-          console.log('Regular API verification successful:', data);
+          console.log('Regular API verification successful:', apiData);
           verificationSuccessful = true;
-          responseMessage = data.message || 'Account verified successfully';
+          responseMessage = apiData.message || 'Account verified successfully';
         } else {
-          console.log('Regular API verification failed, trying API emergency endpoint');
+          console.log('Regular API verification failed with status:', apiResponse.status, apiData);
         }
       } catch (apiError) {
         console.log('Error with regular verification API:', apiError);
@@ -115,7 +133,7 @@ const VerifyOtp = () => {
             verificationSuccessful = true;
             responseMessage = apiEmergencyData.message || 'Account verified successfully via API emergency endpoint';
           } else {
-            console.log('API emergency verification failed, trying direct emergency endpoint');
+            console.log('API emergency verification failed with status:', apiEmergencyResponse.status, apiEmergencyData);
           }
         } catch (apiEmergencyError) {
           console.log('Error with API emergency verification:', apiEmergencyError);
@@ -140,32 +158,30 @@ const VerifyOtp = () => {
           
           if (emergencyResponse.ok || emergencyData.status === 'success') {
             const data = emergencyData || {};
-            
             verificationSuccessful = true;
             responseMessage = data.message || 'Account verified successfully via emergency endpoint';
           } else {
-            console.error('Emergency verification failed with response:', emergencyData);
-            // All APIs failed
-            throw new Error('Invalid verification code. Please try again.');
+            console.error('Emergency verification failed with status:', emergencyResponse.status, emergencyData);
           }
         } catch (emergencyError) {
           console.error('Error with emergency verification API:', emergencyError);
-          throw new Error('Verification failed. Please check your code and try again.');
         }
       }
       
+      // Handle result of verification attempts
       if (verificationSuccessful) {
         setSuccess(responseMessage);
-        
-        // Redirect to login after verification
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        setVerified(true); // Set verified to true, which will trigger the redirect in useEffect
       } else {
-        throw new Error('Verification failed. Please try again with a valid code.');
+        // All attempts failed
+        setError('Invalid verification code. Please try again.');
+        setOtp(''); // Clear the OTP input field
       }
     } catch (error) {
-      setError(error.message || 'Verification failed. Please try again.');
+      // General error handling
+      console.error('Verification error:', error);
+      setError('Verification failed. Please check your code and try again.');
+      setOtp(''); // Clear the OTP input field
     } finally {
       setLoading(false);
     }
@@ -344,6 +360,7 @@ const VerifyOtp = () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}
+                autoFocus
               />
             </div>
           </div>
@@ -379,7 +396,12 @@ const VerifyOtp = () => {
           
           <div className="text-center">
             <p className={`mt-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              Already verified? <a href="/login" className="font-medium text-indigo-500 hover:text-indigo-400">Sign in</a>
+              Already verified? <Link to="/login" className="font-medium text-indigo-500 hover:text-indigo-400" onClick={(e) => {
+                // Only allow navigation if user confirms
+                if (!verified && !window.confirm("Are you sure you want to go to login? Your verification process will be abandoned.")) {
+                  e.preventDefault();
+                }
+              }}>Sign in</Link>
             </p>
           </div>
         </form>
