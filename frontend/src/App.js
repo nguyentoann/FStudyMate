@@ -34,7 +34,7 @@ import CreateQuiz from './pages/lecturer/CreateQuiz';
 import BlueCursor from './components/BlueCursor';
 import './styles/globals.css';
 
-// Show developer tools only in development environment dungpham test
+// Show developer tools only in development environment dungpham test2
 const isDevelopment = process.env.NODE_ENV === 'development' || 
                      window.location.hostname === 'localhost' || 
                      window.location.hostname === '127.0.0.1';
