@@ -12,6 +12,7 @@ public class User {
     private String fullName;
     private String phoneNumber;
     private String profileImageUrl;
+    private boolean emailNotificationsEnabled = true; // Default to true
     
     // Map to store role-specific properties
     private Map<String, String> properties = new HashMap<>();
@@ -46,6 +47,11 @@ public class User {
 
     public void setId(int id) {
         this.id = id;
+    }
+    
+    // For compatibility with NotificationDAO
+    public long getUserId() {
+        return id;
     }
 
     public String getUsername() {
@@ -107,6 +113,14 @@ public class User {
 
     public void setProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+    
+    public boolean isEmailNotificationsEnabled() {
+        return emailNotificationsEnabled;
+    }
+    
+    public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) {
+        this.emailNotificationsEnabled = emailNotificationsEnabled;
     }
     
     /**

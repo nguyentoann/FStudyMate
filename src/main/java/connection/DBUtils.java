@@ -1,30 +1,86 @@
 package connection;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * Lớp tiện ích để đóng các tài nguyên JDBC
+ */
 public class DBUtils {
-// Đóng câu lệnh PreparedStatement khi dùng xong
-
-    public static void closePreparedStatement(Statement ps) {
-        try {
-            if (ps != null) {
-                ps.close();
+    private static final Logger LOGGER = Logger.getLogger(DBUtils.class.getName());
+    
+    /**
+     * Đóng đối tượng ResultSet
+     */
+    public static void closeResultSet(ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Không thể đóng ResultSet", e);
             }
-        } catch (SQLException e) {
-            System.out.println(e);
         }
     }
-// Đóng resultset khi không cần dùng
-
-    public static void closeResultSet(ResultSet rs) {
-        try {
-            if (rs != null) {
-                rs.close();
+    
+    /**
+     * Đóng đối tượng PreparedStatement
+     */
+    public static void closePreparedStatement(PreparedStatement stmt) {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Không thể đóng PreparedStatement", e);
             }
-        } catch (SQLException e) {
-            System.out.println(e);
+        }
+    }
+    
+    /**
+     * Đóng đối tượng Statement
+     */
+    public static void closeStatement(Statement stmt) {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Không thể đóng Statement", e);
+            }
+        }
+    }
+    
+    /**
+     * Đóng đối tượng Connection
+     */
+    public static void closeConnection(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Không thể đóng Connection", e);
+            }
+        }
+    }
+    
+    /**
+     * Đóng tất cả tài nguyên JDBC
+     */
+    public static void closeAll(ResultSet rs, Statement stmt, Connection conn) {
+        closeResultSet(rs);
+        closeStatement(stmt);
+        closeConnection(conn);
+    }
+    
+    /**
+     * Rollback transaction nếu có lỗi
+     */
+    public static void rollbackTransaction(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.rollback();
+            } catch (SQLException e) {
+                LOGGER.log(Level.WARNING, "Không thể rollback transaction", e);
+            }
         }
     }
 }

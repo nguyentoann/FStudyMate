@@ -17,6 +17,31 @@ import java.sql.DatabaseMetaData;
 
 public class UserDAO {
     
+    // Add method to ensure the email_notifications_enabled column exists
+    public void ensureEmailNotificationsEnabledColumnExists() {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        
+        try {
+            // Check if the column exists
+            DatabaseMetaData dbm = connection.getMetaData();
+            ResultSet columns = dbm.getColumns(null, null, "users", "email_notifications_enabled");
+            
+            if (!columns.next()) {
+                // Column doesn't exist, add it
+                Statement stmt = connection.createStatement();
+                stmt.executeUpdate("ALTER TABLE users ADD COLUMN email_notifications_enabled BOOLEAN DEFAULT TRUE");
+                stmt.close();
+                System.out.println("Added email_notifications_enabled column to users table");
+            }
+            columns.close();
+        } catch (SQLException e) {
+            System.err.println("Error ensuring email_notifications_enabled column exists: " + e.getMessage());
+        } finally {
+            pool.freeConnection(connection);
+        }
+    }
+    
     public User authenticate(String login, String password) {
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = pool.getConnection();
@@ -76,6 +101,14 @@ public class UserDAO {
                     user.setFullName(rs.getString("full_name"));
                     user.setPhoneNumber(rs.getString("phone_number"));
                     user.setProfileImageUrl(rs.getString("profile_image_url"));
+                    
+                    // Get email notification preferences if the column exists
+                    try {
+                        user.setEmailNotificationsEnabled(rs.getBoolean("email_notifications_enabled"));
+                    } catch (SQLException e) {
+                        // Column might not exist yet, use default value (true)
+                        user.setEmailNotificationsEnabled(true);
+                    }
                     
                     // Get role-specific data
                     String role = rs.getString("role");
@@ -1063,7 +1096,7 @@ public class UserDAO {
             try {
                 connection.setAutoCommit(true);
             } catch (SQLException e) {
-                System.err.println("Error setting auto-commit: " + e.getMessage());
+                System.err.println("Error resetting auto-commit: " + e.getMessage());
             }
             DBUtils.closePreparedStatement(ps);
             pool.freeConnection(connection);
@@ -1310,5 +1343,171 @@ public class UserDAO {
         }
         
         return exists;
+    }
+
+    // Add a method to update notification preferences
+    public boolean updateNotificationPreferences(int userId, boolean emailNotificationsEnabled) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // Ensure column exists
+            ensureEmailNotificationsEnabledColumnExists();
+            
+            String query = "UPDATE users SET email_notifications_enabled = ? WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setBoolean(1, emailNotificationsEnabled);
+            ps.setInt(2, userId);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = (rowsAffected > 0);
+        } catch (SQLException e) {
+            System.err.println("Error updating notification preferences: " + e.getMessage());
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
+    }
+    
+    // Modified getUserById method to include notification preferences
+    public User getUserById(long userId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        User user = null;
+        
+        try {
+            String query = "SELECT * FROM users WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setLong(1, userId);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                user = new User();
+                user.setId(rs.getInt("id"));
+                user.setUsername(rs.getString("username"));
+                user.setEmail(rs.getString("email"));
+                user.setRole(rs.getString("role"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhoneNumber(rs.getString("phone_number"));
+                user.setProfileImageUrl(rs.getString("profile_image_url"));
+                
+                // Get email notification preferences if the column exists
+                try {
+                    user.setEmailNotificationsEnabled(rs.getBoolean("email_notifications_enabled"));
+                } catch (SQLException e) {
+                    // Column might not exist yet, use default value (true)
+                    user.setEmailNotificationsEnabled(true);
+                }
+                
+                // Get role-specific data
+                String role = rs.getString("role");
+                loadRoleSpecificData(connection, user, role, (int)userId);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user by ID: " + e.getMessage());
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return user;
+    }
+
+    /**
+     * Lấy người dùng theo email
+     * @param email Email cần tìm
+     * @return Đối tượng User hoặc null nếu không tìm thấy
+     */
+    public User getUserByEmail(String email) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        User user = null;
+        
+        try {
+            String query = "SELECT * FROM users WHERE email = ?";
+            ps = connection.prepareStatement(query);
+            ps.setString(1, email);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                user = new User();
+                user.setId(rs.getInt("id"));
+                user.setUsername(rs.getString("username"));
+                user.setEmail(rs.getString("email"));
+                user.setRole(rs.getString("role"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhoneNumber(rs.getString("phone_number"));
+                user.setProfileImageUrl(rs.getString("profile_image_url"));
+                
+                // Lấy tùy chọn thông báo qua email nếu cột tồn tại
+                try {
+                    user.setEmailNotificationsEnabled(rs.getBoolean("email_notifications_enabled"));
+                } catch (SQLException e) {
+                    // Cột có thể chưa tồn tại, sử dụng giá trị mặc định (true)
+                    user.setEmailNotificationsEnabled(true);
+                }
+                
+                // Lấy dữ liệu theo vai trò
+                String role = rs.getString("role");
+                loadRoleSpecificData(connection, user, role, rs.getInt("id"));
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi lấy người dùng theo email: " + e.getMessage());
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return user;
+    }
+    
+    /**
+     * Đặt lại mật khẩu cho người dùng (không cần mật khẩu hiện tại)
+     * @param userId ID của người dùng
+     * @param newPassword Mật khẩu mới
+     * @return true nếu thành công, false nếu thất bại
+     */
+    public boolean resetPassword(int userId, String newPassword) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // Mã hóa mật khẩu mới
+            String newPasswordHash = BCrypt.withDefaults().hashToString(12, newPassword.toCharArray());
+            
+            // Cập nhật mật khẩu trong cơ sở dữ liệu
+            String query = "UPDATE users SET password_hash = ? WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setString(1, newPasswordHash);
+            ps.setInt(2, userId);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = (rowsAffected > 0);
+            
+            if (success) {
+                System.out.println("Đã đặt lại mật khẩu cho người dùng ID: " + userId);
+            } else {
+                System.out.println("Không thể đặt lại mật khẩu cho người dùng ID: " + userId);
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi đặt lại mật khẩu: " + e.getMessage());
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
     }
 } 

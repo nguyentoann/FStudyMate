@@ -1,122 +1,153 @@
 package connection;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.DriverManager;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.sql.DataSource;
-import com.mysql.cj.jdbc.MysqlDataSource;
+import java.sql.SQLException;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.io.InputStream;
+import java.util.Properties;
 
+/**
+ * Quản lý kết nối đến cơ sở dữ liệu
+ */
 public class ConnectionPool {
-
-    // Connection Pool instance
-    private static ConnectionPool pool = null;
-    private static DataSource dataSource = null;
     
-    // Database connection parameters
-    private static final String DB_URL = "jdbc:mysql://toandz.ddns.net:3306/fstudymate";
-    private static final String DB_USER = "fstudy";
-    private static final String DB_PASSWORD = "toandz@secretpassword";
+    private static final Logger LOGGER = Logger.getLogger(ConnectionPool.class.getName());
     
-    // Debug flag to enable query logging
-    private static final boolean DEBUG = true;
+    private static ConnectionPool instance;
+    private String jdbcURL;
+    private String jdbcUsername;
+    private String jdbcPassword;
     
-    // Initialize connection pool
     private ConnectionPool() {
         try {
-            // First try to get connection from JNDI
-            try {
-                InitialContext ic = new InitialContext();
-                dataSource = (DataSource) ic.lookup("java:/comp/env/jdbc/FStudyMate");
-                System.out.println("JNDI datasource found: " + dataSource);
-            } catch (NamingException e) {
-                System.out.println("JNDI datasource not found, creating direct connection: " + e);
+            // Tải thông tin kết nối từ application.properties
+            loadDatabaseProperties();
+            
+            // Đăng ký driver MySQL
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            LOGGER.info("MySQL JDBC Driver đã được đăng ký thành công");
+        } catch (ClassNotFoundException e) {
+            LOGGER.log(Level.SEVERE, "Không thể tìm thấy MySQL JDBC Driver", e);
+            throw new RuntimeException("Không thể tìm thấy MySQL JDBC Driver", e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Lỗi khởi tạo ConnectionPool", e);
+            throw new RuntimeException("Lỗi khởi tạo ConnectionPool", e);
+        }
+    }
+    
+    /**
+     * Lấy instance của ConnectionPool (Singleton pattern)
+     */
+    public static synchronized ConnectionPool getInstance() {
+        if (instance == null) {
+            instance = new ConnectionPool();
+        }
+        return instance;
+    }
+    
+    /**
+     * Tải thông tin kết nối từ application.properties
+     */
+    private void loadDatabaseProperties() {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("application.properties")) {
+            Properties properties = new Properties();
+            
+            if (input == null) {
+                // Thử cách khác nếu không tìm thấy file
+                try {
+                    ResourceBundle resourceBundle = ResourceBundle.getBundle("application");
+                    jdbcURL = resourceBundle.getString("spring.datasource.url")
+                             .replace("${DB_URL:", "")
+                             .replace("}", "");
+                    jdbcUsername = resourceBundle.getString("spring.datasource.username")
+                                  .replace("${DB_USERNAME:", "")
+                                  .replace("}", "");
+                    jdbcPassword = resourceBundle.getString("spring.datasource.password")
+                                  .replace("${DB_PASSWORD:", "")
+                                  .replace("}", "");
+                } catch (Exception e) {
+                    // Sử dụng giá trị mặc định nếu không đọc được
+                    LOGGER.warning("Không thể tải application.properties, sử dụng giá trị mặc định");
+                    jdbcURL = "jdbc:mysql://localhost:3306/fstudymate?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true";
+                    jdbcUsername = "root";
+                    jdbcPassword = "password";
+                }
+            } else {
+                properties.load(input);
                 
-                // If JNDI fails, create direct connection
-                MysqlDataSource mysqlDS = new MysqlDataSource();
-                mysqlDS.setURL(DB_URL);
-                mysqlDS.setUser(DB_USER);
-                mysqlDS.setPassword(DB_PASSWORD);
-                mysqlDS.setUseSSL(false);
-                mysqlDS.setAllowPublicKeyRetrieval(true);
-                dataSource = mysqlDS;
+                // Xử lý các biến môi trường trong chuỗi kết nối
+                String url = properties.getProperty("spring.datasource.url");
+                if (url.contains("${DB_URL:")) {
+                    jdbcURL = url.substring(url.indexOf("${DB_URL:") + 9, url.lastIndexOf("}"));
+                } else {
+                    jdbcURL = url;
+                }
                 
-                // Verify connection works
-                try (Connection testConn = dataSource.getConnection()) {
-                    System.out.println("Direct database connection established successfully: " + 
-                                       testConn.getMetaData().getDatabaseProductName() + " " +
-                                       testConn.getMetaData().getDatabaseProductVersion());
-                } catch (SQLException se) {
-                    System.err.println("Failed to establish test connection: " + se);
-                    throw se;
+                String username = properties.getProperty("spring.datasource.username");
+                if (username.contains("${DB_USERNAME:")) {
+                    jdbcUsername = username.substring(username.indexOf("${DB_USERNAME:") + 14, username.lastIndexOf("}"));
+                } else {
+                    jdbcUsername = username;
+                }
+                
+                String password = properties.getProperty("spring.datasource.password");
+                if (password.contains("${DB_PASSWORD:")) {
+                    jdbcPassword = password.substring(password.indexOf("${DB_PASSWORD:") + 14, password.lastIndexOf("}"));
+                } else {
+                    jdbcPassword = password;
                 }
             }
+            
+            LOGGER.info("Đã tải cấu hình database: " + jdbcURL);
         } catch (Exception e) {
-            System.err.println("Fatal error initializing connection pool: " + e);
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Lỗi tải properties kết nối database", e);
+            // Sử dụng giá trị mặc định nếu có lỗi
+            jdbcURL = "jdbc:mysql://localhost:3306/fstudymate?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true";
+            jdbcUsername = "root";
+            jdbcPassword = "password";
         }
     }
     
-    // Get connection pool instance
-    public static synchronized ConnectionPool getInstance() {
-        if (pool == null) {
-            pool = new ConnectionPool();
-        }
-        return pool;
-    }
-    
-    // Get connection from pool
-    public Connection getConnection() {
+    /**
+     * Lấy kết nối đến cơ sở dữ liệu
+     */
+    public Connection getConnection() throws SQLException {
         try {
-            if (dataSource == null) {
-                throw new SQLException("DataSource is null - connection pool not properly initialized");
-            }
-            Connection conn = dataSource.getConnection();
-            if (conn == null) {
-                throw new SQLException("Failed to obtain database connection");
-            }
-            if (DEBUG) {
-                System.out.println("[DB] Connection obtained from pool: " + conn.hashCode());
-            }
+            Connection conn = DriverManager.getConnection(jdbcURL, jdbcUsername, jdbcPassword);
+            LOGGER.fine("Đã tạo kết nối mới đến database");
             return conn;
         } catch (SQLException e) {
-            System.err.println("Error getting connection: " + e);
-            e.printStackTrace();
-            return null;
+            LOGGER.log(Level.SEVERE, "Không thể kết nối đến database", e);
+            throw e;
         }
     }
     
-    // Return connection to pool
-    public void freeConnection(Connection c) {
+    /**
+     * Trả kết nối về pool (trong trường hợp này chỉ đóng kết nối)
+     */
+    public void freeConnection(Connection connection) {
         try {
-            if (c != null) {
-                if (DEBUG) {
-                    System.out.println("[DB] Connection returned to pool: " + c.hashCode());
-                }
-                c.close();
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+                LOGGER.fine("Đã đóng kết nối database");
             }
         } catch (SQLException e) {
-            System.err.println("Error closing connection: " + e);
+            LOGGER.log(Level.WARNING, "Không thể đóng kết nối database", e);
         }
     }
     
-    // Debug method to log a SQL query
-    public static void logQuery(String query, Object... params) {
-        if (DEBUG) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("[DB QUERY] ").append(query);
-            
-            if (params != null && params.length > 0) {
-                sb.append(" [PARAMS: ");
-                for (int i = 0; i < params.length; i++) {
-                    if (i > 0) sb.append(", ");
-                    sb.append(params[i]);
-                }
-                sb.append("]");
-            }
-            
-            System.out.println(sb.toString());
+    /**
+     * Kiểm tra kết nối đến database
+     */
+    public boolean testConnection() {
+        try (Connection conn = getConnection()) {
+            return conn != null && !conn.isClosed();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Kiểm tra kết nối thất bại", e);
+            return false;
         }
     }
 }
