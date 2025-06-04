@@ -224,12 +224,15 @@ const GroupChatBox = () => {
     return extension ? `${shortened}.${extension}` : shortened;
   };
 
-  // Function to make URLs in text clickable
+  // Function to make URLs in text clickable and embed YouTube videos
   const renderTextWithLinks = (text) => {
     if (!text) return null;
     
     // Regular expression to match URLs
     const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    // YouTube URL patterns
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]+)(?:&.*)?/;
     
     // Split the text by URLs and map through parts
     const parts = text.split(urlRegex);
@@ -242,6 +245,56 @@ const GroupChatBox = () => {
           const isUrl = matches.includes(part);
           
           if (isUrl) {
+            // Check if it's a YouTube URL
+            const youtubeMatch = part.match(youtubeRegex);
+            
+            if (youtubeMatch && youtubeMatch[1]) {
+              const videoId = youtubeMatch[1];
+              const iframeId = `group-youtube-${videoId}-${Date.now()}-${i}`;
+              
+              const handleYouTubeOpen = (e) => {
+                // Pause the video before navigating to YouTube
+                try {
+                  const iframe = document.getElementById(iframeId);
+                  if (iframe) {
+                    const contentWindow = iframe.contentWindow;
+                    contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                  }
+                } catch (err) {
+                  console.log("Could not pause video:", err);
+                }
+              };
+              
+              return (
+                <div key={i} className="my-1 w-full max-w-md mx-auto" style={{ minWidth: '300px' }}>
+                  <div className="relative pt-[56.25%] w-full bg-black rounded-md overflow-hidden">
+                    <iframe 
+                      id={iframeId}
+                      className="absolute top-0 left-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1`}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                  <a 
+                    href={`https://www.youtube.com/watch?v=${videoId}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center mt-1 text-xs text-blue-400 hover:text-blue-500"
+                    onClick={handleYouTubeOpen}
+                  >
+                    <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                    </svg>
+                    Open in YouTube
+                  </a>
+                </div>
+              );
+            }
+            
+            // Regular URL link
             return (
               <a 
                 key={i} 
