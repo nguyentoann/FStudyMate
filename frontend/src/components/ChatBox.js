@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import VideoCallButton from './VideoCallButton';
+import { API_URL } from '../services/config';
 
 const ChatBox = () => {
   const { activeConversation, localMessages, setLocalMessages, sendMessage, deleteMessage, closeConversation, uploadFile, downloadFile, unsendMessage } = useChat();
