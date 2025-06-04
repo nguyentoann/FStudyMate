@@ -345,6 +345,10 @@ const GroupChatBox = () => {
           const isMedia = isPreviewable(file);
           const isOutgoing = message => message && message.senderId === user.id;
           
+          // Find the message that contains this file to check ownership
+          const message = localMessages.find(msg => msg.id === messageId);
+          const isMyMessage = message && message.senderId === user.id;
+          
           return (
             <div key={file.id} className="relative">
               {/* Media Preview */}
@@ -394,18 +398,21 @@ const GroupChatBox = () => {
                           </svg>
                           Share
                         </button>
-                        <button
-                          onClick={() => {
-                            unsendFile(file.id, messageId);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-3 py-1 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-                        >
-                          <svg className="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Unsend
-                        </button>
+                        {/* Only show Unsend option for user's own messages */}
+                        {isMyMessage && (
+                          <button
+                            onClick={() => {
+                              unsendFile(file.id, messageId);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-3 py-1 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                          >
+                            <svg className="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Unsend
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
