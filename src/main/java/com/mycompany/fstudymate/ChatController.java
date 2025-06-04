@@ -1,10 +1,24 @@
 package com.mycompany.fstudymate;
 
 import dao.ChatDAO;
+import dao.ChatFileDAO;
+import model.ChatFile;
 import service.OpenAIService;
+import util.FileStorageService;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Logger;
 
 import java.util.HashMap;
@@ -19,6 +33,9 @@ public class ChatController {
 
     @Autowired
     private ChatDAO chatDAO;
+    
+    @Autowired
+    private ChatFileDAO chatFileDAO;
     
     @Autowired
     private OpenAIService openAIService;
@@ -37,12 +54,13 @@ public class ChatController {
                 ));
             }
             
-            boolean success = chatDAO.sendMessage(senderId, receiverId, message);
+            int messageId = chatDAO.sendMessage(senderId, receiverId, message);
             
-            if (success) {
+            if (messageId > 0) {
                 return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Message sent successfully"
+                    "message", "Message sent successfully",
+                    "messageId", messageId
                 ));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -286,12 +304,13 @@ public class ChatController {
                 ));
             }
             
-            boolean success = chatDAO.sendGroupMessage(groupId, senderId, message);
+            int messageId = chatDAO.sendGroupMessage(groupId, senderId, message);
             
-            if (success) {
+            if (messageId > 0) {
                 return ResponseEntity.ok(Map.of(
                     "status", "success",
-                    "message", "Message sent successfully"
+                    "message", "Message sent successfully",
+                    "messageId", messageId
                 ));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -331,6 +350,243 @@ public class ChatController {
             return ResponseEntity.internalServerError().body(Map.of(
                 "status", "error",
                 "message", "Error processing request: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Upload a file for chat
+     */
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, Object>> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("userId") int userId,
+            @RequestParam("messageId") int messageId,
+            @RequestParam("messageType") String messageType) {
+        
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "File is empty"
+                ));
+            }
+            
+            // Upload file to SMB server
+            boolean isGroupChat = "group".equals(messageType);
+            String filePath = FileStorageService.uploadChatFile(
+                file.getInputStream(),
+                file.getOriginalFilename(),
+                file.getContentType(),
+                userId,
+                isGroupChat
+            );
+            
+            // Save file info to database
+            ChatFile chatFile = new ChatFile(
+                file.getOriginalFilename(),
+                filePath,
+                file.getSize(),
+                file.getContentType(),
+                userId
+            );
+            
+            int fileId = chatFileDAO.saveFile(chatFile);
+            
+            if (fileId > 0) {
+                // Link file to message
+                boolean linked = chatFileDAO.linkFileToMessage(messageId, fileId, messageType);
+                
+                if (linked) {
+                    Map<String, Object> fileInfo = new HashMap<>();
+                    fileInfo.put("id", fileId);
+                    fileInfo.put("fileName", file.getOriginalFilename());
+                    fileInfo.put("fileSize", file.getSize());
+                    fileInfo.put("fileType", file.getContentType());
+                    fileInfo.put("isViewable", chatFile.isViewable());
+                    fileInfo.put("category", chatFile.getFileCategory());
+                    
+                    return ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "message", "File uploaded successfully",
+                        "file", fileInfo
+                    ));
+                }
+            }
+            
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "Failed to save file information"
+            ));
+            
+        } catch (IOException e) {
+            logger.severe("Error uploading file: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error uploading file: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Get files attached to a message
+     */
+    @GetMapping("/files/{messageId}")
+    public ResponseEntity<List<Map<String, Object>>> getMessageFiles(
+            @PathVariable int messageId,
+            @RequestParam String messageType) {
+        
+        try {
+            List<Map<String, Object>> files = chatFileDAO.getMessageFiles(messageId, messageType);
+            return ResponseEntity.ok(files);
+        } catch (Exception e) {
+            logger.severe("Error getting message files: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Download a file
+     */
+    @GetMapping("/files/download/{fileId}")
+    public ResponseEntity<?> downloadFile(@PathVariable int fileId) {
+        try {
+            ChatFile chatFile = chatFileDAO.getFileById(fileId);
+            
+            if (chatFile == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            File file = FileStorageService.downloadFile(chatFile.getFilePath());
+            Path path = Paths.get(file.getAbsolutePath());
+            Resource resource = new UrlResource(path.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                HttpHeaders headers = new HttpHeaders();
+                headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + chatFile.getFileName() + "\"");
+                
+                return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentLength(file.length())
+                    .contentType(MediaType.parseMediaType(chatFile.getFileType()))
+                    .body(resource);
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "File could not be read"
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.severe("Error downloading file: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error downloading file: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Delete a file
+     */
+    @DeleteMapping("/files/{fileId}")
+    public ResponseEntity<Map<String, Object>> deleteFile(
+            @PathVariable int fileId,
+            @RequestParam int userId) {
+        
+        try {
+            boolean success = chatFileDAO.softDeleteFile(fileId, userId);
+            
+            if (success) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "File deleted successfully"
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to delete file or file does not belong to user"
+                ));
+            }
+        } catch (Exception e) {
+            logger.severe("Error deleting file: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error deleting file: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Unsend a direct message
+     */
+    @PostMapping("/unsend/{messageId}")
+    public ResponseEntity<Map<String, Object>> unsendMessage(
+            @PathVariable int messageId,
+            @RequestParam int userId) {
+        
+        try {
+            boolean success = chatDAO.unsendMessage(messageId, userId);
+            
+            if (success) {
+                // Mark any attached files as deleted
+                chatFileDAO.markFilesDeletedByMessage(messageId, "direct");
+                
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Message unsent successfully"
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to unsend message or message does not belong to user"
+                ));
+            }
+        } catch (Exception e) {
+            logger.severe("Error unsending message: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error unsending message: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Unsend a group message
+     */
+    @PostMapping("/groups/unsend/{messageId}")
+    public ResponseEntity<Map<String, Object>> unsendGroupMessage(
+            @PathVariable int messageId,
+            @RequestParam int userId) {
+        
+        try {
+            boolean success = chatDAO.unsendGroupMessage(messageId, userId);
+            
+            if (success) {
+                // Mark any attached files as deleted
+                chatFileDAO.markFilesDeletedByMessage(messageId, "group");
+                
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Message unsent successfully"
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to unsend message or message does not belong to user"
+                ));
+            }
+        } catch (Exception e) {
+            logger.severe("Error unsending group message: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error unsending message: " + e.getMessage()
             ));
         }
     }

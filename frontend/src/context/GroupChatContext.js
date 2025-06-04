@@ -52,6 +52,19 @@ export const GroupChatProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      
+      // Fetch files for each message
+      for (const message of data) {
+        try {
+          const filesResponse = await makeApiCall(`/chat/files/${message.id}?messageType=group`, 'GET');
+          if (filesResponse.ok) {
+            message.files = await filesResponse.json();
+          }
+        } catch (filesError) {
+          console.error('Error fetching files for message:', filesError);
+        }
+      }
+      
       setMessages(data);
       setLocalMessages(data);
       
@@ -79,16 +92,99 @@ export const GroupChatProvider = ({ children }) => {
         throw new Error('Failed to send message');
       }
 
+      const data = await response.json();
+      
       // After sending a message, refresh the group messages
       await fetchMessages(groupId);
-      return true;
+      return {
+        success: true,
+        messageId: data.messageId
+      };
       
     } catch (error) {
       console.error('Error sending group message:', error);
       setError(error.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Upload a file
+  const uploadFile = async (file, messageId) => {
+    if (!user || !messageId || !file) return { success: false };
+    
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', user.id);
+      formData.append('messageId', messageId);
+      formData.append('messageType', 'group');
+      
+      const response = await fetch(`${API_URL}/chat/upload`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        file: data.file
+      };
+      
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setError(error.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Unsend a group message
+  const unsendMessage = async (messageId) => {
+    if (!user || !messageId) return false;
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/unsend/${messageId}?userId=${user.id}`, 'POST');
+
+      if (!response.ok) {
+        throw new Error('Failed to unsend message');
+      }
+
+      // After unsending a message, refresh the current group's messages
+      if (activeGroup) {
+        await fetchMessages(activeGroup.id);
+      }
+      return true;
+      
+    } catch (error) {
+      console.error('Error unsending message:', error);
+      setError(error.message);
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Download a file
+  const downloadFile = async (fileId) => {
+    if (!user || !fileId) return { success: false };
+    
+    try {
+      window.open(`${API_URL}/chat/files/download/${fileId}`, '_blank');
+      return { success: true };
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      setError(error.message);
+      return { success: false };
     }
   };
 
@@ -147,6 +243,9 @@ export const GroupChatProvider = ({ children }) => {
         fetchGroups,
         fetchMessages,
         sendMessage,
+        uploadFile,
+        downloadFile,
+        unsendMessage,
         openGroup,
         closeGroup,
       }}

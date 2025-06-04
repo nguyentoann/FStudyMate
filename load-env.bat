@@ -1,17 +1,27 @@
 @echo off
-echo Loading environment variables from .env file...
+echo Loading environment variables...
 
-REM Set database config - using quotes to handle special characters
-set "DB_URL=jdbc:mysql://toandz.ddns.net:3306/fstudymate?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true"
-set "DB_USERNAME=fstudy"
-set "DB_PASSWORD=toandz@secretpassword"
+if not exist ".env" (
+    echo ERROR: .env file not found
+    echo Creating example .env file...
+    echo # SMB Authentication > .env
+    echo SMB_USERNAME=your_username >> .env
+    echo SMB_PASSWORD=your_password >> .env
+    echo.
+    echo Created .env file. Please edit it with your actual SMB credentials.
+    exit /b 1
+)
 
-REM Set OpenAI config
-set "OPENAI_API_KEY=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"
+for /f "tokens=1,* delims==" %%a in (.env) do (
+    if not "%%a"=="" (
+        if not "%%a:~0,1"=="#" (
+            set "%%a=%%b"
+            echo Set %%a
+        )
+    )
+)
 
-REM Set email config
-set "EMAIL_USERNAME=cuutoan.nguyen@gmail.com"
-set "EMAIL_PASSWORD=orkm adcb alkd uhqo"
-
-echo Environment variables loaded successfully!
+echo.
+echo Environment variables loaded. Now you can run your application.
+echo To test SMB connection, run: test-smb-connection.bat
 echo. 

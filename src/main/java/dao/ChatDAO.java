@@ -22,33 +22,40 @@ public class ChatDAO {
      * @param senderId The ID of the sending user
      * @param receiverId The ID of the receiving user
      * @param message The message content
-     * @return true if message was sent successfully
+     * @return The ID of the created message or -1 if failed
      */
-    public boolean sendMessage(int senderId, int receiverId, String message) {
+    public int sendMessage(int senderId, int receiverId, String message) {
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = pool.getConnection();
         PreparedStatement ps = null;
-        boolean success = false;
+        ResultSet generatedKeys = null;
+        int messageId = -1;
         
         try {
             String query = "INSERT INTO chat_messages (sender_id, receiver_id, message) VALUES (?, ?, ?)";
-            ps = connection.prepareStatement(query);
+            ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, senderId);
             ps.setInt(2, receiverId);
             ps.setString(3, message);
             
             int rowsAffected = ps.executeUpdate();
-            success = rowsAffected > 0;
+            if (rowsAffected > 0) {
+                generatedKeys = ps.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    messageId = generatedKeys.getInt(1);
+                }
+            }
             
         } catch (SQLException e) {
             System.err.println("Error sending message: " + e.getMessage());
             e.printStackTrace();
         } finally {
+            DBUtils.closeResultSet(generatedKeys);
             DBUtils.closePreparedStatement(ps);
             pool.freeConnection(connection);
         }
         
-        return success;
+        return messageId;
     }
     
     /**
@@ -623,33 +630,40 @@ public class ChatDAO {
      * @param groupId The group ID
      * @param senderId The sender's user ID
      * @param message The message content
-     * @return true if successful
+     * @return The ID of the created message or -1 if failed
      */
-    public boolean sendGroupMessage(int groupId, int senderId, String message) {
+    public int sendGroupMessage(int groupId, int senderId, String message) {
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = pool.getConnection();
         PreparedStatement ps = null;
-        boolean success = false;
+        ResultSet generatedKeys = null;
+        int messageId = -1;
         
         try {
             String query = "INSERT INTO group_chat_messages (group_id, sender_id, message) VALUES (?, ?, ?)";
-            ps = connection.prepareStatement(query);
+            ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, groupId);
             ps.setInt(2, senderId);
             ps.setString(3, message);
             
             int rowsAffected = ps.executeUpdate();
-            success = rowsAffected > 0;
+            if (rowsAffected > 0) {
+                generatedKeys = ps.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    messageId = generatedKeys.getInt(1);
+                }
+            }
             
         } catch (SQLException e) {
             System.err.println("Error sending group message: " + e.getMessage());
             e.printStackTrace();
         } finally {
+            DBUtils.closeResultSet(generatedKeys);
             DBUtils.closePreparedStatement(ps);
             pool.freeConnection(connection);
         }
         
-        return success;
+        return messageId;
     }
 
     /**
@@ -754,5 +768,93 @@ public class ChatDAO {
         }
         
         return groups;
+    }
+
+    /**
+     * Marks a direct message as unsent (delete for everyone)
+     * 
+     * @param messageId ID of the message
+     * @param userId ID of the user who sent the message
+     * @return true if successful
+     */
+    public boolean unsendMessage(int messageId, int userId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First verify that this user is the sender
+            String verifyQuery = "SELECT sender_id FROM chat_messages WHERE id = ?";
+            ps = connection.prepareStatement(verifyQuery);
+            ps.setInt(1, messageId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next() && rs.getInt("sender_id") == userId) {
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+                
+                // Delete the message
+                String deleteQuery = "UPDATE chat_messages SET message = '[Message unsent]', is_unsent = 1 WHERE id = ?";
+                ps = connection.prepareStatement(deleteQuery);
+                ps.setInt(1, messageId);
+                
+                int rowsAffected = ps.executeUpdate();
+                success = rowsAffected > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error unsending message: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Marks a group message as unsent (delete for everyone)
+     * 
+     * @param messageId ID of the message
+     * @param userId ID of the user who sent the message
+     * @return true if successful
+     */
+    public boolean unsendGroupMessage(int messageId, int userId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First verify that this user is the sender
+            String verifyQuery = "SELECT sender_id FROM group_chat_messages WHERE id = ?";
+            ps = connection.prepareStatement(verifyQuery);
+            ps.setInt(1, messageId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next() && rs.getInt("sender_id") == userId) {
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+                
+                // Update the message
+                String updateQuery = "UPDATE group_chat_messages SET message = '[Message unsent]', is_unsent = 1 WHERE id = ?";
+                ps = connection.prepareStatement(updateQuery);
+                ps.setInt(1, messageId);
+                
+                int rowsAffected = ps.executeUpdate();
+                success = rowsAffected > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error unsending group message: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
     }
 } 

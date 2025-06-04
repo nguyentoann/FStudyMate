@@ -19,15 +19,15 @@ public class CorsFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
         HttpServletRequest request = (HttpServletRequest) req;
         
-        // Log the request for debugging
-        System.out.println("CorsFilter processing request: " + request.getMethod() + " " + request.getRequestURI());
+        // Remove debug logging
+        // System.out.println("CorsFilter processing request: " + request.getMethod() + " " + request.getRequestURI());
         
         // Get the Origin header from the request
         String origin = request.getHeader("Origin");
         
         // Allow any origin, but specifically handle known origins
         if (origin != null) {
-            System.out.println("Request origin: " + origin);
+            // System.out.println("Request origin: " + origin);
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else {
             response.setHeader("Access-Control-Allow-Origin", "*");
@@ -38,12 +38,12 @@ public class CorsFilter implements Filter {
         response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept");
         response.setHeader("Access-Control-Allow-Credentials", "false");
         
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            System.out.println("Handling OPTIONS preflight request");
+        // For preflight requests
+        if ("OPTIONS".equals(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
-        } else {
-            System.out.println("Continuing filter chain for non-OPTIONS request");
-            chain.doFilter(req, res);
+            return;
         }
+        
+        chain.doFilter(req, res);
     }
 } 

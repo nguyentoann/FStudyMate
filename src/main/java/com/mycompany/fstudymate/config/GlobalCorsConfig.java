@@ -20,7 +20,8 @@ public class GlobalCorsConfig {
 
     @Bean
     public FilterRegistrationBean<CorsFilter> globalCorsFilter() {
-        System.out.println("Registering Global CORS Filter with proper credentials support");
+        // Remove debug output
+        // System.out.println("Registering Global CORS Filter with proper credentials support");
         
         CorsConfiguration config = new CorsConfiguration();
         
@@ -54,17 +55,14 @@ public class GlobalCorsConfig {
             "Access-Control-Allow-Credentials"
         ));
         
-        // Cache preflight requests for 1 hour
+        // Set max age for preflight requests
         config.setMaxAge(3600L);
         
-        // Apply to ALL endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         
-        // Create and register the filter with highest priority
         FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        
         return bean;
     }
 } 
