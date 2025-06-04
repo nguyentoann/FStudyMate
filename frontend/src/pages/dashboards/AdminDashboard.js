@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
-import { getUserStatistics, getActiveUsers, getLoginHistory } from '../../services/api';
+import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo } from '../../services/api';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -17,9 +17,11 @@ const AdminDashboard = () => {
   
   const [activeUsers, setActiveUsers] = useState([]);
   const [loginHistory, setLoginHistory] = useState([]);
+  const [storageInfo, setStorageInfo] = useState(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingStorage, setIsLoadingStorage] = useState(true);
   const [error, setError] = useState(null);
   const [refreshingData, setRefreshingData] = useState(false);
   
@@ -81,6 +83,18 @@ const AdminDashboard = () => {
     } finally {
       setIsLoadingHistory(false);
     }
+    
+    // Fetch Samba storage information
+    try {
+      setIsLoadingStorage(true);
+      const storageData = await getSambaStorageInfo();
+      setStorageInfo(storageData);
+    } catch (error) {
+      console.error("Error fetching storage information:", error);
+      setError(prev => prev || "Failed to load storage information.");
+    } finally {
+      setIsLoadingStorage(false);
+    }
   }, []);
 
   // Initial data load
@@ -130,6 +144,108 @@ const AdminDashboard = () => {
     fetchDashboardData();
   };
 
+  // Add this section before the "Quick Actions" section
+  const renderStorageSection = () => {
+    return (
+      <div className="bg-white rounded-lg shadow mb-8">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Storage Information</h2>
+          {isLoadingStorage && (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+          )}
+        </div>
+        <div className="p-4">
+          {storageInfo ? (
+            <div>
+              {/* Storage usage summary */}
+              <div className="mb-6">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-gray-600">
+                    Storage Usage ({storageInfo.usedSpace.toFixed(1)} GB / {storageInfo.totalSpace} GB)
+                  </span>
+                  <span className="text-sm font-medium text-indigo-600">
+                    {storageInfo.usagePercentage.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className={`h-2.5 rounded-full ${
+                      storageInfo.usagePercentage > 85 ? 'bg-red-500' : 
+                      storageInfo.usagePercentage > 70 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${storageInfo.usagePercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              {/* File type distribution */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <div className="text-blue-800 text-xs">Images</div>
+                  <div className="font-semibold">{storageInfo.files.images}</div>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-md">
+                  <div className="text-purple-800 text-xs">Videos</div>
+                  <div className="font-semibold">{storageInfo.files.videos}</div>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-md">
+                  <div className="text-amber-800 text-xs">Documents</div>
+                  <div className="font-semibold">{storageInfo.files.documents}</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <div className="text-gray-800 text-xs">Other Files</div>
+                  <div className="font-semibold">{storageInfo.files.other}</div>
+                </div>
+              </div>
+              
+              {/* Samba share information */}
+              <h3 className="text-md font-medium text-gray-700 mb-3">Samba Shares</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Share Name</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {storageInfo.shares.map((share, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                          {share.name}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          {share.size} GB
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-500">
+                          {share.files}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-indigo-500 h-1.5 rounded-full"
+                              style={{ width: `${(share.size / storageInfo.totalSpace * 100)}%` }}
+                            ></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">
+              {isLoadingStorage ? 'Loading storage information...' : 'No storage information available'}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div>
@@ -137,9 +253,9 @@ const AdminDashboard = () => {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <button 
             onClick={handleRefresh} 
-            disabled={isLoadingStats || isLoadingUsers || isLoadingHistory}
+            disabled={isLoadingStats || isLoadingUsers || isLoadingHistory || isLoadingStorage}
             className={`px-4 py-2 rounded-lg text-white flex items-center ${
-              isLoadingStats || isLoadingUsers || isLoadingHistory ? 
+              isLoadingStats || isLoadingUsers || isLoadingHistory || isLoadingStorage ? 
               'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
@@ -393,6 +509,9 @@ const AdminDashboard = () => {
             )}
           </div>
         </div>
+        
+        {/* Storage Information */}
+        {renderStorageSection()}
         
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow">

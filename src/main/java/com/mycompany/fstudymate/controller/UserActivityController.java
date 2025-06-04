@@ -23,7 +23,7 @@ import com.mycompany.fstudymate.service.UserActivityService;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Allow requests from any origin
+@CrossOrigin(origins = {"http://localhost:3000"}, allowCredentials = "true")
 public class UserActivityController {
 
     private static final Logger logger = Logger.getLogger(UserActivityController.class.getName());

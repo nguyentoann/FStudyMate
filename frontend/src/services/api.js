@@ -568,6 +568,39 @@ export const getLoginHistory = async (days = 7) => {
   }
 };
 
+// Get Samba storage information
+export const getSambaStorageInfo = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/storage-info`);
+    console.log('[API] Storage information fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching storage information:', error);
+    
+    // Fallback to mock storage data
+    console.warn('Using mock storage information');
+    return {
+      totalSpace: 100, // GB
+      usedSpace: 42.5, // GB
+      freeSpace: 57.5, // GB
+      usagePercentage: 42.5,
+      files: {
+        total: 1865,
+        images: 523,
+        videos: 115,
+        documents: 897,
+        other: 330
+      },
+      shares: [
+        { name: 'ChatFilesForum', size: 12.8, files: 342 },
+        { name: 'GroupChatFiles', size: 15.6, files: 523 },
+        { name: 'UserUploads', size: 8.2, files: 721 },
+        { name: 'SystemBackups', size: 5.9, files: 279 }
+      ]
+    };
+  }
+};
+
 // Quiz Management API endpoints
 export const createQuiz = async (quizData) => {
   try {

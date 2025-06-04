@@ -17,8 +17,9 @@ public class WebConfig implements WebMvcConfigurer {
             .allowedOrigins("http://localhost:3000")
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
-            .exposedHeaders("Authorization")
-            .allowCredentials(true); // This is critical for credentials mode 'include'
+            .exposedHeaders("Authorization", "Content-Disposition")
+            .allowCredentials(true)
+            .maxAge(3600); // Cache preflight requests for 1 hour
         
         logger.info("CORS configuration complete: allowedOrigins=[http://localhost:3000], allowCredentials=true");
     }
