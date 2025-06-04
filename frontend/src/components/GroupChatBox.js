@@ -212,7 +212,57 @@ const GroupChatBox = () => {
            fileType.startsWith('audio/');
   };
   
-  // Render media preview based on file type
+  // Function to shorten file name based on width
+  const shortenFileName = (fileName, maxLength = 15) => {
+    if (!fileName || fileName.length <= maxLength) return fileName;
+    
+    const extension = fileName.includes('.') ? fileName.split('.').pop() : '';
+    const nameWithoutExt = fileName.includes('.') ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
+    
+    // Keep part of the name and add ... plus extension
+    const shortened = nameWithoutExt.slice(0, maxLength - 10) + '...';
+    return extension ? `${shortened}.${extension}` : shortened;
+  };
+
+  // Function to make URLs in text clickable
+  const renderTextWithLinks = (text) => {
+    if (!text) return null;
+    
+    // Regular expression to match URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    // Split the text by URLs and map through parts
+    const parts = text.split(urlRegex);
+    const matches = text.match(urlRegex) || [];
+    
+    return (
+      <>
+        {parts.map((part, i) => {
+          // Check if this part matches a URL
+          const isUrl = matches.includes(part);
+          
+          if (isUrl) {
+            return (
+              <a 
+                key={i} 
+                href={part} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-300 underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {part}
+              </a>
+            );
+          }
+          
+          return part;
+        })}
+      </>
+    );
+  };
+  
+  // Render media preview based on file type (updated)
   const renderMediaPreview = (file) => {
     if (!file || !file.fileType) return null;
     
@@ -225,7 +275,7 @@ const GroupChatBox = () => {
           <img 
             src={downloadUrl} 
             alt={file.fileName}
-            className="max-w-full rounded-md max-h-64 object-contain bg-gray-100"
+            className="max-w-full w-auto rounded-md max-h-80 object-contain bg-gray-100"
             loading="lazy"
           />
         </div>
@@ -235,7 +285,7 @@ const GroupChatBox = () => {
         <div className="mt-2">
           <video 
             controls 
-            className="max-w-full rounded-md max-h-64" 
+            className="max-w-full w-auto rounded-md max-h-80" 
             preload="metadata"
           >
             <source src={downloadUrl} type={file.fileType} />
@@ -248,7 +298,7 @@ const GroupChatBox = () => {
         <div className="mt-2">
           <audio 
             controls 
-            className="w-[280px] min-w-[280px]" 
+            className="w-full max-w-[280px]" 
             preload="metadata"
             style={{ borderRadius: '8px', backgroundColor: 'white' }}
           >
@@ -286,7 +336,7 @@ const GroupChatBox = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openMenuId]);
   
-  const renderFileAttachments = (files) => {
+  const renderFileAttachments = (files, messageId) => {
     if (!files || files.length === 0) return null;
     
     return (
@@ -304,7 +354,7 @@ const GroupChatBox = () => {
               <div className={`rounded px-2 py-1 text-xs flex items-center justify-between ${isMedia ? 'mt-1' : ''} bg-indigo-600 text-white`}>
                 <div className="flex items-center max-w-[120px] overflow-hidden">
                   <span className="mr-1 text-white">{getFileIcon(file.category)}</span>
-                  <span className="truncate text-white">{file.fileName}</span>
+                  <span className="truncate text-white">{shortenFileName(file.fileName)}</span>
                 </div>
                 <div className="flex items-center">
                   <span className="text-xs text-indigo-200 mr-2">{formatFileSize(file.fileSize)}</span>
@@ -343,6 +393,18 @@ const GroupChatBox = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                           </svg>
                           Share
+                        </button>
+                        <button
+                          onClick={() => {
+                            unsendFile(file.id, messageId);
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full text-left px-3 py-1 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                        >
+                          <svg className="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Unsend
                         </button>
                       </div>
                     )}
@@ -388,6 +450,21 @@ const GroupChatBox = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
           </svg>
         );
+    }
+  };
+  
+  // Renamed from hardDeleteFile to unsendFile and updated the confirmation message
+  const unsendFile = async (fileId, messageId) => {
+    if (window.confirm('Unsend this message? Everyone will stop seeing it.')) {
+      try {
+        console.log(`[UNSEND_FILE] Starting unsend process for fileId: ${fileId}, messageId: ${messageId}`);
+        
+        // Always unsend the entire message, just like the small red button
+        handleUnsendMessage(messageId);
+        
+      } catch (error) {
+        console.error(`[UNSEND_FILE] Error:`, error);
+      }
     }
   };
   
@@ -461,7 +538,7 @@ const GroupChatBox = () => {
                             : 'bg-white text-gray-800 border rounded-bl-none'
                         }`}
                       >
-                        {!isUnsent && message.files && renderFileAttachments(message.files)}
+                        {!isUnsent && message.files && renderFileAttachments(message.files, message.id)}
                       </div>
                       <div className={`text-[10px] mt-0.5 flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-gray-500">
@@ -518,14 +595,14 @@ const GroupChatBox = () => {
                               : 'bg-white text-gray-800 border rounded-bl-none'
                         }`}
                       >
-                        <p className="text-sm">
+                        <p className="text-sm break-words">
                           {message.message && message.message.startsWith("Sending file:") ? 
-                            "" : message.message}
+                            "" : renderTextWithLinks(message.message)}
                         </p>
                         {message.sendFailed && (
                           <p className="text-xs text-red-300">Failed to send. Try again.</p>
                         )}
-                        {!isUnsent && message.files && renderFileAttachments(message.files)}
+                        {!isUnsent && message.files && renderFileAttachments(message.files, message.id)}
                       </div>
                       <div className={`text-[10px] mt-0.5 flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-gray-500">

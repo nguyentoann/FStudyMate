@@ -498,14 +498,23 @@ public class ChatController {
             @RequestParam int userId) {
         
         try {
-            boolean success = chatFileDAO.softDeleteFile(fileId, userId);
+            // Get file details for logging
+            ChatFile chatFile = chatFileDAO.getFileById(fileId);
+            String filePath = chatFile != null ? chatFile.getFilePath() : "unknown";
+            
+            logger.info("Deleting file ID: " + fileId + ", Path: " + filePath + ", UserId: " + userId);
+            
+            // Use hardDeleteFile instead of softDeleteFile to delete the physical file
+            boolean success = chatFileDAO.hardDeleteFile(fileId, userId);
             
             if (success) {
+                logger.info("File deleted successfully - ID: " + fileId + ", Path: " + filePath);
                 return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "File deleted successfully"
                 ));
             } else {
+                logger.warning("Failed to delete file - ID: " + fileId + ", Path: " + filePath);
                 return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", "Failed to delete file or file does not belong to user"
@@ -530,11 +539,32 @@ public class ChatController {
             @RequestParam int userId) {
         
         try {
+            logger.info("Unsending message ID: " + messageId + " by user: " + userId);
+            
+            // First, get the files associated with this message so we can delete them physically
+            List<Map<String, Object>> messageFiles = chatFileDAO.getMessageFiles(messageId, "direct");
+            
             boolean success = chatDAO.unsendMessage(messageId, userId);
             
             if (success) {
-                // Mark any attached files as deleted
-                chatFileDAO.markFilesDeletedByMessage(messageId, "direct");
+                logger.info("Message unsent successfully. Now handling attached files.");
+                
+                // Process each file for physical deletion
+                for (Map<String, Object> fileInfo : messageFiles) {
+                    try {
+                        int fileId = (int) fileInfo.get("id");
+                        String filePath = (String) fileInfo.get("filePath");
+                        
+                        logger.info("Deleting file ID: " + fileId + ", Path: " + filePath);
+                        
+                        // Use hardDeleteFile to physically remove the file
+                        boolean fileDeleted = chatFileDAO.hardDeleteFile(fileId, userId);
+                        
+                        logger.info("File " + fileId + " deletion result: " + fileDeleted);
+                    } catch (Exception e) {
+                        logger.warning("Error deleting file during unsend: " + e.getMessage());
+                    }
+                }
                 
                 return ResponseEntity.ok(Map.of(
                     "status", "success",
@@ -565,11 +595,32 @@ public class ChatController {
             @RequestParam int userId) {
         
         try {
+            logger.info("Unsending group message ID: " + messageId + " by user: " + userId);
+            
+            // First, get the files associated with this message so we can delete them physically
+            List<Map<String, Object>> messageFiles = chatFileDAO.getMessageFiles(messageId, "group");
+            
             boolean success = chatDAO.unsendGroupMessage(messageId, userId);
             
             if (success) {
-                // Mark any attached files as deleted
-                chatFileDAO.markFilesDeletedByMessage(messageId, "group");
+                logger.info("Group message unsent successfully. Now handling attached files.");
+                
+                // Process each file for physical deletion
+                for (Map<String, Object> fileInfo : messageFiles) {
+                    try {
+                        int fileId = (int) fileInfo.get("id");
+                        String filePath = (String) fileInfo.get("filePath");
+                        
+                        logger.info("Deleting file ID: " + fileId + ", Path: " + filePath);
+                        
+                        // Use hardDeleteFile to physically remove the file
+                        boolean fileDeleted = chatFileDAO.hardDeleteFile(fileId, userId);
+                        
+                        logger.info("File " + fileId + " deletion result: " + fileDeleted);
+                    } catch (Exception e) {
+                        logger.warning("Error deleting file during unsend: " + e.getMessage());
+                    }
+                }
                 
                 return ResponseEntity.ok(Map.of(
                     "status", "success",

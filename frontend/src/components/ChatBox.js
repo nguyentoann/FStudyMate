@@ -201,6 +201,12 @@ const ChatBox = () => {
     const messageToUnsend = localMessages.find(msg => msg.id === messageId);
     
     if (window.confirm('Unsend this message? Everyone will stop seeing it.')) {
+      // Get file IDs before updating UI to ensure we have them
+      const fileIdsToDelete = messageToUnsend && 
+                             messageToUnsend.files && 
+                             messageToUnsend.files.length > 0 ? 
+                             messageToUnsend.files.map(file => file.id) : [];
+      
       // Optimistically update in UI
       setLocalMessages(prev => prev.map(msg => 
         msg.id === messageId 
@@ -208,27 +214,38 @@ const ChatBox = () => {
           : msg
       ));
       
-      // Delete files if the message has any
-      if (messageToUnsend && messageToUnsend.files && messageToUnsend.files.length > 0) {
-        try {
-          // Make API calls to delete each file
-          for (const file of messageToUnsend.files) {
-            await fetch(`${API_URL}/chat/files/${file.id}`, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              credentials: 'include'
-            });
-            console.log(`Deleted file: ${file.fileName}`);
+      // First, unsend the message on the server
+      try {
+        await unsendMessage(messageId);
+        
+        // Then explicitly delete each file
+        if (fileIdsToDelete.length > 0) {
+          console.log(`Found ${fileIdsToDelete.length} files to delete from storage`);
+          
+          for (const fileId of fileIdsToDelete) {
+            try {
+              // Call the specific endpoint with userId parameter
+              const response = await fetch(`${API_URL}/chat/files/${fileId}?userId=${user.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+              });
+              
+              if (response.ok) {
+                console.log(`Successfully deleted file ${fileId} from storage`);
+              } else {
+                console.error(`Failed to delete file ${fileId} from storage`);
+              }
+            } catch (fileError) {
+              console.error(`Error when deleting file ${fileId}:`, fileError);
+            }
           }
-        } catch (error) {
-          console.error("Error deleting files:", error);
         }
+      } catch (unsendError) {
+        console.error("Failed to unsend message:", unsendError);
       }
-      
-      // Then unsend on server
-      await unsendMessage(messageId);
     }
   };
 
@@ -257,6 +274,56 @@ const ChatBox = () => {
            fileType.startsWith('video/') || 
            fileType.startsWith('audio/');
   };
+
+  // Function to shorten file name based on width
+  const shortenFileName = (fileName, maxLength = 15) => {
+    if (!fileName || fileName.length <= maxLength) return fileName;
+    
+    const extension = fileName.includes('.') ? fileName.split('.').pop() : '';
+    const nameWithoutExt = fileName.includes('.') ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
+    
+    // Keep part of the name and add ... plus extension
+    const shortened = nameWithoutExt.slice(0, maxLength - 10) + '...';
+    return extension ? `${shortened}.${extension}` : shortened;
+  };
+
+  // Function to make URLs in text clickable
+  const renderTextWithLinks = (text) => {
+    if (!text) return null;
+    
+    // Regular expression to match URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    // Split the text by URLs and map through parts
+    const parts = text.split(urlRegex);
+    const matches = text.match(urlRegex) || [];
+    
+    return (
+      <>
+        {parts.map((part, i) => {
+          // Check if this part matches a URL
+          const isUrl = matches.includes(part);
+          
+          if (isUrl) {
+            return (
+              <a 
+                key={i} 
+                href={part} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-300 underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {part}
+              </a>
+            );
+          }
+          
+          return part;
+        })}
+      </>
+    );
+  };
   
   // Render media preview based on file type
   const renderMediaPreview = (file) => {
@@ -271,7 +338,7 @@ const ChatBox = () => {
           <img 
             src={downloadUrl} 
             alt={file.fileName}
-            className="max-w-full rounded-md max-h-64 object-contain bg-gray-100"
+            className="max-w-full w-auto rounded-md max-h-80 object-contain bg-gray-100"
             loading="lazy"
           />
         </div>
@@ -281,7 +348,7 @@ const ChatBox = () => {
         <div className="mt-2">
           <video 
             controls 
-            className="max-w-full rounded-md max-h-64" 
+            className="max-w-full w-auto rounded-md max-h-80" 
             preload="metadata"
           >
             <source src={downloadUrl} type={file.fileType} />
@@ -294,7 +361,7 @@ const ChatBox = () => {
         <div className="mt-2">
           <audio 
             controls 
-            className="w-[280px] min-w-[280px]" 
+            className="w-full max-w-[280px]" 
             preload="metadata"
             style={{ borderRadius: '8px', backgroundColor: 'white' }}
           >
@@ -317,7 +384,22 @@ const ChatBox = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const renderFileAttachments = (files) => {
+  // Renamed from hardDeleteFile to unsendFile and updated the confirmation message
+  const unsendFile = async (fileId, messageId) => {
+    if (window.confirm('Unsend this message? Everyone will stop seeing it.')) {
+      try {
+        console.log(`[UNSEND_FILE] Starting unsend process for fileId: ${fileId}, messageId: ${messageId}`);
+        
+        // Always unsend the entire message, just like the small red button
+        handleUnsendMessage(messageId);
+        
+      } catch (error) {
+        console.error(`[UNSEND_FILE] Error:`, error);
+      }
+    }
+  };
+
+  const renderFileAttachments = (files, messageId) => {
     if (!files || files.length === 0) return null;
     
     return (
@@ -337,7 +419,7 @@ const ChatBox = () => {
                 <div className={`rounded px-2 py-1 text-xs flex items-center justify-between ${isMedia ? 'mt-1' : ''} bg-indigo-600 text-white`}>
                   <div className="flex items-center max-w-[120px] overflow-hidden">
                     <span className="mr-1 text-white">{getFileIcon(file.category)}</span>
-                    <span className="truncate text-white">{file.fileName}</span>
+                    <span className="truncate text-white">{shortenFileName(file.fileName)}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-xs text-indigo-200 mr-2">{formatFileSize(file.fileSize)}</span>
@@ -377,6 +459,18 @@ const ChatBox = () => {
                             </svg>
                             Share
                           </button>
+                          <button
+                            onClick={() => {
+                              unsendFile(file.id, messageId);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-3 py-1 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                          >
+                            <svg className="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Unsend
+                          </button>
                         </div>
                       )}
                     </div>
@@ -387,7 +481,7 @@ const ChatBox = () => {
                 <div className={`bg-white border rounded px-2 py-1 text-xs flex items-center justify-between ${isMedia ? 'mt-1' : ''}`}>
                   <div className="flex items-center max-w-[120px] overflow-hidden">
                     <span className="mr-1 text-gray-600">{getFileIcon(file.category)}</span>
-                    <span className="truncate text-gray-600">{file.fileName}</span>
+                    <span className="truncate text-gray-600">{shortenFileName(file.fileName)}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="text-xs text-gray-500 mr-2">{formatFileSize(file.fileSize)}</span>
@@ -426,6 +520,18 @@ const ChatBox = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                             </svg>
                             Share
+                          </button>
+                          <button
+                            onClick={() => {
+                              unsendFile(file.id, messageId);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-3 py-1 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                          >
+                            <svg className="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Unsend
                           </button>
                         </div>
                       )}
@@ -549,7 +655,7 @@ const ChatBox = () => {
                             : 'bg-white text-gray-800 border rounded-bl-none'
                         }`}
                       >
-                        {!isUnsent && message.files && renderFileAttachments(message.files)}
+                        {!isUnsent && message.files && renderFileAttachments(message.files, message.id)}
                       </div>
                       <div className={`text-[10px] mt-0.5 flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-gray-500">
@@ -608,14 +714,14 @@ const ChatBox = () => {
                               : 'bg-white text-gray-800 border rounded-bl-none'
                         }`}
                       >
-                        <p className="text-sm">
+                        <p className="text-sm break-words">
                           {message.message && message.message.startsWith("Sending file:") ? 
-                            "" : message.message}
+                            "" : renderTextWithLinks(message.message)}
                         </p>
                         {message.sendFailed && (
                           <p className="text-xs text-red-300">Failed to send. Tap to retry.</p>
                         )}
-                        {!isUnsent && message.files && renderFileAttachments(message.files)}
+                        {!isUnsent && message.files && renderFileAttachments(message.files, message.id)}
                       </div>
                       <div className={`text-[10px] mt-0.5 flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-gray-500">
