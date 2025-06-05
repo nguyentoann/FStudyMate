@@ -16,6 +16,20 @@ import java.util.ArrayList;
 import java.sql.DatabaseMetaData;
 
 public class UserDAO {
+    // Add singleton instance
+    private static UserDAO instance;
+    
+    // Private constructor for singleton pattern
+    private UserDAO() {
+    }
+    
+    // Get singleton instance
+    public static synchronized UserDAO getInstance() {
+        if (instance == null) {
+            instance = new UserDAO();
+        }
+        return instance;
+    }
     
     public User authenticate(String login, String password) {
         ConnectionPool pool = ConnectionPool.getInstance();

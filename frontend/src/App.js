@@ -32,6 +32,8 @@ import DeveloperTools from './components/DeveloperTools';
 import QuizManager from './pages/lecturer/QuizManager';
 import CreateQuiz from './pages/lecturer/CreateQuiz';
 import BlueCursor from './components/BlueCursor';
+import Feedback from './pages/Feedback';
+import FeedbackManagement from './pages/admin/FeedbackManagement';
 import './styles/globals.css';
 
 // Show developer tools only in development environment dungpham test2
@@ -63,6 +65,18 @@ function App() {
                   <Route path="/register" element={<Register />} />
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/math-test" element={<MathTest />} />
+                  
+                  {/* Feedback routes */}
+                  <Route path="/feedback" element={
+                    <ProtectedRoute>
+                      <Feedback />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/feedback" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <FeedbackManagement />
+                    </ProtectedRoute>
+                  } />
                   
                   {/* Quiz routes */}
                   <Route path="/quiz" element={
@@ -254,7 +268,18 @@ function App() {
                 }
 
                 .animate-blob {
-                  animation: blob 8s ease-in-out infinite;
+                  animation: blob 12s ease-in-out infinite;
+                }
+                
+                .clip-triangle-right {
+                  clip-path: polygon(0 0, 0 100%, 100% 50%);
+                }
+                
+                .line-clamp-2 {
+                  overflow: hidden;
+                  display: -webkit-box;
+                  -webkit-box-orient: vertical;
+                  -webkit-line-clamp: 2;
                 }
               `}</style>
             </ThemeProvider>

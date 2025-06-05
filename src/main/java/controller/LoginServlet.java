@@ -51,7 +51,7 @@ public class LoginServlet extends HttpServlet {
         String password = credentials.get("password");
         
         // Authenticate user
-        UserDAO userDAO = new UserDAO();
+        UserDAO userDAO = UserDAO.getInstance();
         User user = userDAO.authenticate(login, password);
         
         PrintWriter out = response.getWriter();

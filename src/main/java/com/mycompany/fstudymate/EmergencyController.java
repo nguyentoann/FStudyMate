@@ -300,7 +300,7 @@ public class EmergencyController {
             }
             
             // Register user
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             boolean successful = userDAO.registerUser(user, roleData);
             
             if (successful) {

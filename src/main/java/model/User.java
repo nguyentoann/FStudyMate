@@ -134,4 +134,12 @@ public class User {
     public Map<String, String> getProperties() {
         return properties;
     }
+    
+    /**
+     * Check if this user has admin role
+     * @return true if user has admin role, false otherwise
+     */
+    public boolean isAdmin() {
+        return "admin".equalsIgnoreCase(this.role);
+    }
 } 

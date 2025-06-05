@@ -43,7 +43,7 @@ public class UpdateProfileController {
             }
             
             // Use UserDAO to update the user
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             boolean success = userDAO.updateUserProfile(updatedUser, profileData);
             
             if (success) {

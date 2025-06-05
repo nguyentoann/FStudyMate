@@ -117,13 +117,27 @@ const DashboardLayout = ({ children }) => {
                 >
                   Home
                 </Link>
+                <Link
+                  to="/feedback"
+                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  Feedback & Ratings
+                </Link>
                 {user?.role === 'admin' && (
-                  <Link
-                    to="/admin/users"
-                    className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                  >
-                    Manage Users
-                  </Link>
+                  <>
+                    <Link
+                      to="/admin/users"
+                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    >
+                      Manage Users
+                    </Link>
+                    <Link
+                      to="/admin/feedback"
+                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    >
+                      Manage Feedback
+                    </Link>
+                  </>
                 )}
                 {(user?.role === 'lecturer' || user?.role === 'admin') && (
                   <Link
@@ -199,34 +213,55 @@ const DashboardLayout = ({ children }) => {
                   <Link
                     to={getDashboardUrl()}
                     className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Dashboard
                   </Link>
                   <Link
                     to="/profile"
                     className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Profile
                   </Link>
                   <Link
                     to="/change-password"
                     className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Change Password
                   </Link>
                   <Link
                     to={getDashboardUrl()}
                     className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Home
                   </Link>
+                  <Link
+                    to="/feedback"
+                    className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Feedback & Ratings
+                  </Link>
                   {user?.role === 'admin' && (
-                    <Link
-                      to="/admin/users"
-                      className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                    >
-                      Manage Users
-                    </Link>
+                    <>
+                      <Link
+                        to="/admin/users"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Manage Users
+                      </Link>
+                      <Link
+                        to="/admin/feedback"
+                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Manage Feedback
+                      </Link>
+                    </>
                   )}
                   {(user?.role === 'lecturer' || user?.role === 'admin') && (
                     <Link

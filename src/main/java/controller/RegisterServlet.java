@@ -84,7 +84,7 @@ public class RegisterServlet extends HttpServlet {
         }
         
         // Register user
-        UserDAO userDAO = new UserDAO();
+        UserDAO userDAO = UserDAO.getInstance();
         boolean successful = userDAO.registerUser(user, roleData);
         
         PrintWriter out = response.getWriter();

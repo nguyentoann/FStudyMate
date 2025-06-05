@@ -14,6 +14,11 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -25,6 +30,7 @@ public class SecurityConfig {
         // For development purposes, allow all access to admin endpoints
         return http
                 .securityMatcher("/api/admin/**")
+                .cors().and()
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()) // Allow any requests to admin endpoints
                 .csrf().disable()
@@ -39,6 +45,7 @@ public class SecurityConfig {
     public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .securityMatcher("/api/user-activity")
+                .cors().and()
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll())
                 .csrf().disable()
@@ -50,10 +57,26 @@ public class SecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // Allow all other endpoints to be accessed freely for development
         return http
+                .cors().and()
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()) // Changed from authenticated to permitAll
                 .csrf().disable()
                 .build();
+    }
+    
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        
+        return source;
     }
     
     @Bean

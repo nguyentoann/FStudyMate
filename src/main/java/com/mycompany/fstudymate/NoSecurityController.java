@@ -49,7 +49,7 @@ public class NoSecurityController {
             if (!login.contains("@")) {
                 // If login is username, we need to get the email
                 try {
-                    UserDAO tempDAO = new UserDAO();
+                    UserDAO tempDAO = UserDAO.getInstance();
                     email = tempDAO.getEmailFromUsername(login);
                     if (email == null) {
                         // Username not found
@@ -64,7 +64,7 @@ public class NoSecurityController {
             }
             
             // Authenticate user using UserDAO
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             User user = userDAO.authenticate(login, password);
             
             if (user != null) {

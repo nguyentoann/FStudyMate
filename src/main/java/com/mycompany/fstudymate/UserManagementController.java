@@ -17,7 +17,7 @@ public class UserManagementController {
     @GetMapping("/users")
     public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
         try {
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             List<Map<String, Object>> users = userDAO.getAllUsers();
             
             // Ensure all phone numbers have leading zero
@@ -35,7 +35,7 @@ public class UserManagementController {
     @GetMapping("/users/{id}")
     public ResponseEntity<Map<String, Object>> getUserById(@PathVariable int id) {
         try {
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             Map<String, Object> user = userDAO.getUserById(id);
             
             if (user == null) {
@@ -63,7 +63,7 @@ public class UserManagementController {
                 userData.put("phoneNumber", formatPhoneNumber(phoneNumber));
             }
             
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             boolean success = userDAO.updateUserByAdmin(id, userData);
             
             if (success) {
@@ -89,7 +89,7 @@ public class UserManagementController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable int id) {
         try {
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             boolean success = userDAO.deleteUser(id);
             
             if (success) {
@@ -115,7 +115,7 @@ public class UserManagementController {
     @GetMapping("/class-stats")
     public ResponseEntity<Map<String, Integer>> getClassStats() {
         try {
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             Map<String, Integer> stats = userDAO.getStudentClassStats();
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
@@ -127,7 +127,7 @@ public class UserManagementController {
     @GetMapping("/class-ids")
     public ResponseEntity<List<String>> getClassIds() {
         try {
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             List<String> classIds = userDAO.getAllClassIds();
             return ResponseEntity.ok(classIds);
         } catch (Exception e) {

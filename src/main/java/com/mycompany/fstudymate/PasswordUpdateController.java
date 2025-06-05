@@ -34,7 +34,7 @@ public class PasswordUpdateController {
             }
             
             // Update password
-            UserDAO userDAO = new UserDAO();
+            UserDAO userDAO = UserDAO.getInstance();
             int result = userDAO.updatePassword(userId, currentPassword, newPassword);
             
             if (result == 1) {
