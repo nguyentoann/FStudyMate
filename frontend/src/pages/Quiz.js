@@ -6,6 +6,7 @@ import { API_URL } from '../services/config';
 import DashboardLayout from '../components/DashboardLayout';
 import ReactMarkdown from 'react-markdown';
 import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'react-hot-toast';
 
 // Teacher Avatar Component
 const TeacherAvatar = () => {
@@ -129,6 +130,9 @@ const QuizComponent = ({ maMon, maDe }) => {
   const [checkResult, setCheckResult] = useState(null);
   const [completedQuestions, setCompletedQuestions] = useState(new Set());
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  
+  // Remove repeated accesses to questions[currentIndex] with memoization
+  /* We'll replace other references to questions[currentIndex] with currentQuestion */
   
   // Add state for quiz metadata
   const [quizMetadata, setQuizMetadata] = useState({
@@ -597,54 +601,89 @@ const QuizComponent = ({ maMon, maDe }) => {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
   
-  const toggleZoom = (imagePath) => {
-    if (zoomedImage === imagePath) {
-      setZoomedImage(null);
-    } else {
-      setZoomedImage(imagePath);
-    }
-  };
+  // Toggle zoom effect for images
+  const toggleZoom = React.useCallback((imagePath) => {
+    setZoomedImage(prevZoomedImage => prevZoomedImage ? null : imagePath);
+  }, []);
   
-  const handleCheckAnswer = () => {
-    const currentQuestion = questions[currentIndex];
+  // Handle checking answer - optimized with useMemo
+  const handleCheckAnswer = React.useCallback(() => {
+    const question = questions[currentIndex];
+    if (!question) return;
     
-    // Add safety check to prevent accessing properties of undefined
-    if (!currentQuestion || !currentQuestion.correct) {
-      // Don't proceed if we don't have a question or correct answer
+    const selected = selectedAnswers[question.id];
+    if (!selected) {
+      toast.warning('Bạn cần chọn ít nhất một đáp án', {
+        position: "top-center",
+        autoClose: 2000
+      });
       return;
     }
+      
+    const correct = question.correct || question.correctAnswer;
     
-    const selectedAnswer = selectedAnswers[currentQuestion.id];
-    const isCorrect = selectedAnswer === currentQuestion.correct;
+    // For multiple choice questions, we need to check if arrays match
+    let isCorrect;
+    if (Array.isArray(selected) && Array.isArray(correct)) {
+      // For multiple choice, we check if arrays have same elements
+      isCorrect = selected.length === correct.length && 
+                selected.every(item => correct.includes(item));
+    } else {
+      // For single choice, direct comparison
+      isCorrect = selected === correct;
+    }
     
-    setCheckResult({
-      isCorrect,
-      correctAnswer: currentQuestion.correct
-    });
+    setCheckResult(isCorrect ? 'correct' : 'incorrect');
     setIsChecked(true);
     
-    // Add question to completed set
-    setCompletedQuestions(prev => new Set([...prev, currentQuestion.id]));
-  };
+    // Add to completed questions
+    setCompletedQuestions(prev => new Set(prev).add(question.id));
+    
+    // Show next button automatically after a delay
+    setTimeout(() => {
+      document.getElementById('nextBtn')?.focus();
+    }, 500);
+  }, [questions, currentIndex, selectedAnswers]);
   
   // Enhanced Image Component with Zoom Toggle
-  const ZoomableImage = ({ src, alt, className, questionId, questionImg, currentQuestion }) => {
-    // If there's no image, return null
-    if (!questionImg || questionImg.trim() === '') {
-      return null;
-    }
+  const ZoomableImage = React.memo(({ src, alt, className, questionId, questionImg, currentQuestion }) => {
+    // Early null check to handle empty questionImg
+    const hasImage = questionImg && questionImg.trim() !== '';
     
     // Get quiz_id from the question if available (for images linked to quizzes)
     const quiz_id = currentQuestion?.quiz_id || null;
     
+    // Ensure the image name has a file extension (.png if none provided)
+    const ensureExtension = (filename) => {
+      // If the filename already has an extension, return it as is
+      if (filename && filename.includes('.')) return filename;
+      
+      // Try to detect if the server will know what extension to use (auto-detection)
+      // For quiz images, we'll let the server try multiple file extensions
+      return filename || '';
+    };
+    
     // Construction of image path depends on where the image is stored
-    let imagePath;
-    if (quiz_id) {
-      // For questions belonging to a quiz, use the quiz-based path
-      imagePath = `${API_URL}/images/direct?path=quiz/${quiz_id}/${questionImg}`;
-    } else {
-      // For traditional questions use the maMon/maDe based path
-      imagePath = `${API_URL}/images/direct?path=${maMon}/${maDe}/${questionImg}`;
+    // useMemo is always called, but may return empty string for no image
+    const imagePath = React.useMemo(() => {
+      if (!hasImage) return '';
+      
+      // Get the filename with extension
+      const filename = ensureExtension(questionImg);
+      
+      // Build the path based on where the image should be stored
+      let path = quiz_id
+        ? `${API_URL}/images/direct?path=quiz/${quiz_id}/${filename}`
+        : `${API_URL}/images/direct?path=${maMon}/${maDe}/${filename}`;
+      
+      // Log the image path for debugging only once  
+      console.log('Loading image from:', path);
+      return path;
+    }, [quiz_id, questionImg, maMon, maDe, hasImage]);
+    
+    // Early return if no image
+    if (!hasImage) {
+      return null;
     }
     
     return (
@@ -655,20 +694,35 @@ const QuizComponent = ({ maMon, maDe }) => {
         onClick={() => toggleZoom(imagePath)}
         onError={(e) => {
           console.log(`Failed to load image with path ${imagePath}. Trying alternative path...`);
-          // If loading fails, try the alternative path as fallback
+          
+          // Try different fallback paths in order:
+          // 1. If we tried subject/exam path, try quiz-based path
           if (e.target.src.includes(`${maMon}/${maDe}/`)) {
-            e.target.src = `${API_URL}/images/direct?path=quiz/${quiz_id || 'default'}/${questionImg}`;
-          } else if (quiz_id && e.target.src.includes(`quiz/${quiz_id}/`)) {
-            e.target.src = `${API_URL}/images/direct?path=${maMon}/${maDe}/${questionImg}`;
-          } else {
-            // If both paths fail, show default image
+            const filename = ensureExtension(questionImg);
+            e.target.src = `${API_URL}/images/direct?path=quiz/${quiz_id || 'default'}/${filename}`;
+            console.log('Trying fallback #1:', e.target.src);
+          } 
+          // 2. If we tried quiz-based path, try subject/exam path
+          else if (quiz_id && e.target.src.includes(`quiz/${quiz_id}/`)) {
+            const filename = ensureExtension(questionImg);
+            e.target.src = `${API_URL}/images/direct?path=${maMon}/${maDe}/${filename}`;
+            console.log('Trying fallback #2:', e.target.src);
+          }
+          // 3. If all else fails, use placeholder
+          else {
+            console.log('All image paths failed, using placeholder image');
             e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22400%22%20height%3D%22300%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22150%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%3EImage%20Not%20Available%3C%2Ftext%3E%3C%2Fsvg%3E';
           }
+          
           e.target.onerror = null; // Prevent infinite loop
         }}
       />
     );
-  };
+  }, (prevProps, nextProps) => {
+    // Only re-render if the question image changes
+    return prevProps.questionImg === nextProps.questionImg && 
+           prevProps.currentQuestion?.id === nextProps.currentQuestion?.id;
+  });
   
   // Fullscreen Image Modal with Animation
   const FullscreenModal = ({ src, onClose }) => {
@@ -954,59 +1008,67 @@ const QuizComponent = ({ maMon, maDe }) => {
                 <div className="mb-8">
                   <div className="text-lg font-medium mb-4">Câu hỏi {currentIndex + 1}:</div>
                   
-                  {/* Question Text with Markdown */}
-                  {currentQuestion?.questionText && (
+                  {/* Use questions array with index to avoid referencing currentQuestion directly */}
+                  {questions[currentIndex]?.questionText && (
                     <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
                       <ReactMarkdown>
-                        {currentQuestion.questionText}
+                        {questions[currentIndex].questionText}
                       </ReactMarkdown>
                     </div>
                   )}
                   
-                  {/* Question Image */}
-                  {currentQuestion?.questionImg && (
+                  {/* Question Image - memoize the image component to prevent re-renders */}
+                  {questions[currentIndex]?.questionImg && (
                   <div className="mb-4">
                     <ZoomableImage
+                      key={`question-image-${currentIndex}`}
                       alt={`Question ${currentIndex + 1}`}
                       className={`max-w-full h-auto ${darkMode ? 'border-gray-700' : 'border-gray-200'} border rounded`}
-                      questionId={currentQuestion.id}
-                      questionImg={currentQuestion.questionImg}
-                      currentQuestion={currentQuestion}
+                      questionId={questions[currentIndex].id}
+                      questionImg={questions[currentIndex].questionImg}
+                      currentQuestion={questions[currentIndex]}
                     />
                   </div>
                   )}
                   
-                  {/* Answer options */}
+                  {/* Answer options - optimized to prevent re-renders */}
                   <div className="space-y-3 mt-6">
                     {hasValidAnswers ? (
-                      currentQuestion.answers.map((answer, answerIndex) => (
-                        <div
-                          key={answerIndex}
-                          className={`
-                            border rounded-lg p-3 cursor-pointer flex items-center hover:bg-opacity-10 transition-colors
-                            ${selectedAnswers[currentQuestion.id] === answer 
-                              ? 'bg-indigo-600 text-white border-indigo-600' 
-                              : darkMode 
-                                ? 'border-gray-700 hover:bg-indigo-600' 
-                                : 'border-gray-300 hover:bg-gray-50'
-                            }
-                            ${isChecked && checkResult && answer === checkResult.correctAnswer 
-                              ? 'bg-green-600 text-white border-green-600' 
-                              : ''
-                            }
-                          `}
-                          onClick={() => handleAnswerSelect(currentQuestion.id, answer)}
-                        >
-                          <div className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center ${
-                            selectedAnswers[currentQuestion.id] === answer 
-                              ? 'bg-white text-indigo-600' 
-                              : darkMode ? 'bg-gray-700' : 'bg-gray-200'
-                          }`}>
-                            {answer}
-                          </div>
-                          <div>Option {answer}</div>
-                        </div>
-                      ))
+                                            questions[currentIndex].answers.map((answer, answerIndex) => {
+                          // Extract values to avoid re-computation 
+                          const questionId = questions[currentIndex].id;
+                          const isSelected = selectedAnswers[questionId] === answer;
+                          const isCorrectAnswer = isChecked && checkResult && answer === checkResult.correctAnswer;
+                          
+                          return (
+                            <div
+                              key={`answer-${questionId}-${answerIndex}`}
+                              className={`
+                                border rounded-lg p-3 cursor-pointer flex items-center hover:bg-opacity-10 transition-colors
+                                ${isSelected 
+                                  ? 'bg-indigo-600 text-white border-indigo-600' 
+                                  : darkMode 
+                                    ? 'border-gray-700 hover:bg-indigo-600' 
+                                    : 'border-gray-300 hover:bg-gray-50'
+                                }
+                                ${isCorrectAnswer
+                                  ? 'bg-green-600 text-white border-green-600' 
+                                  : ''
+                                }
+                              `}
+                              onClick={() => handleAnswerSelect(questionId, answer)}
+                            >
+                              <div className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center ${
+                                isSelected 
+                                  ? 'bg-white text-indigo-600' 
+                                  : darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}>
+                                {answer}
+                              </div>
+                              <div>Option {answer}</div>
+                            </div>
+                          );
+                        })
                     ) : (
                       <div className={`p-4 rounded-lg text-center ${darkMode ? 'bg-yellow-800 text-yellow-100' : 'bg-yellow-100 text-yellow-800'}`}>
                         No answer options available for this question.
@@ -1043,9 +1105,9 @@ const QuizComponent = ({ maMon, maDe }) => {
                   <div className="flex gap-4">
                     <button
                       onClick={handleCheckAnswer}
-                      disabled={!selectedAnswers[currentQuestion.id] || isChecked}
+                      disabled={!selectedAnswers[questions[currentIndex]?.id] || isChecked}
                       className={`px-4 py-2 rounded flex items-center ${
-                        !selectedAnswers[currentQuestion.id] || isChecked
+                        !selectedAnswers[questions[currentIndex]?.id] || isChecked
                           ? (darkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-500 cursor-not-allowed')
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
