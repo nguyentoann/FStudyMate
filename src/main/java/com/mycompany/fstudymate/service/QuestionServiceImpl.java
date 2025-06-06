@@ -234,13 +234,13 @@ public class QuestionServiceImpl implements QuestionService {
             // We've received maMon and maDe but we don't set them on the question entity
             // They should only be stored in the Quizzes table
             
-            // Extract the correct answer
-            Pattern correctAnswerPattern = Pattern.compile("(?:Correct answer:|correct answer:|Answer:|answer:)\\s*([A-D])", Pattern.CASE_INSENSITIVE);
+            // Extract the correct answer - now supporting multiple choice format (A,B) or (A;B)
+            Pattern correctAnswerPattern = Pattern.compile("(?:Correct answer:|correct answer:|Answer:|answer:)\\s*([A-D](?:[,;\\s]*[A-D])*)", Pattern.CASE_INSENSITIVE);
             Matcher correctAnswerMatcher = correctAnswerPattern.matcher(questionText);
             String correctAnswer = "A"; // Default
             if (correctAnswerMatcher.find()) {
-                correctAnswer = correctAnswerMatcher.group(1).toUpperCase();
-                logger.info("Found correct answer: " + correctAnswer);
+                correctAnswer = correctAnswerMatcher.group(1).toUpperCase().replaceAll("\\s+", "");
+                logger.info("Found correct answer(s): " + correctAnswer);
             } else {
                 logger.warning("Could not find correct answer, defaulting to A");
             }

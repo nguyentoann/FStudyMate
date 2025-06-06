@@ -1,5 +1,9 @@
 import { API_URL } from '../services/config';
 
+// Debug flag to control logging - set to false to disable verbose logs
+// Change to true when troubleshooting CORS or API issues
+const DEBUG_LOGGING = false;
+
 /**
  * Makes an API call with proper error handling, authentication, and CORS fallbacks
  * @param {string} url - The API endpoint (without base URL)
@@ -10,7 +14,9 @@ import { API_URL } from '../services/config';
  */
 export const makeApiCall = async (url, method, body, withCredentials = true) => {
   // Add logging for API calls
-  console.log(`[API] Making ${method} request to ${url}`);
+  if (DEBUG_LOGGING) {
+    console.log(`[API] Making ${method} request to ${url}`);
+  }
 
   // Prepare headers
   const headers = {
@@ -19,7 +25,9 @@ export const makeApiCall = async (url, method, body, withCredentials = true) => 
 
   // Get authentication method (session-based)
   const authMethod = getAuthMethod();
-  console.log(`[API] Using auth method: ${authMethod || 'none'}`);
+  if (DEBUG_LOGGING) {
+    console.log(`[API] Using auth method: ${authMethod || 'none'}`);
+  }
 
   // Build request options
   let options = {
@@ -36,34 +44,46 @@ export const makeApiCall = async (url, method, body, withCredentials = true) => 
   try {
     // First attempt with credentials if requested
     if (withCredentials) {
-      console.log(`[API] Attempting request with credentials`);
+      if (DEBUG_LOGGING) {
+        console.log(`[API] Attempting request with credentials`);
+      }
       const response = await fetch(`${API_URL}${url}`, options);
       
       // If successful, return response
       if (response.ok) {
-        console.log(`[API] Request succeeded with status: ${response.status}`);
+        if (DEBUG_LOGGING) {
+          console.log(`[API] Request succeeded with status: ${response.status}`);
+        }
         return response;
       }
       
       // If unauthorized, try token refresh logic if needed
       if (response.status === 401) {
-        console.log(`[API] Unauthorized response - session may be expired`);
+        if (DEBUG_LOGGING) {
+          console.log(`[API] Unauthorized response - session may be expired`);
+        }
         // Could implement refresh logic here if needed
       }
       
       // If CORS issues, try without credentials
-      console.log(`[API] Request failed with status: ${response.status}, trying without credentials`);
+      if (DEBUG_LOGGING) {
+        console.log(`[API] Request failed with status: ${response.status}, trying without credentials`);
+      }
     }
     
     // Fall back to request without credentials
     options.credentials = 'omit';
-    console.log(`[API] Attempting request without credentials`);
+    if (DEBUG_LOGGING) {
+      console.log(`[API] Attempting request without credentials`);
+    }
     const fallbackResponse = await fetch(`${API_URL}${url}`, options);
     
-    console.log(`[API] Fallback request status: ${fallbackResponse.status}`);
+    if (DEBUG_LOGGING) {
+      console.log(`[API] Fallback request status: ${fallbackResponse.status}`);
+    }
     
     // Log warning if fallback succeeded but original failed
-    if (fallbackResponse.ok && withCredentials) {
+    if (fallbackResponse.ok && withCredentials && DEBUG_LOGGING) {
       console.warn(`[API] Request succeeded without credentials but failed with credentials. This may indicate a CORS configuration issue.`);
     }
     
@@ -71,18 +91,24 @@ export const makeApiCall = async (url, method, body, withCredentials = true) => 
     
   } catch (error) {
     // Handle network errors
-    console.error(`[API] Network error calling ${url}:`, error);
+    if (DEBUG_LOGGING) {
+      console.error(`[API] Network error calling ${url}:`, error);
+    }
     
     // If it's likely a CORS error, try one more time without credentials
     if (withCredentials && 
         (error.message.includes('CORS') || error.message.includes('Failed to fetch'))) {
-      console.log(`[API] CORS issue detected, trying final attempt without credentials`);
+      if (DEBUG_LOGGING) {
+        console.log(`[API] CORS issue detected, trying final attempt without credentials`);
+      }
       
       try {
         options.credentials = 'omit';
         return await fetch(`${API_URL}${url}`, options);
       } catch (fallbackError) {
-        console.error(`[API] Fallback request also failed:`, fallbackError);
+        if (DEBUG_LOGGING) {
+          console.error(`[API] Fallback request also failed:`, fallbackError);
+        }
         throw fallbackError;
       }
     }

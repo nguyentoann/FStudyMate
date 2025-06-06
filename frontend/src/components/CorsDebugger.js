@@ -11,11 +11,11 @@ const CorsDebugger = () => {
   
   // List of endpoints to test
   const endpoints = [
-    { name: 'Video Call Check', path: '/api/video-call/check-calls', method: 'POST', body: { userId: 9 } },
-    { name: 'Video Call Debug', path: '/api/video-call/debug-status', method: 'GET' },
-    { name: 'Chat Conversations', path: '/api/chat/conversations/9', method: 'GET' },
-    { name: 'Chat Groups', path: '/api/chat/groups/9?role=admin', method: 'GET' },
-    { name: 'Admin Stats', path: '/api/admin/user-statistics', method: 'GET' }
+    { name: 'Video Call Check', path: 'video-call/check-calls', method: 'POST', body: { userId: 9 } },
+    { name: 'Video Call Debug', path: 'video-call/debug-status', method: 'GET' },
+    { name: 'Chat Conversations', path: 'chat/conversations/9', method: 'GET' },
+    { name: 'Chat Groups', path: 'chat/groups/9?role=admin', method: 'GET' },
+    { name: 'Admin Stats', path: 'admin/user-statistics', method: 'GET' }
   ];
   
   const runAllTests = async () => {
@@ -68,7 +68,7 @@ const CorsDebugger = () => {
       }
       
       const startTime = Date.now();
-      const response = await fetch(`${API_URL}${endpoint.path}`, options);
+      const response = await fetch(`${API_URL}/${endpoint.path}`, options);
       const endTime = Date.now();
       
       let responseData = null;

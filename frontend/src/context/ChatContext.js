@@ -79,6 +79,10 @@ export const ChatProvider = ({ children }) => {
     
     setLoading(true);
     try {
+      // Log for debugging
+      console.log(`[ChatContext] Fetching messages between ${user.id} and ${otherUserId}`);
+      
+      // Make the API call to get messages
       const response = await makeApiCall(`/chat/messages/${user.id}/${otherUserId}?limit=${limit}&offset=${offset}`, 'GET');
 
       if (!response.ok) {
@@ -86,6 +90,7 @@ export const ChatProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      console.log(`[ChatContext] Retrieved ${data.length} messages:`, data);
       
       // Fetch files for each message
       for (const message of data) {
@@ -254,12 +259,16 @@ export const ChatProvider = ({ children }) => {
 
   // Set active conversation and load its messages
   const openConversation = async (userId) => {
+    console.log(`[ChatContext] Opening conversation with user ID: ${userId}`);
+    
     // Find conversation in the list if it exists
     const conversation = conversations.find(c => c.userId === userId);
     if (conversation) {
+      console.log(`[ChatContext] Found existing conversation:`, conversation);
       setActiveConversation(conversation);
     } else {
       // Create a new conversation object if it doesn't exist
+      console.log(`[ChatContext] Creating new conversation object for user ID: ${userId}`);
       setActiveConversation({
         userId,
         unreadCount: 0,
@@ -267,6 +276,10 @@ export const ChatProvider = ({ children }) => {
         lastMessageTime: null,
       });
     }
+    
+    // Clear any existing messages first to avoid showing old messages while loading
+    setMessages([]);
+    setLocalMessages([]);
     
     // Load the messages for this conversation
     await fetchMessages(userId);

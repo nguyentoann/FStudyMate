@@ -12,12 +12,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/video-call")
-@CrossOrigin(origins = {"http://localhost:3000", "https://localhost:3000"}, allowCredentials = "true")
+@CrossOrigin(
+    origins = {"http://localhost:3000"}, 
+    allowedHeaders = "*", 
+    allowCredentials = "true",
+    exposedHeaders = {"Authorization", "Content-Disposition"},
+    maxAge = 3600,
+    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, 
+               RequestMethod.DELETE, RequestMethod.OPTIONS}
+)
 public class VideoCallController {
     private static final Logger logger = Logger.getLogger(VideoCallController.class.getName());
     

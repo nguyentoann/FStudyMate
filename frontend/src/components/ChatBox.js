@@ -48,19 +48,20 @@ const ChatBox = () => {
   }, [openMenuId]);
   
   // Get user info from conversation list or from messages
-  const otherUser = activeConversation && localMessages.length > 0 
-    ? {
+  const otherUser = activeConversation ? 
+    {
       id: activeConversation.userId,
-      name: localMessages[0].senderId === user.id ? localMessages[0].receiverName : localMessages[0].senderName,
-      username: localMessages[0].senderId === user.id ? localMessages[0].receiverUsername : localMessages[0].senderUsername,
-      profileImageUrl: localMessages[0].senderId === user.id ? localMessages[0].receiverImage : localMessages[0].senderImage,
-    }
-    : {
-      id: activeConversation?.userId,
-      name: activeConversation?.fullName || 'User',
-      username: activeConversation?.username || '',
-      profileImageUrl: activeConversation?.profileImageUrl || 'https://via.placeholder.com/40',
-    };
+      name: activeConversation.fullName || activeConversation.name || 'User',
+      username: activeConversation.username || '',
+      profileImageUrl: activeConversation.profileImageUrl || 'https://via.placeholder.com/40',
+    } : null;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[ChatBox] Active conversation:', activeConversation);
+    console.log('[ChatBox] Local messages:', localMessages);
+    console.log('[ChatBox] Other user:', otherUser);
+  }, [activeConversation, localMessages]);
 
   const checkFileSize = (file) => {
     if (file.size > MAX_FILE_SIZE) {

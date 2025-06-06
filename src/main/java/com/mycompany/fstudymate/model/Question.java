@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "Questions")
@@ -43,6 +46,43 @@ public class Question {
     
     @Transient
     private String fullImageUrl;
+    
+    /**
+     * Check if this question is a multiple choice question
+     * @return true if the question allows multiple answers, false if it's single choice
+     */
+    @Transient
+    public boolean isMultipleChoice() {
+        if (correct == null) return false;
+        
+        // If the correct answer contains multiple values separated by a delimiter
+        // For compatibility with existing data, we support both comma and semicolon delimiters
+        return correct.contains(",") || correct.contains(";");
+    }
+    
+    /**
+     * Get the correct answers as a set of strings
+     * @return a Set containing all correct answers
+     */
+    @Transient
+    public Set<String> getCorrectAnswers() {
+        if (correct == null || correct.isEmpty()) {
+            return new HashSet<>();
+        }
+        
+        // Split by either comma or semicolon
+        String[] answers = correct.split("[,;]\\s*");
+        return new HashSet<>(Arrays.asList(answers));
+    }
+    
+    /**
+     * Get the number of correct answers
+     * @return number of correct answers for this question
+     */
+    @Transient
+    public int getCorrectAnswerCount() {
+        return getCorrectAnswers().size();
+    }
     
     // Manual getters and setters since Lombok isn't working on Windows
     

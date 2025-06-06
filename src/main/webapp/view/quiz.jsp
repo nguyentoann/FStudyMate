@@ -13,6 +13,16 @@
     String indexParam = request.getParameter("index");
     int index = (indexParam != null) ? Integer.parseInt(indexParam) : 0;  // Nếu không có tham số, mặc định là 0
     Question question = questions.get(index);
+    
+    // Handle multiple answers - split by comma or semicolon
+    String[] correctAnswers = question.Correct.contains(";") ? 
+                              question.Correct.split(";") : 
+                              question.Correct.contains(",") ?
+                              question.Correct.split(",") :
+                              new String[] { question.Correct };
+    
+    // Check if it's a multiple-choice question
+    boolean isMultipleChoice = correctAnswers.length > 1;
 %>
 <!DOCTYPE html>
 <html>
@@ -41,7 +51,10 @@
                         <div class="bg-gray-100 flex justify-center items-center">
                             <div class="border-r border-gray-300 p-4 w-full max-w-xs bg-white shadow-lg rounded-lg flex flex-col justify-between h-full">
                                 <div class="h-72">
-                                    <div class="text-lg font-bold mb-4 text-center text-blue-600">Answer</div>
+                                    <div class="text-lg font-bold mb-2 text-center text-blue-600">Answer</div>
+                                    <div class="text-sm mb-4 text-center <%=isMultipleChoice ? "text-red-600" : "text-green-600"%>">
+                                        <%= isMultipleChoice ? "Multiple Choice - Select " + correctAnswers.length + " answers" : "Single Choice" %>
+                                    </div>
                                     <form class="flex flex-col space-y-4 flex-grow" method="POST">
                                         <div class="w-12 checkbox-container flex-1 overflow-y-auto max-h-72">
                                             <c:forEach var="answer" items="<%=question.answers%>">
@@ -155,12 +168,12 @@
                     selectedAnswers.push(checkbox.value);
                 });
 
-                // Get correct answers from question.Correct (e.g., "A;B")
-                let correctAnswers = "<%= question.Correct%>".split(";");
+                // Get correct answers (split by comma or semicolon)
+                let correctAnswers = "<%= question.Correct %>".replace(/\s/g, '').split(/[,;]/);
 
                 // Check if selected answers are correct
                 let isCorrect = selectedAnswers.length === correctAnswers.length &&
-                        selectedAnswers.every(answer => correctAnswers.includes(answer));
+                        selectedAnswers.every(answer => correctAnswers.includes(answer.trim()));
 
                 // Get result display element
                 let resultDisplay = document.getElementById("resultDisplay");
@@ -169,7 +182,7 @@
                 checkboxes.forEach(function(checkbox) {
                     let label = checkbox.parentElement;
                     // Color green for correct selected answers
-                    if (correctAnswers.includes(checkbox.value)) {
+                    if (correctAnswers.includes(checkbox.value.trim())) {
                         label.style.backgroundColor = "#00FF00";
                         label.style.color = "black";
                     }
@@ -179,7 +192,7 @@
                 let allLabels = document.querySelectorAll(".checkbox-container label");
                 allLabels.forEach(function(label) {
                     let answer = label.querySelector("input").value;
-                    if (correctAnswers.includes(answer)) {
+                    if (correctAnswers.includes(answer.trim())) {
                         label.style.backgroundColor = "#00FF00";
                         label.style.color = "black";
                     }

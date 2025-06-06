@@ -8,10 +8,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorsFilter implements Filter {
+    private static final Logger logger = Logger.getLogger(CorsFilter.class.getName());
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
@@ -19,15 +21,15 @@ public class CorsFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
         HttpServletRequest request = (HttpServletRequest) req;
         
-        // Remove debug logging
-        // System.out.println("CorsFilter processing request: " + request.getMethod() + " " + request.getRequestURI());
+        // Enable logging for CORS requests
+        logger.info("CorsFilter processing request: " + request.getMethod() + " " + request.getRequestURI());
         
         // Get the Origin header from the request
         String origin = request.getHeader("Origin");
         
         // Allow any origin, but specifically handle known origins
         if (origin != null) {
-            // System.out.println("Request origin: " + origin);
+            logger.info("Request origin: " + origin);
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else {
             response.setHeader("Access-Control-Allow-Origin", "*");
@@ -36,10 +38,13 @@ public class CorsFilter implements Filter {
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Max-Age", "3600");
         response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept");
-        response.setHeader("Access-Control-Allow-Credentials", "false");
+        
+        // CRITICAL: Set Allow-Credentials to true for all requests
+        response.setHeader("Access-Control-Allow-Credentials", "true");
         
         // For preflight requests
         if ("OPTIONS".equals(request.getMethod())) {
+            logger.info("Handling OPTIONS preflight request for: " + request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_OK);
             return;
         }

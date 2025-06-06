@@ -1,7 +1,11 @@
 package com.mycompany.fstudymate.config;
 
 import java.util.logging.Logger;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -13,7 +17,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         logger.info("Configuring CORS mappings");
-        registry.addMapping("/api/**")
+        
+        // Global CORS configuration for all API endpoints
+        registry.addMapping("/**")
             .allowedOrigins("http://localhost:3000")
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
@@ -21,7 +27,51 @@ public class WebConfig implements WebMvcConfigurer {
             .allowCredentials(true)
             .maxAge(3600); // Cache preflight requests for 1 hour
         
+        // Enhanced specific configuration for video call API with explicit OPTIONS handling
+        registry.addMapping("/api/video-call/**")
+            .allowedOrigins("http://localhost:3000")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .exposedHeaders("Authorization", "Content-Disposition")
+            .allowCredentials(true)
+            .maxAge(3600);
+            
+        // Enhanced specific configuration for chat API with explicit OPTIONS handling
+        registry.addMapping("/api/chat/**")
+            .allowedOrigins("http://localhost:3000")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .exposedHeaders("Authorization", "Content-Disposition")
+            .allowCredentials(true)
+            .maxAge(3600);
+        
         logger.info("CORS configuration complete: allowedOrigins=[http://localhost:3000], allowCredentials=true");
+    }
+    
+    /**
+     * Create a CorsFilter bean that will handle all CORS requests including preflight OPTIONS requests
+     * This provides a more robust solution than relying solely on Spring MVC's CORS handling
+     */
+    @Bean
+    public CorsFilter corsFilter() {
+        logger.info("Creating CORS filter bean");
+        
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedHeader("*");
+        config.addExposedHeader("Authorization");
+        config.addExposedHeader("Content-Disposition");
+        config.addAllowedMethod("*");
+        config.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        source.registerCorsConfiguration("/api/video-call/**", config);
+        source.registerCorsConfiguration("/api/chat/**", config);
+        
+        logger.info("CORS filter bean created with allowCredentials=true");
+        return new CorsFilter(source);
     }
 
     @Override

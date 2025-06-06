@@ -13,12 +13,13 @@ import java.util.Collections;
 
 /**
  * Global CORS configuration for all endpoints
- * This replaces all other CORS configurations to avoid conflicts
+ * This has been replaced by more specific CORS filter configurations
+ * Don't use @Configuration here to avoid conflicts with other CORS settings
  */
-@Configuration
+//@Configuration
 public class GlobalCorsConfig {
 
-    @Bean
+    //@Bean
     public FilterRegistrationBean<CorsFilter> globalCorsFilter() {
         // Remove debug output
         // System.out.println("Registering Global CORS Filter with proper credentials support");

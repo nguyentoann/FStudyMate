@@ -267,7 +267,24 @@
                     <!-- Question section -->
                     <div class="question-container">
                         <div class="question-header">Question <%= index + 1 %></div>
-                        <div class="question-type">(Choose <%= question.Correct.split(";").length %> answer<%= question.Correct.split(";").length > 1 ? "s" : "" %>)</div>
+                        
+                        <% 
+                            // Handle different delimiters for multiple choice answers
+                            String[] correctOptions = question.Correct.contains(";") ? 
+                                                question.Correct.split(";") : 
+                                                question.Correct.contains(",") ?
+                                                question.Correct.split(",") :
+                                                new String[] { question.Correct };
+                            
+                            // Remove any whitespace
+                            for (int i = 0; i < correctOptions.length; i++) {
+                                correctOptions[i] = correctOptions[i].trim();
+                            }
+                        %>
+                        
+                        <div class="question-type">
+                            (Choose <%= correctOptions.length %> answer<%= correctOptions.length > 1 ? "s" : "" %>)
+                        </div>
                         <p>Cau Hoi</p>
                     </div>
                     
@@ -305,7 +322,10 @@
                 });
                 
                 // Get correct answers
-                let correctAnswers = "<%= question.Correct %>".split(";");
+                let correctAnswers = "<%= question.Correct %>".split(/[,;]/);
+                
+                // Trim whitespace from each answer
+                correctAnswers = correctAnswers.map(answer => answer.trim());
                 
                 // Check if answers are correct
                 let isCorrect = selectedAnswers.length === correctAnswers.length &&

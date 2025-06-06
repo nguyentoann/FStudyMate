@@ -4,6 +4,10 @@ import { API_URL } from '../services/config';
 import { inspectAuthState, fixTokenStorage, isValidToken } from '../utils/AuthUtils';
 import { makeApiCall, getAuthMethod } from '../utils/ApiUtils';
 
+// Debug flag to control logging - set to false to disable verbose logs
+// Change to true when troubleshooting CORS or video call issues
+const DEBUG_LOGGING = false;
+
 const DirectWebRTCContext = createContext();
 
 export const useDirectWebRTC = () => useContext(DirectWebRTCContext);
@@ -642,10 +646,14 @@ export const DirectWebRTCProvider = ({ children }) => {
       
       return response;
     } catch (error) {
-      console.error(`[CALL-FLOW] Error with API call to ${url}:`, error);
+      if (DEBUG_LOGGING) {
+        console.error(`[CALL-FLOW] Error with API call to ${url}:`, error);
+      }
       
       if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-        console.log('[CALL-FLOW] CORS issue detected, trying without credentials mode');
+        if (DEBUG_LOGGING) {
+          console.log('[CALL-FLOW] CORS issue detected, trying without credentials mode');
+        }
         
         // Try again without credentials mode as fallback
         try {
@@ -658,10 +666,14 @@ export const DirectWebRTCProvider = ({ children }) => {
             credentials: 'omit' // Don't send cookies
           });
           
-          console.log(`[CALL-FLOW] Fallback API call to ${url} status:`, fallbackResponse.status);
+          if (DEBUG_LOGGING) {
+            console.log(`[CALL-FLOW] Fallback API call to ${url} status:`, fallbackResponse.status);
+          }
           return fallbackResponse;
         } catch (fallbackError) {
-          console.error('[CALL-FLOW] Fallback API call also failed:', fallbackError);
+          if (DEBUG_LOGGING) {
+            console.error('[CALL-FLOW] Fallback API call also failed:', fallbackError);
+          }
           throw fallbackError;
         }
       }
@@ -673,27 +685,35 @@ export const DirectWebRTCProvider = ({ children }) => {
   // Check for incoming calls when user is logged in
   useEffect(() => {
     if (user && !callState.isCallActive && !signalPollingRef.current) {
-      console.log('[CALL-FLOW] Starting general call polling for any incoming calls');
+      if (DEBUG_LOGGING) {
+        console.log('[CALL-FLOW] Starting general call polling for any incoming calls');
+      }
       
       // Start polling for incoming calls from any user
       signalPollingRef.current = setInterval(async () => {
         try {
           // First check for direct signals (optimized for localhost)
-          console.log('[CALL-FLOW] Checking for incoming calls...');
+          if (DEBUG_LOGGING) {
+            console.log('[CALL-FLOW] Checking for incoming calls...');
+          }
           const token = getAuthToken();
           const response = await makeApiCall('/video-call/check-calls', 'POST', {
             userId: user.id
           });
           
           if (!response.ok) {
-            console.error(`[CALL-FLOW] Failed to check for calls: ${response.status}`);
+            if (DEBUG_LOGGING) {
+              console.error(`[CALL-FLOW] Failed to check for calls: ${response.status}`);
+            }
             throw new Error(`Failed to check for calls: ${response.status}`);
           }
           
           const data = await response.json();
           
           if (data.hasIncomingCall) {
-            console.log('[CALL-FLOW] Detected incoming call:', data);
+            if (DEBUG_LOGGING) {
+              console.log('[CALL-FLOW] Detected incoming call:', data);
+            }
             setCallState({
               ...callState,
               isReceivingCall: true,
@@ -705,32 +725,42 @@ export const DirectWebRTCProvider = ({ children }) => {
             });
             
             // Once we've found a call, stop the general polling and switch to specific polling
-            console.log(`[CALL-FLOW] Switching to specific polling for caller ${data.callerId}`);
+            if (DEBUG_LOGGING) {
+              console.log(`[CALL-FLOW] Switching to specific polling for caller ${data.callerId}`);
+            }
             clearInterval(signalPollingRef.current);
             startSignalPolling(data.callerId);
             return; // Exit early, we found a call
-          } else {
+          } else if (DEBUG_LOGGING) {
             console.log('[CALL-FLOW] No incoming calls detected in this polling cycle');
           }
           
           // For localhost environment specifically, check the debug status
           // to manually detect any pending calls that might have been missed
-          console.log('[CALL-FLOW] Checking debug status for missed calls');
+          if (DEBUG_LOGGING) {
+            console.log('[CALL-FLOW] Checking debug status for missed calls');
+          }
           const debugResponse = await makeApiCall('/video-call/debug-status', 'GET');
           
           if (debugResponse.ok) {
             const debugData = await debugResponse.json();
-            console.log('[CALL-FLOW] Debug status response:', debugData);
+            if (DEBUG_LOGGING) {
+              console.log('[CALL-FLOW] Debug status response:', debugData);
+            }
             
             if (debugData.debug && debugData.debug.pendingCallsPerUser) {
               const pendingCalls = debugData.debug.pendingCallsPerUser;
               if (pendingCalls[user.id] && pendingCalls[user.id] > 0) {
-                console.log(`[CALL-FLOW] Found ${pendingCalls[user.id]} pending call(s) in debug status, forcing refresh`);
+                if (DEBUG_LOGGING) {
+                  console.log(`[CALL-FLOW] Found ${pendingCalls[user.id]} pending call(s) in debug status, forcing refresh`);
+                }
                 
                 // Force a refresh of the check-calls endpoint to pick up the call
                 setTimeout(async () => {
                   try {
-                    console.log('[CALL-FLOW] Performing refresh check for calls');
+                    if (DEBUG_LOGGING) {
+                      console.log('[CALL-FLOW] Performing refresh check for calls');
+                    }
                     const refreshResponse = await makeApiCall('/video-call/check-calls', 'POST', {
                       userId: user.id
                     });
@@ -738,7 +768,9 @@ export const DirectWebRTCProvider = ({ children }) => {
                     if (refreshResponse.ok) {
                       const refreshData = await refreshResponse.json();
                       if (refreshData.hasIncomingCall) {
-                        console.log('[CALL-FLOW] Detected incoming call after refresh:', refreshData);
+                        if (DEBUG_LOGGING) {
+                          console.log('[CALL-FLOW] Detected incoming call after refresh:', refreshData);
+                        }
                         setCallState({
                           ...callState,
                           isReceivingCall: true,
@@ -750,37 +782,45 @@ export const DirectWebRTCProvider = ({ children }) => {
                         });
                         
                         // Once we've found a call, stop the general polling and switch to specific polling
-                        console.log(`[CALL-FLOW] Switching to specific polling for caller ${refreshData.callerId} after refresh`);
+                        if (DEBUG_LOGGING) {
+                          console.log(`[CALL-FLOW] Switching to specific polling for caller ${refreshData.callerId} after refresh`);
+                        }
                         clearInterval(signalPollingRef.current);
                         startSignalPolling(refreshData.callerId);
-                      } else {
+                      } else if (DEBUG_LOGGING) {
                         console.log('[CALL-FLOW] No incoming calls found after refresh');
                       }
-                    } else {
+                    } else if (DEBUG_LOGGING) {
                       console.error(`[CALL-FLOW] Failed refresh check: ${refreshResponse.status}`);
                     }
                   } catch (err) {
-                    console.error('[CALL-FLOW] Error in refresh check:', err);
+                    if (DEBUG_LOGGING) {
+                      console.error('[CALL-FLOW] Error in refresh check:', err);
+                    }
                   }
                 }, 500);
-              } else {
+              } else if (DEBUG_LOGGING) {
                 console.log('[CALL-FLOW] No pending calls found in debug data for current user');
               }
-            } else {
+            } else if (DEBUG_LOGGING) {
               console.log('[CALL-FLOW] No pending calls data found in debug status');
             }
-          } else {
+          } else if (DEBUG_LOGGING) {
             console.error(`[CALL-FLOW] Failed to get debug status: ${debugResponse.status}`);
           }
         } catch (err) {
-          console.error('[CALL-FLOW] Error checking for calls:', err);
+          if (DEBUG_LOGGING) {
+            console.error('[CALL-FLOW] Error checking for calls:', err);
+          }
         }
       }, 2000);
     }
     
     return () => {
       if (signalPollingRef.current) {
-        console.log('[CALL-FLOW] Cleaning up general call polling on unmount');
+        if (DEBUG_LOGGING) {
+          console.log('[CALL-FLOW] Cleaning up general call polling on unmount');
+        }
         clearInterval(signalPollingRef.current);
       }
     };

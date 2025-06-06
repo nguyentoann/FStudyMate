@@ -7,11 +7,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-@Configuration
+/**
+ * This configuration is now disabled in favor of the CorsFilter class
+ * which has HIGHEST_PRECEDENCE and properly handles credentials
+ */
+//@Configuration
 public class CorsConfig {
     private static final Logger logger = Logger.getLogger(CorsConfig.class.getName());
 
-    @Bean
+    //@Bean
     public CorsFilter activityCorsFilter() {
         logger.info("Initializing CORS filter");
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
