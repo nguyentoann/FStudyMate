@@ -653,6 +653,10 @@ const QuizComponent = ({ maMon, maDe }) => {
     // Get quiz_id from the question if available (for images linked to quizzes)
     const quiz_id = currentQuestion?.quiz_id || null;
     
+    // Track if this image has been loaded before to prevent duplicate network requests
+    const [hasLoaded, setHasLoaded] = React.useState(false);
+    const imageRef = React.useRef(null);
+    
     // Ensure the image name has a file extension (.png if none provided)
     const ensureExtension = (filename) => {
       // If the filename already has an extension, return it as is
@@ -676,8 +680,8 @@ const QuizComponent = ({ maMon, maDe }) => {
         ? `${API_URL}/images/direct?path=quiz/${quiz_id}/${filename}`
         : `${API_URL}/images/direct?path=${maMon}/${maDe}/${filename}`;
       
-      // Log the image path for debugging only once  
-      console.log('Loading image from:', path);
+      // Don't log every image load - commented out to reduce console spam
+      // console.log('Loading image from:', path);
       return path;
     }, [quiz_id, questionImg, maMon, maDe, hasImage]);
     
@@ -688,29 +692,47 @@ const QuizComponent = ({ maMon, maDe }) => {
     
     return (
       <img 
+        ref={imageRef}
         src={imagePath}
         alt={alt} 
         className={`${className} transition-transform duration-200 cursor-zoom-in hover:scale-105`}
         onClick={() => toggleZoom(imagePath)}
+        // Add loading="lazy" to prevent eager loading
+        loading="lazy"
+        // Use onLoad to track when this image has been loaded
+        onLoad={() => {
+          if (!hasLoaded) {
+            setHasLoaded(true);
+          }
+        }}
         onError={(e) => {
-          console.log(`Failed to load image with path ${imagePath}. Trying alternative path...`);
+          // Only log errors if this is the first attempt
+          if (!hasLoaded) {
+            console.log(`Failed to load image with path ${imagePath}. Trying alternative path...`);
+          }
           
           // Try different fallback paths in order:
           // 1. If we tried subject/exam path, try quiz-based path
           if (e.target.src.includes(`${maMon}/${maDe}/`)) {
             const filename = ensureExtension(questionImg);
             e.target.src = `${API_URL}/images/direct?path=quiz/${quiz_id || 'default'}/${filename}`;
-            console.log('Trying fallback #1:', e.target.src);
+            if (!hasLoaded) {
+              console.log('Trying fallback #1:', e.target.src);
+            }
           } 
           // 2. If we tried quiz-based path, try subject/exam path
           else if (quiz_id && e.target.src.includes(`quiz/${quiz_id}/`)) {
             const filename = ensureExtension(questionImg);
             e.target.src = `${API_URL}/images/direct?path=${maMon}/${maDe}/${filename}`;
-            console.log('Trying fallback #2:', e.target.src);
+            if (!hasLoaded) {
+              console.log('Trying fallback #2:', e.target.src);
+            }
           }
           // 3. If all else fails, use placeholder
           else {
-            console.log('All image paths failed, using placeholder image');
+            if (!hasLoaded) {
+              console.log('All image paths failed, using placeholder image');
+            }
             e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22400%22%20height%3D%22300%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22150%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%3EImage%20Not%20Available%3C%2Ftext%3E%3C%2Fsvg%3E';
           }
           

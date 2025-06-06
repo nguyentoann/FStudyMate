@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { API_URL } from '../services/config';
 import { inspectAuthState, fixTokenStorage, isValidToken } from '../utils/AuthUtils';
 import { makeApiCall, getAuthMethod } from '../utils/ApiUtils';
+import { useStabilizedContext } from '../hooks/useStabilizedContext';
 
 // Debug flag to control logging - set to false to disable verbose logs
 // Change to true when troubleshooting CORS or video call issues
@@ -10,7 +11,7 @@ const DEBUG_LOGGING = false;
 
 const DirectWebRTCContext = createContext();
 
-export const useDirectWebRTC = () => useContext(DirectWebRTCContext);
+export const useDirectWebRTC = () => React.useContext(DirectWebRTCContext);
 
 export const DirectWebRTCProvider = ({ children }) => {
   const { user } = useAuth();
@@ -841,22 +842,30 @@ export const DirectWebRTCProvider = ({ children }) => {
     };
   }, [stream]);
   
+  // Create context value object
+  const contextValue = {
+    callState,
+    stream,
+    remoteStream,
+    error,
+    connectionStatus,
+    myVideo,
+    userVideo,
+    startCall,
+    answerCall,
+    endCall,
+    rejectCall,
+  };
+  
+  // Use stabilized context to prevent unnecessary re-renders during polling
+  const stabilizedContextValue = useStabilizedContext(
+    contextValue, 
+    ['callState'], // Only re-render when callState changes meaningfully
+    1000 // 1-second debounce
+  );
+  
   return (
-    <DirectWebRTCContext.Provider
-      value={{
-        callState,
-        stream,
-        remoteStream,
-        error,
-        connectionStatus,
-        myVideo,
-        userVideo,
-        startCall,
-        answerCall,
-        endCall,
-        rejectCall,
-      }}
-    >
+    <DirectWebRTCContext.Provider value={stabilizedContextValue}>
       {children}
     </DirectWebRTCContext.Provider>
   );

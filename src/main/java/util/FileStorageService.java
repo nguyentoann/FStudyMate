@@ -25,6 +25,7 @@ import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 import jcifs.smb.SmbFileInputStream;
 import jcifs.smb.SmbFileOutputStream;
+import jcifs.smb.SmbFileFilter;
 
 /**
  * Service for handling file storage operations with SMB server
@@ -44,6 +45,7 @@ public class FileStorageService {
     private static final String PROFILE_PICS_DIR = "ProfilePictures";
     private static final String LESSON_FILES_DIR = "LessonFiles";
     private static final String BACKUP_DIR = "Backups";
+    private static final String QUIZ_IMAGES_DIR = "QuizImages";
     
     /**
      * Creates the CIFSContext with authentication
@@ -318,21 +320,390 @@ public class FileStorageService {
      * @return sanitized filename
      */
     private static String sanitizeFileName(String fileName) {
-        if (fileName == null) {
-            return "unnamed_file";
+        // Replace any character that isn't alphanumeric, a period, hyphen, or underscore
+        return fileName.replaceAll("[^a-zA-Z0-9.\\-_]", "_")
+                // Replace multiple dots with a single one
+                .replaceAll("\\.{2,}", ".") 
+                // Limit the file length
+                .substring(0, Math.min(fileName.length(), 100));
+    }
+    
+    /**
+     * Stores a quiz image to the Samba server
+     * 
+     * @param inputStream source of the file contents
+     * @param maMon subject code
+     * @param maDe exam code
+     * @param fileName original filename
+     * @return path to the stored file relative to the SMB share
+     * @throws IOException if the upload fails
+     */
+    public static String storeQuizImage(InputStream inputStream, String maMon, String maDe, String fileName) throws IOException {
+        logger.info("Storing quiz image: " + fileName + " for " + maMon + "/" + maDe);
+        
+        try {
+            // Sanitize inputs
+            String cleanMaMon = sanitizeFileName(maMon);
+            String cleanMaDe = sanitizeFileName(maDe);
+            String cleanFileName = sanitizeFileName(fileName);
+            String fileExtension = FilenameUtils.getExtension(cleanFileName);
+            
+            // Generate unique name with UUID
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+            String dateString = dateFormat.format(new Date());
+            
+            String newFileName;
+            if (fileExtension.isEmpty()) {
+                newFileName = "quiz_" + cleanMaMon + "_" + dateString + "_" + uniqueId + ".png";
+            } else {
+                newFileName = "quiz_" + cleanMaMon + "_" + dateString + "_" + uniqueId + "." + fileExtension;
+            }
+            
+            // Create the relative path
+            String relativePath = QUIZ_IMAGES_DIR + "/" + cleanMaMon + "/" + cleanMaDe + "/";
+            String fullPath = relativePath + newFileName;
+            
+            logger.info("Target path for quiz image: " + fullPath);
+            
+            // Store the file on SMB server
+            CIFSContext context = createContext();
+            logger.info("SMB context created successfully");
+            
+            // Ensure all directories in path exist
+            createDirectoryStructure(context, relativePath);
+            
+            // Create temporary file from input stream
+            logger.info("Creating temporary file from input stream...");
+            File tempFile = createTempFile(inputStream);
+            logger.info("Temp file created: " + tempFile.getAbsolutePath() + ", size: " + tempFile.length() + " bytes");
+            
+            // Write the file to SMB server
+            SmbFile smbFile = new SmbFile(SMB_BASE_PATH + fullPath, context);
+            logger.info("Writing content to: " + smbFile.getPath());
+            
+            try {
+                // Create the file on SMB server
+                smbFile.createNewFile();
+                
+                // Write the temp file content to SMB file
+                try (SmbFileOutputStream smbOut = new SmbFileOutputStream(smbFile);
+                     java.io.FileInputStream fileIn = new java.io.FileInputStream(tempFile)) {
+                    
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    long totalWritten = 0;
+                    
+                    while ((bytesRead = fileIn.read(buffer)) != -1) {
+                        smbOut.write(buffer, 0, bytesRead);
+                        totalWritten += bytesRead;
+                    }
+                    
+                    logger.info("Quiz image uploaded successfully: " + fullPath + ", size: " + totalWritten + " bytes");
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error writing quiz image to SMB file: " + e.getMessage(), e);
+                throw new IOException("Failed to write quiz image to SMB file: " + e.getMessage());
+            }
+            
+            return fullPath;
+            
+        } catch (CIFSException e) {
+            logger.log(Level.SEVERE, "SMB connection error for quiz image: " + e.getMessage(), e);
+            throw new IOException("Failed to connect to file server: " + e.getMessage());
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error uploading quiz image: " + e.getMessage(), e);
+            throw new IOException("Failed to upload quiz image: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Retrieves a quiz image from the Samba server
+     * 
+     * @param maMon subject code
+     * @param maDe exam code
+     * @param fileName image filename
+     * @return File containing the image data
+     * @throws IOException if retrieval fails
+     */
+    public static File getQuizImage(String maMon, String maDe, String fileName) throws IOException {
+        logger.info("Retrieving quiz image: " + fileName + " for " + maMon + "/" + maDe);
         
-        // Replace any directory separators and special chars
-        String cleaned = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
-        
-        // Remove any leading/trailing whitespace
-        cleaned = cleaned.trim();
-        
-        // Default filename if empty
-        if (cleaned.isEmpty()) {
-            cleaned = "unnamed_file";
+        try {
+            // Sanitize the path components
+            maMon = sanitizeFileName(maMon);
+            final String finalMaDe = sanitizeFileName(maDe);
+            fileName = sanitizeFileName(fileName);
+            
+            // Connect to SMB
+            CIFSContext context = createContext();
+            
+            // First, list the subject directory to find matching exam code directory
+            SmbFile subjectDir = new SmbFile(SMB_BASE_PATH + QUIZ_IMAGES_DIR + "/" + maMon + "/", context);
+            
+            if (!subjectDir.exists()) {
+                logger.warning("Subject directory not found: " + maMon);
+                throw new IOException("Subject directory not found");
+            }
+            
+            // Find directories that start with the exam code
+            SmbFile[] examDirs = subjectDir.listFiles(new SmbFileFilter() {
+                @Override
+                public boolean accept(SmbFile file) throws SmbException {
+                    return file.isDirectory() && file.getName().startsWith(finalMaDe);
+                }
+            });
+            
+            if (examDirs == null || examDirs.length == 0) {
+                logger.warning("No matching exam directory found for: " + finalMaDe);
+                throw new IOException("Exam directory not found");
+            }
+            
+            // Use the first matching directory
+            SmbFile examDir = examDirs[0];
+            logger.info("Found matching exam directory: " + examDir.getName());
+            
+            // Define extensions to try if fileName doesn't have one
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
+            SmbFile imageFile = null;
+            
+            // Check if file already has an extension
+            boolean hasExtension = fileName.lastIndexOf(".") > 0;
+            
+            if (hasExtension) {
+                // Try with the exact filename
+                imageFile = new SmbFile(examDir, fileName);
+                if (!imageFile.exists()) {
+                    imageFile = null;
+                }
+            } else {
+                // Try with different extensions
+                for (String ext : extensions) {
+                    SmbFile file = new SmbFile(examDir, fileName + ext);
+                    if (file.exists()) {
+                        imageFile = file;
+                        logger.info("Found file with extension: " + ext);
+                        fileName = fileName + ext; // Update fileName with extension
+                        break;
+                    }
+                }
+            }
+            
+            if (imageFile == null || !imageFile.exists()) {
+                logger.warning("Quiz image not found in examDir: " + examDir.getPath());
+                throw new IOException("Quiz image not found in exam directory");
+            }
+            
+            // Download the file
+            return downloadFile(QUIZ_IMAGES_DIR + "/" + maMon + "/" + examDir.getName() + "/" + fileName);
+        } catch (Exception e) {
+            logger.warning("Error retrieving quiz image from SMB: " + e.getMessage());
+            
+            // Fall back to local filesystem as a last resort
+            try {
+                File legacyFile = findLocalQuizImage(maMon, maDe, fileName);
+                if (legacyFile != null) {
+                    logger.info("Quiz image found in legacy path: " + legacyFile.getPath());
+                    return legacyFile;
+                }
+            } catch (Exception localEx) {
+                logger.warning("Local fallback also failed: " + localEx.getMessage());
+            }
+            
+            throw new IOException("Quiz image not found: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Finds a quiz image in the legacy local filesystem with multiple extension support
+     * 
+     * @param maMon subject code
+     * @param maDe exam code
+     * @param fileName image filename
+     * @return File if found, null otherwise
+     */
+    private static File findLocalQuizImage(String maMon, String maDe, String fileName) {
+        try {
+            // Base path to search in
+            Path baseDir = Paths.get("src", "main", "webapp", "SourceImg", maMon);
+            logger.info("Looking in local path: " + baseDir.toAbsolutePath());
+            
+            if (!Files.exists(baseDir)) {
+                logger.warning("Base directory does not exist: " + baseDir);
+                return null;
+            }
+            
+            // Try to find the correct folder (it might include a date part)
+            File[] folders = baseDir.toFile().listFiles(File::isDirectory);
+            if (folders == null) {
+                logger.warning("No subdirectories found in " + baseDir);
+                return null;
+            }
+            
+            File targetFolder = null;
+            for (File folder : folders) {
+                if (folder.getName().startsWith(maDe)) {
+                    targetFolder = folder;
+                    logger.info("Found matching folder: " + folder.getName());
+                    break;
+                }
+            }
+            
+            if (targetFolder == null) {
+                logger.warning("No matching folder for " + maDe);
+                return null;
+            }
+            
+            // Define extensions to try
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
+            
+            // Check if file already has an extension
+            boolean hasExtension = fileName.lastIndexOf(".") > 0;
+            
+            if (hasExtension) {
+                // Try with the exact filename
+                File file = new File(targetFolder, fileName);
+                if (file.exists() && file.canRead()) {
+                    return file;
+                }
+            }
+            
+            // Try with different extensions
+            for (String ext : extensions) {
+                File file = new File(targetFolder, fileName + ext);
+                if (file.exists() && file.canRead()) {
+                    logger.info("Found local file with extension: " + ext);
+                    return file;
+                }
+            }
+            
+            logger.warning("No matching file found in local filesystem");
+            return null;
+        } catch (Exception e) {
+            logger.warning("Error finding local image: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Gets path for the quiz image on the SMB server
+     * 
+     * @param maMon subject code
+     * @param maDe exam code
+     * @param fileName image filename
+     * @return path to the quiz image on SMB server
+     */
+    public static String getQuizImagePath(String maMon, String maDe, String fileName) {
+        return QUIZ_IMAGES_DIR + "/" + sanitizeFileName(maMon) + "/" + sanitizeFileName(maDe) + "/" + sanitizeFileName(fileName);
+    }
+    
+    /**
+     * Gets quiz image bytes directly without creating a temp file
+     * 
+     * @param fileName image filename
+     * @param maMon subject code
+     * @param maDe exam code
+     * @return byte array with image data or null if not found
+     */
+    public byte[] getQuizImageBytes(String fileName, String maMon, String maDe) {
+        logger.info("Retrieving quiz image: " + fileName + " for " + maMon + "/" + maDe);
         
-        return cleaned;
+        try {
+            // Sanitize the path components
+            maMon = sanitizeFileName(maMon);
+            final String finalMaDe = sanitizeFileName(maDe);
+            fileName = sanitizeFileName(fileName);
+            
+            // Connect to SMB
+            CIFSContext context = createContext();
+            
+            // First, list the subject directory to find matching exam code directory
+            SmbFile subjectDir = new SmbFile(SMB_BASE_PATH + QUIZ_IMAGES_DIR + "/" + maMon + "/", context);
+            
+            if (!subjectDir.exists()) {
+                logger.warning("Subject directory not found: " + maMon);
+                return null;
+            }
+            
+            // Find directories that start with the exam code
+            SmbFile[] examDirs = subjectDir.listFiles(new SmbFileFilter() {
+                @Override
+                public boolean accept(SmbFile file) throws SmbException {
+                    return file.isDirectory() && file.getName().startsWith(finalMaDe);
+                }
+            });
+            
+            if (examDirs == null || examDirs.length == 0) {
+                logger.warning("No matching exam directory found for: " + finalMaDe);
+                return null;
+            }
+            
+            // Use the first matching directory
+            SmbFile examDir = examDirs[0];
+            logger.info("Found matching exam directory: " + examDir.getName());
+            
+            // Define extensions to try if fileName doesn't have one
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
+            SmbFile imageFile = null;
+            
+            // Check if file already has an extension
+            boolean hasExtension = fileName.lastIndexOf(".") > 0;
+            
+            if (hasExtension) {
+                // Try with the exact filename
+                imageFile = new SmbFile(examDir, fileName);
+                if (!imageFile.exists()) {
+                    imageFile = null;
+                }
+            } else {
+                // Try with different extensions
+                for (String ext : extensions) {
+                    SmbFile file = new SmbFile(examDir, fileName + ext);
+                    if (file.exists()) {
+                        imageFile = file;
+                        logger.info("Found file with extension: " + ext);
+                        break;
+                    }
+                }
+            }
+            
+            if (imageFile == null || !imageFile.exists()) {
+                logger.warning("Quiz image not found in examDir: " + examDir.getPath());
+                return null;
+            }
+            
+            // Download file bytes directly without creating a temp file
+            logger.info("Downloading file: " + imageFile.getPath());
+            
+            try (SmbFileInputStream in = new SmbFileInputStream(imageFile);
+                 java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+                
+                byte[] imageBytes = out.toByteArray();
+                logger.info("File downloaded successfully: " + imageFile.getName() + ", size: " + imageBytes.length + " bytes");
+                return imageBytes;
+            }
+            
+        } catch (Exception e) {
+            logger.warning("Error retrieving quiz image from SMB: " + e.getMessage());
+            
+            // Fall back to local filesystem as a last resort
+            try {
+                File legacyFile = findLocalQuizImage(maMon, maDe, fileName);
+                if (legacyFile != null) {
+                    logger.info("Quiz image found in legacy path: " + legacyFile.getPath());
+                    return Files.readAllBytes(legacyFile.toPath());
+                }
+            } catch (Exception localEx) {
+                logger.warning("Local fallback also failed: " + localEx.getMessage());
+            }
+            
+            return null;
+        }
     }
 } 

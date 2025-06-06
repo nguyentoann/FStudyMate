@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { API_URL } from '../services/config';
 import { makeApiCall } from '../utils/ApiUtils';
+import { useStabilizedContext } from '../hooks/useStabilizedContext';
 
 const ChatContext = createContext();
 
@@ -12,7 +13,7 @@ export const ChatProvider = ({ children }) => {
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [localMessages, setLocalMessages] = useState([]);
+  const [localMessages, setLocalMessages] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -313,6 +314,36 @@ export const ChatProvider = ({ children }) => {
     return () => clearInterval(checkVideosInterval);
   }, [pauseAutoRefresh]);
 
+  // Create the context value
+  const contextValue = {
+    conversations,
+    activeConversation,
+    messages,
+    localMessages,
+    setLocalMessages,
+    unreadCount,
+    loading,
+    error,
+    fetchConversations,
+    fetchMessages,
+    sendMessage,
+    uploadFile,
+    downloadFile,
+    deleteMessage,
+    unsendMessage,
+    openConversation,
+    closeConversation,
+    pauseAutoRefresh,
+    setPauseAutoRefresh,
+  };
+  
+  // Use stabilized context to prevent unnecessary re-renders
+  const stabilizedContextValue = useStabilizedContext(
+    contextValue, 
+    ['conversations', 'messages'], // Only these state changes should trigger re-renders
+    1000 // 1-second debounce
+  );
+  
   // Set up periodic refresh of conversations
   useEffect(() => {
     if (!user) return;
@@ -335,29 +366,7 @@ export const ChatProvider = ({ children }) => {
   }, [user, activeConversation, pauseAutoRefresh]);
 
   return (
-    <ChatContext.Provider
-      value={{
-        conversations,
-        activeConversation,
-        messages,
-        localMessages,
-        setLocalMessages,
-        unreadCount,
-        loading,
-        error,
-        fetchConversations,
-        fetchMessages,
-        sendMessage,
-        uploadFile,
-        downloadFile,
-        deleteMessage,
-        unsendMessage,
-        openConversation,
-        closeConversation,
-        pauseAutoRefresh,
-        setPauseAutoRefresh,
-      }}
-    >
+    <ChatContext.Provider value={stabilizedContextValue}>
       {children}
     </ChatContext.Provider>
   );
