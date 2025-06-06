@@ -96,7 +96,16 @@
 
                         <!-- Main Content - Question Image -->
                         <div class="p-4 flex-grow">                            
-                            <img src="/FStudyMate/SourceImg/<%=question.MaMon%>/<%=question.MaDe%>/<%=question.QuestionImg%>.png" alt="<%=question.QuestionImg%>" class="w-full" />
+                            <img src="${pageContext.request.contextPath}/api/images/direct?path=<%=question.MaMon%>/<%=question.MaDe%>/<%=question.QuestionImg%>" alt="<%=question.QuestionImg%>" class="w-full" 
+                                 onerror="this.onerror=null; 
+                                          const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+                                          let attempted = this.getAttribute('data-attempted') || 0;
+                                          if (attempted < extensions.length) {
+                                            this.setAttribute('data-attempted', parseInt(attempted) + 1);
+                                            this.src='/FStudyMate/SourceImg/<%=question.MaMon%>/<%=question.MaDe%>/<%=question.QuestionImg%>' + extensions[attempted];
+                                          } else {
+                                            this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22400%22%20height%3D%22300%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22150%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%3EImage%20Not%20Available%3C%2Ftext%3E%3C%2Fsvg%3E';
+                                          }" />
                         </div>
                     </div>
                 </div>
