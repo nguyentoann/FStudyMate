@@ -20,7 +20,7 @@ public class WebConfig implements WebMvcConfigurer {
         
         // Global CORS configuration for all API endpoints
         registry.addMapping("/**")
-            .allowedOrigins("http://localhost:3000")
+            .allowedOriginPatterns("*") // Allow any origin
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .exposedHeaders("Authorization", "Content-Disposition")
@@ -29,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
         
         // Enhanced specific configuration for video call API with explicit OPTIONS handling
         registry.addMapping("/api/video-call/**")
-            .allowedOrigins("http://localhost:3000")
+            .allowedOriginPatterns("*") // Allow any origin
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .exposedHeaders("Authorization", "Content-Disposition")
@@ -38,14 +38,14 @@ public class WebConfig implements WebMvcConfigurer {
             
         // Enhanced specific configuration for chat API with explicit OPTIONS handling
         registry.addMapping("/api/chat/**")
-            .allowedOrigins("http://localhost:3000")
+            .allowedOriginPatterns("*") // Allow any origin
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .exposedHeaders("Authorization", "Content-Disposition")
             .allowCredentials(true)
             .maxAge(3600);
         
-        logger.info("CORS configuration complete: allowedOrigins=[http://localhost:3000], allowCredentials=true");
+        logger.info("CORS configuration complete: allowedOriginPatterns=[*], allowCredentials=true");
     }
     
     /**
