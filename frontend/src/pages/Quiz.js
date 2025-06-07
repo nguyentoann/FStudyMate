@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject } from '../services/api';
+import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject, startQuiz, submitQuiz } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../services/config';
-import DashboardLayout from '../components/DashboardLayout';
 import ReactMarkdown from 'react-markdown';
+import DashboardLayout from '../components/DashboardLayout';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { QRCodeSVG } from 'qrcode.react';
-import { toast } from 'react-hot-toast';
 
 // Teacher Avatar Component
 const TeacherAvatar = () => {
@@ -202,6 +203,24 @@ const QuizComponent = ({ maMon, maDe }) => {
         // If the quiz has a time limit, use it instead of the default
         if (metadata.timeLimit) {
           setTimeRemaining(metadata.timeLimit * 60); // Convert minutes to seconds
+        }
+        
+        // Initialize quiz session if quiz ID is available
+        if (metadata.id) {
+          // Check if we already have a session ID stored
+          const existingSessionId = localStorage.getItem(`quiz_session_${maMon}_${maDe}`);
+          if (!existingSessionId) {
+            try {
+              // Start a new quiz session
+              const startResponse = await startQuiz(metadata.id);
+              if (startResponse.success) {
+                localStorage.setItem(`quiz_session_${maMon}_${maDe}`, startResponse.quizTakenId);
+              }
+            } catch (error) {
+              console.error("Failed to start quiz session:", error);
+              // Continue anyway, we'll try again when submitting
+            }
+          }
         }
         
         // Fetch questions
@@ -575,20 +594,62 @@ const QuizComponent = ({ maMon, maDe }) => {
     }
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const incompleteCount = questions.length - completedQuestions.size;
     if (incompleteCount > 0) {
       setShowSubmitConfirm(true);
     } else {
-      setShowResults(true);
-      localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+      await submitQuizToServer();
     }
   };
   
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     setShowSubmitConfirm(false);
-    setShowResults(true);
-    localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+    await submitQuizToServer();
+  };
+  
+  const submitQuizToServer = async () => {
+    try {
+      setLoading(true);
+      
+      // Initialize quiz session if not already done
+      let quizTakenId = localStorage.getItem(`quiz_session_${maMon}_${maDe}`);
+      
+      if (!quizTakenId) {
+        // Get quiz ID (assuming it's available in quiz metadata)
+        const quizId = quizMetadata?.id;
+        if (!quizId) {
+          throw new Error("Quiz ID not found. Cannot save results.");
+        }
+        
+        // Start a new quiz session
+        const startResponse = await startQuiz(quizId);
+        if (!startResponse.success) {
+          throw new Error("Failed to start quiz session: " + startResponse.message);
+        }
+        
+        quizTakenId = startResponse.quizTakenId;
+        localStorage.setItem(`quiz_session_${maMon}_${maDe}`, quizTakenId);
+      }
+      
+      // Submit answers
+      await submitQuiz(quizTakenId, selectedAnswers);
+      
+      // Show results
+      setShowResults(true);
+      
+      // Clean up local storage
+      localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+      localStorage.removeItem(`quiz_session_${maMon}_${maDe}`);
+    } catch (error) {
+      console.error("Failed to submit quiz:", error);
+      toast.error("Failed to save your quiz results: " + error.message);
+      
+      // Still show results even if saving failed
+      setShowResults(true);
+    } finally {
+      setLoading(false);
+    }
   };
   
   const handleCancelSubmit = () => {
@@ -1172,31 +1233,42 @@ const QuizComponent = ({ maMon, maDe }) => {
                   )}
                   
                   <div className="lg:flex-1">
-                    <div className="text-lg font-bold mb-4">
-                      Câu hỏi {currentIndex + 1}: 
-                      {(() => {
-                        // Check if question is multiple choice
-                        const isMultipleChoice = 
-                          Array.isArray(currentQuestion?.correct) || 
-                          (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+                    {/* Question header with number and type information */}
+                    <div className="mb-4 flex justify-between items-center">
+                      <div className="font-bold text-xl flex items-center">
+                        <span className={`${darkMode ? 'text-blue-400' : 'text-blue-600'} mr-2`}>
+                          Question {currentIndex + 1}/{questions.length}
+                        </span>
                         
-                        if (isMultipleChoice) {
-                          // Get number of correct answers
-                          let correctCount = 0;
-                          if (Array.isArray(currentQuestion?.correct)) {
-                            correctCount = currentQuestion.correct.length;
-                          } else if (typeof currentQuestion?.correct === 'string') {
-                            correctCount = currentQuestion.correct.split(/[,;]/).length;
-                          }
+                        {(() => {
+                          // Check if question is multiple choice
+                          const isMultipleChoice = 
+                            Array.isArray(currentQuestion?.correct) || 
+                            (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
                           
-                          return (
-                            <span className="text-green-500 font-normal ml-2">
-                              Multiple Choice, choose {correctCount} correct answer{correctCount > 1 ? 's' : ''}!
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
+                          if (isMultipleChoice) {
+                            // Get number of correct answers
+                            let correctCount = 0;
+                            if (Array.isArray(currentQuestion?.correct)) {
+                              correctCount = currentQuestion.correct.length;
+                            } else if (typeof currentQuestion?.correct === 'string') {
+                              correctCount = currentQuestion.correct.split(/[,;]/).length;
+                            }
+                            
+                            return (
+                              <span className="text-green-500 font-normal ml-2">
+                                Multiple Choice, choose {correctCount} correct answer{correctCount > 1 ? 's' : ''}!
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      
+                      {/* Display points */}
+                      <div className="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                        {currentQuestion?.points || 10} points
+                      </div>
                     </div>
                     
                     {/* Display question text if available */}
