@@ -658,12 +658,17 @@ const QuizComponent = ({ maMon, maDe }) => {
   
   const calculateScore = () => {
     let totalScore = 0;
+    let totalPoints = 0;
     let totalValidQuestions = 0;
     
     questions.forEach((question) => {
       // Only count questions that have a valid correct answer defined
       if (question && (question.correct || question.correctAnswer)) {
         totalValidQuestions++;
+        
+        // Get question points (default to 10 if not specified)
+        const questionPoints = question.points || 10;
+        totalPoints += questionPoints;
         
         const selected = selectedAnswers[question.id];
         let correct = question.correct || question.correctAnswer;
@@ -701,13 +706,14 @@ const QuizComponent = ({ maMon, maDe }) => {
           const penaltyPerIncorrect = 1 / maxPossibleScore; // Penalty per incorrect answer
           const penaltyScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
           
-          totalScore += penaltyScore;
+          // Apply the question's point value to the score
+          totalScore += penaltyScore * questionPoints;
         } 
         // For single choice questions
         else {
           // Simple exact match for single answer questions
           if (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) {
-            totalScore += 1;
+            totalScore += questionPoints;
           }
         }
       }
@@ -718,8 +724,8 @@ const QuizComponent = ({ maMon, maDe }) => {
     
     return {
       score: Math.round(totalScore),
-      total: totalQuestions,
-      percentage: Math.round((totalScore / totalQuestions) * 100),
+      total: totalPoints, // Changed from totalQuestions to totalPoints
+      percentage: Math.round((totalScore / totalPoints) * 100), // Use totalPoints for percentage calculation
       partialScore: totalScore // Add the raw partial score for detailed reporting
     };
   };
@@ -1043,6 +1049,9 @@ const QuizComponent = ({ maMon, maDe }) => {
       const selected = selectedAnswers[question.id];
       let correct = question.correct || question.correctAnswer;
       
+      // Get question points (default to 10 if not specified)
+      const questionPoints = question.points || 10;
+      
       // Convert string format with delimiters to array
       if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
         correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
@@ -1062,18 +1071,21 @@ const QuizComponent = ({ maMon, maDe }) => {
         }
       });
       
-      // Calculate score for this question
-      let questionScore = 0;
+      // Calculate score for this question (as a percentage/ratio)
+      let questionScoreRatio = 0;
       if (correctArray.length > 1) {
         // For multiple choice questions
         const maxPossibleScore = correctArray.length;
         const rawScore = correctCount / maxPossibleScore;
         const penaltyPerIncorrect = 1 / maxPossibleScore;
-        questionScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+        questionScoreRatio = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
       } else {
         // For single choice questions
-        questionScore = (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) ? 1 : 0;
+        questionScoreRatio = (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) ? 1 : 0;
       }
+      
+      // Calculate actual points earned for this question
+      const earnedPoints = questionScoreRatio * questionPoints;
       
       return {
         ...question,
@@ -1082,8 +1094,10 @@ const QuizComponent = ({ maMon, maDe }) => {
         correctCount,
         totalCorrect: correctArray.length,
         isMultipleChoice: correctArray.length > 1,
-        questionScore,
-        fullScore: questionScore >= 0.99 // Rounded to account for floating point errors
+        questionScoreRatio,
+        questionPoints,
+        earnedPoints,
+        fullScore: questionScoreRatio >= 0.99 // Rounded to account for floating point errors
       };
     });
     
@@ -1107,21 +1121,26 @@ const QuizComponent = ({ maMon, maDe }) => {
                   </span>
                 )} / {total} điểm
               </p>
-              <p className="text-lg mt-1">Bạn đã trả lời đúng {score}/{total} câu hỏi</p>
+              <p className="text-lg mt-1">Bạn đã đạt được {score} trên tổng số {total} điểm</p>
             </div>
             
             {questionResults.map((result, index) => (
               <div key={`result-${result.id || index}`} className={`mb-8 p-5 rounded-lg ${result.fullScore ? (darkMode ? 'bg-green-900 bg-opacity-20' : 'bg-green-50') : (darkMode ? 'bg-red-900 bg-opacity-20' : 'bg-red-50')}`}>
-                <div className="mb-2">
-                  <span className="font-medium">Câu {index + 1}: </span>
-                  {result.questionText || result.question}
+                <div className="mb-2 flex items-start">
+                  <div className="flex-grow">
+                    <span className="font-medium">Câu {index + 1}: </span>
+                    {result.questionText || result.question}
+                  </div>
+                  <div className="flex-shrink-0 ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium whitespace-nowrap">
+                    {Math.round(result.earnedPoints)} / {result.questionPoints} points
+                  </div>
                 </div>
                 
                 {result.isMultipleChoice && (
                   <div className={`text-sm ${result.fullScore ? 'text-green-500' : 'text-blue-500'} mb-2`}>
                     Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
                     {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
-                      <span> = {(result.questionScore * 100).toFixed()}% partial credit</span>
+                      <span> = {(result.questionScoreRatio * 100).toFixed()}% partial credit</span>
                     )}
                   </div>
                 )}
