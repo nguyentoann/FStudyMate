@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -131,8 +131,8 @@ const QuizComponent = ({ maMon, maDe }) => {
   const [completedQuestions, setCompletedQuestions] = useState(new Set());
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   
-  // Remove repeated accesses to questions[currentIndex] with memoization
-  /* We'll replace other references to questions[currentIndex] with currentQuestion */
+  // Memoized current question to prevent repeated access
+  const currentQuestion = useMemo(() => questions[currentIndex] || {}, [questions, currentIndex]);
   
   // Add state for quiz metadata
   const [quizMetadata, setQuizMetadata] = useState({
@@ -525,12 +525,37 @@ const QuizComponent = ({ maMon, maDe }) => {
   };
   
   const handleAnswerSelect = (questionId, answer) => {
+    const currentQuestion = questions[currentIndex];
+    // Check if question is multiple choice by seeing if correct answer is an array
+    const isMultipleChoice = 
+      Array.isArray(currentQuestion?.correct) || 
+      (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+    
     setSelectedAnswers(prev => {
-      const newAnswers = {
-        ...prev,
-        [questionId]: answer
-      };
-      return newAnswers;
+      if (isMultipleChoice) {
+        // For multiple choice questions, toggle selection in array
+        const prevSelected = prev[questionId] || [];
+        const newSelected = Array.isArray(prevSelected) ? [...prevSelected] : [prevSelected];
+        
+        // If already selected, remove it; otherwise add it
+        const answerIndex = newSelected.indexOf(answer);
+        if (answerIndex >= 0) {
+          newSelected.splice(answerIndex, 1);
+        } else {
+          newSelected.push(answer);
+        }
+        
+        return {
+          ...prev,
+          [questionId]: newSelected
+        };
+      } else {
+        // For single choice, just replace the answer
+        return {
+          ...prev,
+          [questionId]: answer
+        };
+      }
     });
   };
   
@@ -571,16 +596,58 @@ const QuizComponent = ({ maMon, maDe }) => {
   };
   
   const calculateScore = () => {
-    let correctCount = 0;
+    let totalScore = 0;
     let totalValidQuestions = 0;
     
     questions.forEach((question) => {
       // Only count questions that have a valid correct answer defined
-      if (question && question.correct) {
+      if (question && (question.correct || question.correctAnswer)) {
         totalValidQuestions++;
         
-        if (selectedAnswers[question.id] === question.correct) {
-          correctCount++;
+        const selected = selectedAnswers[question.id];
+        let correct = question.correct || question.correctAnswer;
+        
+        // Convert string format with delimiters to array
+        if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
+          correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
+        }
+        
+        // Convert selected to array if it's not already (for consistency in calculations)
+        const selectedArray = Array.isArray(selected) ? selected : [selected];
+        const correctArray = Array.isArray(correct) ? correct : [correct];
+        
+        // For multiple choice questions (more than one correct answer)
+        if (correctArray.length > 1) {
+          let correctCount = 0;
+          let incorrectCount = 0;
+          
+          // Count correct selections
+          selectedArray.forEach(answer => {
+            if (correctArray.includes(answer)) {
+              correctCount++;
+            } else {
+              incorrectCount++;
+            }
+          });
+          
+          // Calculate partial score - correctCount/total correct answers
+          // But penalize for incorrect selections
+          const maxPossibleScore = correctArray.length;
+          const rawScore = correctCount / maxPossibleScore;
+          
+          // Optional: Penalize for incorrect answers (can be adjusted or removed)
+          // This ensures selecting all options doesn't give partial credit
+          const penaltyPerIncorrect = 1 / maxPossibleScore; // Penalty per incorrect answer
+          const penaltyScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+          
+          totalScore += penaltyScore;
+        } 
+        // For single choice questions
+        else {
+          // Simple exact match for single answer questions
+          if (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) {
+            totalScore += 1;
+          }
         }
       }
     });
@@ -589,9 +656,10 @@ const QuizComponent = ({ maMon, maDe }) => {
     const totalQuestions = totalValidQuestions || 1;
     
     return {
-      score: correctCount,
+      score: Math.round(totalScore),
       total: totalQuestions,
-      percentage: Math.round((correctCount / totalQuestions) * 100)
+      percentage: Math.round((totalScore / totalQuestions) * 100),
+      partialScore: totalScore // Add the raw partial score for detailed reporting
     };
   };
   
@@ -612,7 +680,7 @@ const QuizComponent = ({ maMon, maDe }) => {
     if (!question) return;
     
     const selected = selectedAnswers[question.id];
-    if (!selected) {
+    if (!selected || (Array.isArray(selected) && selected.length === 0)) {
       toast.warning('Bạn cần chọn ít nhất một đáp án', {
         position: "top-center",
         autoClose: 2000
@@ -620,20 +688,59 @@ const QuizComponent = ({ maMon, maDe }) => {
       return;
     }
       
-    const correct = question.correct || question.correctAnswer;
+    // Get the correct answer(s)
+    let correct = question.correct || question.correctAnswer;
     
-    // For multiple choice questions, we need to check if arrays match
-    let isCorrect;
-    if (Array.isArray(selected) && Array.isArray(correct)) {
-      // For multiple choice, we check if arrays have same elements
-      isCorrect = selected.length === correct.length && 
-                selected.every(item => correct.includes(item));
-    } else {
-      // For single choice, direct comparison
-      isCorrect = selected === correct;
+    // Convert string format with delimiters to array
+    if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
+      correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
     }
     
-    setCheckResult(isCorrect ? 'correct' : 'incorrect');
+    // Convert to arrays for consistent handling
+    const selectedArray = Array.isArray(selected) ? selected : [selected];
+    const correctArray = Array.isArray(correct) ? correct : [correct];
+    
+    // For multiple choice questions
+    let isCorrect;
+    let partialScore = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    
+    // Count correct and incorrect selections
+    selectedArray.forEach(answer => {
+      if (correctArray.includes(answer)) {
+        correctCount++;
+      } else {
+        incorrectCount++;
+      }
+    });
+    
+    if (correctArray.length > 1) {
+      // For multiple choice, calculate partial score
+      const maxPossibleScore = correctArray.length;
+      const rawScore = correctCount / maxPossibleScore;
+      
+      // Apply penalty for incorrect answers
+      const penaltyPerIncorrect = 1 / maxPossibleScore; 
+      partialScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+      
+      // Mark as fully correct only if all answers are correct and no incorrect ones
+      isCorrect = (correctCount === correctArray.length) && (incorrectCount === 0);
+    } else {
+      // For single choice, direct comparison
+      isCorrect = selectedArray.length === 1 && correctArray.includes(selectedArray[0]);
+      partialScore = isCorrect ? 1 : 0;
+    }
+    
+    setCheckResult({
+      isCorrect,
+      correctAnswer: correct,
+      correctCount,
+      totalCorrect: correctArray.length,
+      partialScore,
+      selectedAnswers: selectedArray,
+      isMultipleChoice: correctArray.length > 1
+    });
     setIsChecked(true);
     
     // Add to completed questions
@@ -868,99 +975,125 @@ const QuizComponent = ({ maMon, maDe }) => {
   }
   
   if (showResults) {
-    const { score, total, percentage } = calculateScore();
+    const { score, total, percentage, partialScore } = calculateScore();
+    
+    // Detailed results for all questions
+    const questionResults = questions.map(question => {
+      const selected = selectedAnswers[question.id];
+      let correct = question.correct || question.correctAnswer;
+      
+      // Convert string format with delimiters to array
+      if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
+        correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
+      }
+      
+      const selectedArray = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+      const correctArray = Array.isArray(correct) ? correct : [correct];
+      
+      // Calculate correct answers selected and score for this question
+      let correctCount = 0;
+      let incorrectCount = 0;
+      selectedArray.forEach(answer => {
+        if (correctArray.includes(answer)) {
+          correctCount++;
+        } else {
+          incorrectCount++;
+        }
+      });
+      
+      // Calculate score for this question
+      let questionScore = 0;
+      if (correctArray.length > 1) {
+        // For multiple choice questions
+        const maxPossibleScore = correctArray.length;
+        const rawScore = correctCount / maxPossibleScore;
+        const penaltyPerIncorrect = 1 / maxPossibleScore;
+        questionScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+      } else {
+        // For single choice questions
+        questionScore = (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) ? 1 : 0;
+      }
+      
+      return {
+        ...question,
+        selected: selectedArray,
+        correct: correctArray,
+        correctCount,
+        totalCorrect: correctArray.length,
+        isMultipleChoice: correctArray.length > 1,
+        questionScore,
+        fullScore: questionScore >= 0.99 // Rounded to account for floating point errors
+      };
+    });
+    
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>
         {/* Only show the TeacherAvatar when showTeacher is true */}
         {showTeacher && <TeacherAvatar />}
         
         <div className="max-w-4xl mx-auto my-8 px-4">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg overflow-hidden`}>
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-4 text-white">
-              <h2 className="text-xl font-bold">Kết Quả Kiểm Tra</h2>
+          <div className={`${darkMode ? 'bg-blue-900' : 'bg-blue-600'} text-white p-5 rounded-t-lg`}>
+            <h1 className="text-2xl font-bold">Kết Quả Kiểm Tra</h1>
+          </div>
+          
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-8 rounded-b-lg shadow-lg mb-8`}>
+            <div className="text-center mb-10">
+              <div className="text-6xl font-bold text-blue-600">{percentage}%</div>
+              <p className="text-xl mt-3">
+                {partialScore !== score && (
+                  <span className="text-blue-500 font-medium">
+                    {partialScore.toFixed(2)} ≈ {score}
+                  </span>
+                )} / {total} điểm
+              </p>
+              <p className="text-lg mt-1">Bạn đã trả lời đúng {score}/{total} câu hỏi</p>
             </div>
             
-            <div className={`p-6 md:p-8 ${darkMode ? 'text-gray-100' : ''}`}>
-              <div className="text-center mb-6">
-                <div className="text-4xl font-bold text-indigo-600 mb-2">{percentage}%</div>
-                <div className="text-lg">Bạn đã trả lời đúng {score}/{total} câu hỏi</div>
-              </div>
-              
-              <div className="space-y-4">
-                {questions.map((question, index) => (
-                  <div key={index} className={`p-4 rounded-lg ${
-                    selectedAnswers[question.id] === question.correct 
-                      ? (darkMode ? 'bg-green-900 border border-green-700' : 'bg-green-50 border border-green-200') 
-                      : (darkMode ? 'bg-red-900 border border-red-700' : 'bg-red-50 border border-red-200')
-                  }`}>
-                    <div className="flex items-start">
-                      <div className="font-medium">Câu {index + 1}:</div>
-                      <div className="ml-2 flex-grow">
-                        {/* Question Text with Markdown */}
-                        {question?.questionText && (
-                          <div className="mb-2 bg-opacity-80 rounded-lg">
-                            <ReactMarkdown>
-                              {question.questionText}
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                        
-                        {/* Question Image */}
-                        {question?.questionImg && (
-                        <ZoomableImage
-                          alt={`Question ${index + 1}`} 
-                          className="max-w-full h-auto"
-                          questionId={question.id}
-                          questionImg={question.questionImg}
-                          currentQuestion={question}
-                        />
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <div className="font-medium">Đáp án của bạn: 
-                        <span className={selectedAnswers[question.id] === question.correct 
-                          ? (darkMode ? 'text-green-300 ml-1' : 'text-green-600 ml-1') 
-                          : (darkMode ? 'text-red-300 ml-1' : 'text-red-600 ml-1')
-                        }>
-                          {selectedAnswers[question.id] || 'Không chọn'}
-                        </span>
-                      </div>
-                      
-                      {selectedAnswers[question.id] !== question.correct && (
-                        <div className={darkMode ? 'text-green-300 font-medium' : 'text-green-600 font-medium'}>
-                          Đáp án đúng: {question.correct || 'Không có đáp án'}
-                        </div>
-                      )}
-                      
-                      {question?.explanation && (
-                        <div className={`mt-2 p-2 rounded ${
-                          darkMode ? 'bg-gray-700' : 'bg-gray-50'
-                        }`}>
-                          <div className="font-medium">Giải thích:</div>
-                          <div>{question.explanation}</div>
-                        </div>
-                      )}
-                    </div>
+            {questionResults.map((result, index) => (
+              <div key={`result-${result.id || index}`} className={`mb-8 p-5 rounded-lg ${result.fullScore ? (darkMode ? 'bg-green-900 bg-opacity-20' : 'bg-green-50') : (darkMode ? 'bg-red-900 bg-opacity-20' : 'bg-red-50')}`}>
+                <div className="mb-2">
+                  <span className="font-medium">Câu {index + 1}: </span>
+                  {result.questionText || result.question}
+                </div>
+                
+                {result.isMultipleChoice && (
+                  <div className={`text-sm ${result.fullScore ? 'text-green-500' : 'text-blue-500'} mb-2`}>
+                    Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
+                    {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
+                      <span> = {(result.questionScore * 100).toFixed()}% partial credit</span>
+                    )}
                   </div>
-                ))}
+                )}
+                
+                <div className="font-medium">
+                  <span className={`${darkMode ? 'text-red-300' : 'text-red-600'}`}>Đáp án của bạn: </span>
+                  {result.selected.length > 0 ? result.selected.join(', ') : 'Không chọn đáp án'}
+                </div>
+                
+                <div className="font-medium mt-1">
+                  <span className={`${darkMode ? 'text-green-300' : 'text-green-600'}`}>Đáp án đúng: </span>
+                  {result.correct.join(', ')}
+                </div>
+                
+                {result.explanation && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="font-medium">Giải thích:</div>
+                    <div className="mt-1">{result.explanation}</div>
+                  </div>
+                )}
               </div>
-              
-              <div className="mt-6 flex justify-center">
-                <button 
-                  onClick={() => navigate('/')} 
-                  className="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                >
-                  Quay Lại Trang Chủ
-                </button>
-              </div>
+            ))}
+            
+            <div className="mt-10 text-center">
+              <button
+                onClick={() => navigate('/quiz')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Làm lại bài kiểm tra khác
+              </button>
             </div>
           </div>
         </div>
-        
-        {/* Fullscreen Image Modal */}
-        {zoomedImage && <FullscreenModal src={zoomedImage} onClose={() => setZoomedImage(null)} />}
       </div>
     );
   }
@@ -979,8 +1112,6 @@ const QuizComponent = ({ maMon, maDe }) => {
       </div>
     );
   }
-  
-  const currentQuestion = questions[currentIndex];
   
   // Add safety check to ensure currentQuestion exists and has answers
   const hasValidAnswers = currentQuestion && Array.isArray(currentQuestion.answers) && currentQuestion.answers.length > 0;
@@ -1026,40 +1157,75 @@ const QuizComponent = ({ maMon, maDe }) => {
                   </div>
                 </div>
                 
-                {/* Question */}
-                <div className="mb-8">
-                  <div className="text-lg font-medium mb-4">Câu hỏi {currentIndex + 1}:</div>
-                  
-                  {/* Use questions array with index to avoid referencing currentQuestion directly */}
-                  {questions[currentIndex]?.questionText && (
-                    <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
-                      <ReactMarkdown>
-                        {questions[currentIndex].questionText}
-                      </ReactMarkdown>
+                {/* Question content - made responsive */}
+                <div className="flex flex-col lg:flex-row lg:space-x-8 space-y-6 lg:space-y-0">
+                  {currentQuestion?.questionImg && (
+                    <div className="lg:flex-1 rounded-lg border overflow-hidden">
+                      <ZoomableImage 
+                        className="w-full h-auto object-contain max-h-[60vh] bg-gray-100"
+                        alt={`Question ${currentIndex + 1} Image`}
+                        questionId={currentIndex + 1}
+                        questionImg={currentQuestion.questionImg}
+                        currentQuestion={currentQuestion}
+                      />
                     </div>
                   )}
                   
-                  {/* Question Image - memoize the image component to prevent re-renders */}
-                  {questions[currentIndex]?.questionImg && (
-                  <div className="mb-4">
-                    <ZoomableImage
-                      key={`question-image-${currentIndex}`}
-                      alt={`Question ${currentIndex + 1}`}
-                      className={`max-w-full h-auto ${darkMode ? 'border-gray-700' : 'border-gray-200'} border rounded`}
-                      questionId={questions[currentIndex].id}
-                      questionImg={questions[currentIndex].questionImg}
-                      currentQuestion={questions[currentIndex]}
-                    />
-                  </div>
-                  )}
-                  
-                  {/* Answer options - optimized to prevent re-renders */}
-                  <div className="space-y-3 mt-6">
-                    {hasValidAnswers ? (
-                                            questions[currentIndex].answers.map((answer, answerIndex) => {
+                  <div className="lg:flex-1">
+                    <div className="text-lg font-bold mb-4">
+                      Câu hỏi {currentIndex + 1}: 
+                      {(() => {
+                        // Check if question is multiple choice
+                        const isMultipleChoice = 
+                          Array.isArray(currentQuestion?.correct) || 
+                          (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+                        
+                        if (isMultipleChoice) {
+                          // Get number of correct answers
+                          let correctCount = 0;
+                          if (Array.isArray(currentQuestion?.correct)) {
+                            correctCount = currentQuestion.correct.length;
+                          } else if (typeof currentQuestion?.correct === 'string') {
+                            correctCount = currentQuestion.correct.split(/[,;]/).length;
+                          }
+                          
+                          return (
+                            <span className="text-green-500 font-normal ml-2">
+                              Multiple Choice, choose {correctCount} correct answer{correctCount > 1 ? 's' : ''}!
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                    
+                    {/* Display question text if available */}
+                    {currentQuestion?.questionText && (
+                      <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                        <ReactMarkdown>
+                          {currentQuestion.questionText}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+                    
+                    {/* Answer options - optimized to prevent re-renders */}
+                    <div className="space-y-3 mt-6">
+                      {hasValidAnswers ? (
+                        currentQuestion.answers.map((answer, answerIndex) => {
                           // Extract values to avoid re-computation 
-                          const questionId = questions[currentIndex].id;
-                          const isSelected = selectedAnswers[questionId] === answer;
+                          const questionId = currentQuestion.id;
+                          
+                          // Check if question is multiple choice
+                          const isMultipleChoice = 
+                            Array.isArray(currentQuestion?.correct) || 
+                            (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+                          
+                          // Check if this answer is selected
+                          const selectedAnswer = selectedAnswers[questionId];
+                          const isSelected = isMultipleChoice 
+                            ? Array.isArray(selectedAnswer) && selectedAnswer.includes(answer)
+                            : selectedAnswer === answer;
+                            
                           const isCorrectAnswer = isChecked && checkResult && answer === checkResult.correctAnswer;
                           
                           return (
@@ -1091,22 +1257,52 @@ const QuizComponent = ({ maMon, maDe }) => {
                             </div>
                           );
                         })
-                    ) : (
-                      <div className={`p-4 rounded-lg text-center ${darkMode ? 'bg-yellow-800 text-yellow-100' : 'bg-yellow-100 text-yellow-800'}`}>
-                        No answer options available for this question.
-                      </div>
-                    )}
+                      ) : (
+                        <div className={`p-4 rounded-lg text-center ${darkMode ? 'bg-yellow-800 text-yellow-100' : 'bg-yellow-100 text-yellow-800'}`}>
+                          No answer options available for this question.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
                 {/* Check Result Display */}
                 {isChecked && checkResult && (
-                  <div className={`mt-4 p-4 rounded-lg text-center ${
+                  <div className={`mt-4 p-4 rounded-lg ${
                     checkResult.isCorrect 
                       ? (darkMode ? 'bg-green-900 text-green-100' : 'bg-green-100 text-green-700')
                       : (darkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-700')
                   }`}>
-                    {checkResult.isCorrect ? 'Correct!' : 'Incorrect!'}
+                    <div className="text-center font-bold text-lg mb-2">
+                      {checkResult.isCorrect ? 'Correct!' : (
+                        checkResult.isMultipleChoice && checkResult.correctCount > 0 
+                          ? 'Partially Correct!' 
+                          : 'Incorrect!'
+                      )}
+                      
+                      {checkResult.isMultipleChoice && (
+                        <div className="text-sm font-normal mt-1">
+                          {checkResult.correctCount}/{checkResult.totalCorrect} correct answers selected
+                          {checkResult.partialScore > 0 && checkResult.partialScore < 1 && (
+                            <span className="ml-2">
+                              ({(checkResult.partialScore * 100).toFixed(0)}% score)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {(!checkResult.isCorrect) && (
+                      <div className="mt-2">
+                        <div className="font-medium">Correct answer{Array.isArray(checkResult.correctAnswer) && checkResult.correctAnswer.length > 1 ? 's' : ''}:</div>
+                        <div className="mt-1">
+                          {Array.isArray(checkResult.correctAnswer) 
+                            ? checkResult.correctAnswer.join(', ')
+                            : checkResult.correctAnswer
+                          }
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -1127,9 +1323,9 @@ const QuizComponent = ({ maMon, maDe }) => {
                   <div className="flex gap-4">
                     <button
                       onClick={handleCheckAnswer}
-                      disabled={!selectedAnswers[questions[currentIndex]?.id] || isChecked}
+                      disabled={!selectedAnswers[currentQuestion?.id] || isChecked}
                       className={`px-4 py-2 rounded flex items-center ${
-                        !selectedAnswers[questions[currentIndex]?.id] || isChecked
+                        !selectedAnswers[currentQuestion?.id] || isChecked
                           ? (darkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-500 cursor-not-allowed')
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}

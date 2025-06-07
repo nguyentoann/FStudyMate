@@ -103,9 +103,13 @@ public class HomeServlet extends HttpServlet {
             // Lưu danh sách MaDe vào session
             session.setAttribute("listQuestion", listQuestion);
 
-            // Chuyển hướng lại về home.jsp
-            request.setAttribute("index", "0");
-            request.getRequestDispatcher("view/quiz.jsp").forward(request, response);
+            // Redirect to React quiz route instead of JSP
+            String contextPath = request.getContextPath();
+            String redirectUrl = contextPath + "/quiz/" + maMon + "/" + maDe;
+            if (option.equals("random")) {
+                redirectUrl += "?random=true";
+            }
+            response.sendRedirect(redirectUrl);
         } else {
             session.setAttribute("errorMess", "Vui lòng chọn mã Đề!!!");
             request.getRequestDispatcher("view/home.jsp").forward(request, response);
