@@ -1129,7 +1129,25 @@ const QuizComponent = ({ maMon, maDe }) => {
                 <div className="mb-2 flex items-start">
                   <div className="flex-grow">
                     <span className="font-medium">Câu {index + 1}: </span>
-                    {result.questionText || result.question}
+                    <ReactMarkdown
+                      components={{
+                        code: ({node, inline, className, children, ...props}) => {
+                          return (
+                            <code className={`${inline 
+                              ? darkMode 
+                                ? 'bg-gray-700 text-red-400 px-1 rounded' 
+                                : 'bg-gray-200 text-red-600 px-1 rounded' 
+                              : darkMode
+                                ? 'block bg-gray-800 p-2 rounded'
+                                : 'block bg-gray-100 p-2 rounded'} ${className || ''}`} {...props}>
+                              {children}
+                            </code>
+                          )
+                        }
+                      }}
+                    >
+                      {result.questionText || result.question}
+                    </ReactMarkdown>
                   </div>
                   <div className="flex-shrink-0 ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium whitespace-nowrap">
                     {Math.round(result.earnedPoints)} / {result.questionPoints} points
@@ -1158,7 +1176,27 @@ const QuizComponent = ({ maMon, maDe }) => {
                 {result.explanation && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <div className="font-medium">Giải thích:</div>
-                    <div className="mt-1">{result.explanation}</div>
+                    <div className="mt-1">
+                      <ReactMarkdown
+                        components={{
+                          code: ({node, inline, className, children, ...props}) => {
+                            return (
+                              <code className={`${inline 
+                                ? darkMode 
+                                  ? 'bg-gray-700 text-red-400 px-1 rounded' 
+                                  : 'bg-gray-200 text-red-600 px-1 rounded' 
+                                : darkMode
+                                  ? 'block bg-gray-800 p-2 rounded'
+                                  : 'block bg-gray-100 p-2 rounded'} ${className || ''}`} {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+                        }}
+                      >
+                        {result.explanation}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 )}
               </div>
