@@ -41,6 +41,16 @@ public class Question {
     @Column(name = "Explanation")
     private String explanation;
     
+    @Column(name = "points")
+    private Integer points = 10;
+    
+    @Column(name = "quiz_id")
+    private Integer quizId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quiz_id", insertable = false, updatable = false)
+    private Quiz quiz;
+    
     @Transient
     private String[] answers;
     
@@ -202,5 +212,25 @@ public class Question {
             default:
                 return new String[]{"Invalid SLDapAn"};
         }
+    }
+    
+    // Manual getter for quizId to ensure it's recognized
+    public Integer getQuizId() {
+        return quizId;
+    }
+    
+    // Manual setter for quizId
+    public void setQuizId(Integer quizId) {
+        this.quizId = quizId;
+    }
+    
+    // Manual getter for points
+    public Integer getPoints() {
+        return points;
+    }
+    
+    // Manual setter for points
+    public void setPoints(Integer points) {
+        this.points = points;
     }
 } 

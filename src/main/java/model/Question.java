@@ -15,6 +15,7 @@ public class Question {
     public String Correct;
     public String[] answers;
     public String Explanation;
+    public int points = 10;
 
     public Question(int Id, String MaMon, String MaDe, String QuestionImg, String QuestionText, int SLDapAn, String Correct, String Explanation) {
         this.Id = Id;
@@ -26,6 +27,20 @@ public class Question {
         this.Correct = Correct;
         this.Explanation = Explanation;
         this.answers = getAnswerOptions(SLDapAn);
+        this.points = 10; // Default value
+    }
+    
+    public Question(int Id, String MaMon, String MaDe, String QuestionImg, String QuestionText, int SLDapAn, String Correct, String Explanation, int points) {
+        this.Id = Id;
+        this.MaMon = MaMon;
+        this.MaDe = MaDe;
+        this.QuestionImg = QuestionImg;
+        this.QuestionText = QuestionText;
+        this.SLDapAn = SLDapAn;
+        this.Correct = Correct;
+        this.Explanation = Explanation;
+        this.answers = getAnswerOptions(SLDapAn);
+        this.points = points;
     }
     
     /**
@@ -133,6 +148,14 @@ public class Question {
     public void setExplanation(String Explanation) {
         this.Explanation = Explanation;
     }
+    
+    public int getPoints() {
+        return points;
+    }
+    
+    public void setPoints(int points) {
+        this.points = points;
+    }
 
     public static String[] getAnswerOptions(int SLDapAn) {
         switch (SLDapAn) {
@@ -152,5 +175,4 @@ public class Question {
                 return new String[]{"Invalid SLDapAn"};
         }
     }
-
 }

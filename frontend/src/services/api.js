@@ -751,4 +751,126 @@ export const getQuizMetadataForSubject = async (maMon) => {
     console.error(`[API] Error fetching subject quiz metadata:`, error);
     return {};
   }
+};
+
+// Quiz attempts API functions
+export const startQuiz = async (quizId) => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to start a quiz');
+    }
+    
+    const response = await axios.post(`${API_URL}/quiz-attempts/start`, null, {
+      params: {
+        userId: user.id,
+        quizId
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error starting quiz:', error);
+    throw error;
+  }
+};
+
+export const submitQuiz = async (quizTakenId, answers) => {
+  try {
+    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/submit`, answers);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    throw error;
+  }
+};
+
+export const abandonQuiz = async (quizTakenId) => {
+  try {
+    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/abandon`);
+    return response.data;
+  } catch (error) {
+    console.error('Error abandoning quiz:', error);
+    throw error;
+  }
+};
+
+export const logQuizActivity = async (quizTakenId, eventType, details) => {
+  try {
+    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/log`, null, {
+      params: {
+        eventType,
+        details
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error logging quiz activity:', error);
+    throw error;
+  }
+};
+
+export const getUserQuizHistory = async () => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to view quiz history');
+    }
+    
+    const response = await axios.get(`${API_URL}/quiz-attempts/user/${user.id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user quiz history:', error);
+    throw error;
+  }
+};
+
+export const getQuizStatistics = async (quizId) => {
+  try {
+    const response = await axios.get(`${API_URL}/quiz-attempts/quiz/${quizId}/stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching quiz statistics:', error);
+    throw error;
+  }
+};
+
+export const getQuizLeaderboard = async (quizId, limit = 10) => {
+  try {
+    const response = await axios.get(`${API_URL}/quiz-attempts/quiz/${quizId}/leaderboard`, {
+      params: { limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching quiz leaderboard:', error);
+    throw error;
+  }
+};
+
+export const getInProgressQuizzes = async () => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to view in-progress quizzes');
+    }
+    
+    const response = await axios.get(`${API_URL}/quiz-attempts/in-progress/${user.id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching in-progress quizzes:', error);
+    throw error;
+  }
+};
+
+export const getQuizAttempt = async (quizTakenId) => {
+  try {
+    const response = await axios.get(`${API_URL}/quiz-attempts/${quizTakenId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching quiz attempt:', error);
+    throw error;
+  }
 }; 

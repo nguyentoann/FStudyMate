@@ -33,6 +33,7 @@ CREATE TABLE `Questions` (
   `quiz_id` int(11) DEFAULT NULL,
   `MaDe` varchar(255) DEFAULT NULL,
   `MaMon` varchar(255) DEFAULT NULL,
+  `points` int(11) DEFAULT 10,
   PRIMARY KEY (`ID`),
   KEY `idx_quiz_id` (`quiz_id`),
   CONSTRAINT `fk_question_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE SET NULL
@@ -53,6 +54,36 @@ CREATE TABLE `QuizPermissions` (
   KEY `idx_class_id` (`class_id`),
   CONSTRAINT `QuizPermissions_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+
+DROP TABLE IF EXISTS `QuizTaken`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `QuizTaken` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `quiz_id` int(11) NOT NULL,
+  `start_time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `submit_time` timestamp NULL DEFAULT NULL,
+  `score` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `max_score` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `status` enum('completed','in_progress','abandoned','failed') NOT NULL DEFAULT 'in_progress',
+  `selected_answers` json DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `activity_log` json DEFAULT NULL,
+  `completion_time` int(11) DEFAULT NULL COMMENT 'Time in seconds taken to complete the quiz',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_quiz_id` (`quiz_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_time` (`start_time`),
+  CONSTRAINT `fk_quiztaken_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_quiztaken_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
