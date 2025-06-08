@@ -50,7 +50,7 @@ BACKEND_PID=$!
 echo $BACKEND_PID > "$PID_DIR/backend.pid"
 
 echo "Wait for backend to start..."
-sleep 10
+sleep 5
 
 echo "Starting React frontend..."
 cd frontend
