@@ -3,99 +3,247 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject, startQuiz, submitQuiz, getClassLeaderboard } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../services/config';
-import ReactMarkdown from 'react-markdown';
 import DashboardLayout from '../components/DashboardLayout';
 import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { QRCodeSVG } from 'qrcode.react';
+import ReactMarkdown from 'react-markdown';
+
+// Add custom animation keyframes
+const animations = `
+@keyframes bounce-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse-highlight {
+  0% { background-color: rgba(191, 219, 254, 0.5); }
+  50% { background-color: rgba(147, 197, 253, 0.7); }
+  100% { background-color: rgba(191, 219, 254, 0.5); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes reveal-text {
+  0% { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes water-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes water-wave {
+  0% { transform: translateX(-100%) translateY(5%) scaleY(0.3); }
+  50% { transform: translateX(0%) translateY(-5%) scaleY(0.3); }
+  100% { transform: translateX(100%) translateY(5%) scaleY(0.3); }
+}
+
+@keyframes question-change-next {
+  0% { transform: translateX(10%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes question-change-prev {
+  0% { transform: translateX(-10%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.4s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.4s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-pulse-highlight {
+  animation: pulse-highlight 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-reveal-text {
+  animation: reveal-text 0.5s forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.water-animation {
+  animation: water-flow 3s ease-in-out infinite;
+}
+
+.water-wave {
+  background: linear-gradient(to bottom, 
+    rgba(255,255,255,0.4) 0%, 
+    rgba(255,255,255,0.1) 50%, 
+    rgba(255,255,255,0.2) 100%
+  );
+  height: 100%;
+  width: 200%;
+  animation: water-wave 3s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+  border-radius: 30%;
+}
+
+.animate-question-next {
+  animation: question-change-next 0.4s ease-out forwards;
+}
+
+.animate-question-prev {
+  animation: question-change-prev 0.4s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+`;
+
+// Create a style element to inject animations
+const styleElement = document.createElement('style');
+styleElement.type = 'text/css';
+styleElement.appendChild(document.createTextNode(animations));
+document.head.appendChild(styleElement);
 
 // Teacher Avatar Component
 const TeacherAvatar = () => {
-  const [headRotation, setHeadRotation] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const teacherContainerRef = useRef(null);
-  const animationRef = useRef(null);
+  const containerRef = useRef(null);
+  const headRef = useRef(null);
+  const eyesRef = useRef(null);
   
+  // Track head rotation
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [isBlinking, setIsBlinking] = useState(false);
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current || !headRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const centerX = containerRect.left + containerRect.width / 2;
+    const centerY = containerRect.top + containerRect.height / 2;
+    
+    // Calculate mouse position relative to the center of the avatar
+    const mouseX = e.clientX - centerX;
+    const mouseY = e.clientY - centerY;
+    
+    // Calculate rotation angles (limit the range)
+    const rotationY = Math.min(10, Math.max(-10, mouseX / 20));
+    const rotationX = Math.min(10, Math.max(-10, mouseY / 20));
+    
+    setRotation({ x: rotationX, y: rotationY });
+  };
+  
+  const updateHeadRotation = () => {
+    if (headRef.current) {
+      headRef.current.style.transform = `perspective(500px) rotateX(${-rotation.x}deg) rotateY(${rotation.y}deg)`;
+    }
+  };
+  
+  // Random blinking
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      // Store mouse position for smoother animation
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
+    const blinkInterval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 200);
+    }, Math.random() * 3000 + 2000); // Random interval between 2-5 seconds
     
-    document.addEventListener('mousemove', handleMouseMove);
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
+    return () => clearInterval(blinkInterval);
   }, []);
   
-  // Set up a continuous animation loop
+  // Update head rotation when state changes
   useEffect(() => {
-    const updateHeadRotation = () => {
-      if (teacherContainerRef.current) {
-        // Get teacher container position
-        const teacherRect = teacherContainerRef.current.getBoundingClientRect();
-        const teacherCenterX = teacherRect.left + (teacherRect.width / 2);
-        const teacherCenterY = teacherRect.top + 90; // Better position of the neck
-        
-        // Calculate angle between mouse and teacher
-        const deltaX = mousePosition.x - teacherCenterX;
-        const deltaY = mousePosition.y - teacherCenterY;
-        const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-        
-        // Limit rotation angle to a reasonable range
-        const clampedAngle = Math.max(-35, Math.min(35, angle));
-        
-        // Apply smoothing
-        setHeadRotation(prevRotation => {
-          // Smooth transition (ease towards target)
-          const smoothFactor = 0.15;
-          return prevRotation + (clampedAngle - prevRotation) * smoothFactor;
-        });
-      }
-      
-      // Continue the animation loop
-      animationRef.current = requestAnimationFrame(updateHeadRotation);
-    };
-    
-    // Start the animation loop
-    animationRef.current = requestAnimationFrame(updateHeadRotation);
-    
-    // Clean up animation frame on unmount
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [mousePosition]);
+    updateHeadRotation();
+  }, [rotation]);
+  
+  // Add event listener for mouse movement
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
   
   return (
     <div 
-      ref={teacherContainerRef}
-      className="fixed bottom-0 right-10 z-50 w-40 h-48 pointer-events-none"
+      ref={containerRef} 
+      className="fixed bottom-0 right-0 mb-8 mr-8 z-40 animate-float"
+      style={{ perspective: '500px' }}
     >
-      {/* Teacher body (static image) */}
-      <div className="absolute bottom-0 right-0 w-40">
-        <img 
-          src="https://toandz.ddns.net/fstudy/img/teacher_body.png" 
-          alt="Teacher Body" 
-          className="w-full"
-        />
-      </div>
-      
-      {/* Teacher head (rotating based on mouse position) */}
       <div 
-        className="absolute bottom-16 right-0 w-24 origin-center"
+        ref={headRef} 
+        className="bg-amber-100 w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform duration-200"
         style={{ 
-          transform: `rotate(${headRotation}deg)`,
-          transformOrigin: 'center bottom'
+          transformOrigin: 'center center',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
+          transition: 'transform 0.3s ease-out'
         }}
       >
-        <img 
-          src="https://toandz.ddns.net/fstudy/img/teacher_head.png" 
-          alt="Teacher Head" 
-          className="w-full"
-        />
+        {/* Face features */}
+        <div className="relative w-full h-full">
+          {/* Eyes */}
+          <div 
+            ref={eyesRef} 
+            className="absolute top-1/3 w-full flex justify-center space-x-5"
+          >
+            <div className="relative w-3 h-3">
+              <div className={`absolute w-full h-full bg-gray-800 rounded-full ${isBlinking ? 'scale-y-[0.1]' : ''}`} style={{ transition: 'transform 0.1s' }}></div>
+            </div>
+            <div className="relative w-3 h-3">
+              <div className={`absolute w-full h-full bg-gray-800 rounded-full ${isBlinking ? 'scale-y-[0.1]' : ''}`} style={{ transition: 'transform 0.1s' }}></div>
+            </div>
+          </div>
+          
+          {/* Mouth */}
+          <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 w-8 h-2 bg-gray-800 rounded-lg"></div>
+          
+          {/* Glasses */}
+          <div className="absolute top-[calc(33%-3px)] w-full flex justify-center">
+            <div className="w-16 h-5 border-2 border-gray-700 rounded-lg opacity-70"></div>
+          </div>
+        </div>
+      </div>
+      {/* Speech bubble that appears occasionally with animation */}
+      <div className="absolute -top-16 -right-2 bg-white text-sm text-gray-800 p-2 rounded-lg shadow-md transform origin-bottom-right animate-bounce-in hidden group-hover:block">
+        <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-4 h-4 bg-white"></div>
+        <p>Need help?</p>
       </div>
     </div>
   );
@@ -584,6 +732,15 @@ const QuizComponent = ({ maMon, maDe }) => {
   
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
+      // Add animation class before changing question
+      const contentEl = document.querySelector('.p-6.md\\:p-8');
+      if (contentEl) {
+        contentEl.classList.remove('animate-question-next', 'animate-question-prev');
+        // Force reflow to restart animation
+        void contentEl.offsetWidth;
+        contentEl.classList.add('animate-question-next');
+      }
+      
       setCurrentIndex(currentIndex + 1);
       setIsChecked(false);
       setCheckResult(null);
@@ -594,6 +751,15 @@ const QuizComponent = ({ maMon, maDe }) => {
   
   const handlePrevious = () => {
     if (currentIndex > 0) {
+      // Add animation class before changing question
+      const contentEl = document.querySelector('.p-6.md\\:p-8');
+      if (contentEl) {
+        contentEl.classList.remove('animate-question-next', 'animate-question-prev');
+        // Force reflow to restart animation
+        void contentEl.offsetWidth;
+        contentEl.classList.add('animate-question-prev');
+      }
+      
       setCurrentIndex(currentIndex - 1);
     }
   };
@@ -651,10 +817,10 @@ const QuizComponent = ({ maMon, maDe }) => {
       }
       
       // Show results
-      setShowResults(true);
+    setShowResults(true);
       
       // Clean up local storage
-      localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+    localStorage.removeItem(`quiz_${maMon}_${maDe}`);
       localStorage.removeItem(`quiz_session_${maMon}_${maDe}`);
     } catch (error) {
       console.error("Failed to submit quiz:", error);
@@ -1131,8 +1297,8 @@ const QuizComponent = ({ maMon, maDe }) => {
                 </svg>
                 Kết Quả Kiểm Tra
               </h1>
-            </div>
-            
+          </div>
+          
             <div className="bg-gray-800 text-white p-6 rounded-b-lg mb-6 shadow-md">
               {/* Big score percentage */}
               <div className="text-center mb-6">
@@ -1143,8 +1309,8 @@ const QuizComponent = ({ maMon, maDe }) => {
                 <p className="text-sm mt-1 text-gray-400">
                   Bạn đã đạt được {score} trên tổng số {total} điểm
                 </p>
-              </div>
-              
+            </div>
+            
               {/* Leaderboard */}
               <div className="mt-8">
                 <LeaderboardComponent 
@@ -1200,34 +1366,34 @@ const QuizComponent = ({ maMon, maDe }) => {
                           }
                         }}
                       >
-                        {result.questionText || result.question}
+                  {result.questionText || result.question}
                       </ReactMarkdown>
-                    </div>
-                    
+                </div>
+                
                     {/* Multiple choice info */}
-                    {result.isMultipleChoice && (
+                {result.isMultipleChoice && (
                       <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
-                        Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
-                        {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
+                    Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
+                    {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
                           <span> = {(result.questionScoreRatio * 100).toFixed()}% partial credit</span>
-                        )}
-                      </div>
                     )}
-                    
+                  </div>
+                )}
+                
                     {/* User answer */}
                     <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
                       <span className={`${darkMode ? 'text-red-400' : 'text-red-600'} font-medium`}>Đáp án của bạn: </span>
-                      {result.selected.length > 0 ? result.selected.join(', ') : 'Không chọn đáp án'}
-                    </div>
-                    
+                  {result.selected.length > 0 ? result.selected.join(', ') : 'Không chọn đáp án'}
+                </div>
+                
                     {/* Correct answer */}
                     <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       <span className={`${darkMode ? 'text-green-400' : 'text-green-600'} font-medium`}>Đáp án đúng: </span>
-                      {result.correct.join(', ')}
-                    </div>
-                    
+                  {result.correct.join(', ')}
+                </div>
+                
                     {/* Explanation */}
-                    {result.explanation && (
+                {result.explanation && (
                       <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                         <div className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Giải thích:</div>
                         <div className={`mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -1247,10 +1413,10 @@ const QuizComponent = ({ maMon, maDe }) => {
                             {result.explanation}
                           </ReactMarkdown>
                         </div>
-                      </div>
-                    )}
                   </div>
-                </div>
+                )}
+              </div>
+            </div>
               );
             })}
           </div>
@@ -1285,33 +1451,41 @@ const QuizComponent = ({ maMon, maDe }) => {
         
         <div className="max-w-6xl mx-auto px-4">
           {/* Quiz Metadata Panel */}
+          <div className="animate-fade-in-up">
           <QuizInfoPanel metadata={quizMetadata} darkMode={darkMode} />
+          </div>
           
           {/* Quiz Content */}
           <div ref={quizContainerRef} className="border-2 border-red-500 red-zone rounded-xl overflow-hidden">
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg overflow-hidden`}>
-              <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-4 text-white flex justify-between items-center">
-                <h2 className="text-xl font-semibold">
+                              <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-4 text-white flex justify-between items-center animate-fade-in-up">
+                <h2 className="text-xl font-semibold animate-slide-in-left">
                   Question {currentIndex + 1} of {questions.length}
                 </h2>
                 
                 {timed && (
-                  <div className={`${timeRemaining < 60 ? 'text-red-500 animate-pulse' : ''} font-mono text-xl`}>
+                  <div className={`${timeRemaining < 60 ? 'text-red-500 animate-pulse' : ''} font-mono text-xl animate-slide-in-right`}>
                     {formatTime(timeRemaining)}
                   </div>
                 )}
               </div>
               
-              <div className="p-6 md:p-8">
+                              <div className="p-6 md:p-8 animate-fade-in-up">
                 {/* Progress bar */}
-                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2.5 mb-4`}>
+                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-300'} rounded-full h-3 mb-4 overflow-hidden shadow-inner`}>
                   <div 
-                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
-                    style={{ width: `${(Object.keys(selectedAnswers).length / questions.length) * 100}%` }}
-                  ></div>
+                    className="bg-blue-500 h-3 rounded-full transition-all duration-500 relative water-animation" 
+                    style={{ 
+                      width: `${(Object.keys(selectedAnswers).length / questions.length) * 100}%`,
+                      background: 'linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6)',
+                      backgroundSize: '200% 100%'
+                    }}
+                  >
+                    <div className="absolute inset-0 water-wave"></div>
+                  </div>
                 </div>
                 
-                <div className="flex justify-between text-sm text-gray-600 mb-6">
+                <div className="flex justify-between text-sm text-gray-600 mb-6 animate-fade-in-up">
                   <div className={darkMode ? 'text-gray-400' : ''}>Câu {currentIndex + 1} / {questions.length}</div>
                   <div className={darkMode ? 'text-gray-400' : ''}>
                     {Object.keys(selectedAnswers).length} / {questions.length} câu đã trả lời
@@ -1321,9 +1495,9 @@ const QuizComponent = ({ maMon, maDe }) => {
                 {/* Question content - made responsive */}
                 <div className="flex flex-col lg:flex-row lg:space-x-8 space-y-6 lg:space-y-0">
                   {currentQuestion?.questionImg && (
-                    <div className="lg:flex-1 rounded-lg border overflow-hidden">
+                    <div className="lg:flex-1 rounded-lg border overflow-hidden animate-bounce-in">
                       <ZoomableImage 
-                        className="w-full h-auto object-contain max-h-[60vh] bg-gray-100"
+                        className="w-full h-auto object-contain max-h-[60vh] bg-gray-100 transition-transform hover:scale-[1.02]"
                         alt={`Question ${currentIndex + 1} Image`}
                         questionId={currentIndex + 1}
                         questionImg={currentQuestion.questionImg}
@@ -1334,46 +1508,46 @@ const QuizComponent = ({ maMon, maDe }) => {
                   
                   <div className="lg:flex-1">
                     {/* Question header with number and type information */}
-                    <div className="mb-4 flex justify-between items-center">
+                    <div className="mb-4 flex justify-between items-center animate-slide-in-left">
                       <div className="font-bold text-xl flex items-center">
-                        <span className={`${darkMode ? 'text-blue-400' : 'text-blue-600'} mr-2`}>
+                        <span className={`${darkMode ? 'text-blue-400' : 'text-blue-600'} mr-2 animate-reveal-text`}>
                           Question {currentIndex + 1}/{questions.length}
                         </span>
                         
-                        {(() => {
-                          // Check if question is multiple choice
-                          const isMultipleChoice = 
-                            Array.isArray(currentQuestion?.correct) || 
-                            (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
-                          
-                          if (isMultipleChoice) {
-                            // Get number of correct answers
-                            let correctCount = 0;
-                            if (Array.isArray(currentQuestion?.correct)) {
-                              correctCount = currentQuestion.correct.length;
-                            } else if (typeof currentQuestion?.correct === 'string') {
-                              correctCount = currentQuestion.correct.split(/[,;]/).length;
-                            }
-                            
-                            return (
-                              <span className="text-green-500 font-normal ml-2">
-                                Multiple Choice, choose {correctCount} correct answer{correctCount > 1 ? 's' : ''}!
-                              </span>
-                            );
+                      {(() => {
+                        // Check if question is multiple choice
+                        const isMultipleChoice = 
+                          Array.isArray(currentQuestion?.correct) || 
+                          (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+                        
+                        if (isMultipleChoice) {
+                          // Get number of correct answers
+                          let correctCount = 0;
+                          if (Array.isArray(currentQuestion?.correct)) {
+                            correctCount = currentQuestion.correct.length;
+                          } else if (typeof currentQuestion?.correct === 'string') {
+                            correctCount = currentQuestion.correct.split(/[,;]/).length;
                           }
-                          return null;
-                        })()}
+                          
+                          return (
+                            <span className="text-green-500 font-normal ml-2">
+                              Multiple Choice, choose {correctCount} correct answer{correctCount > 1 ? 's' : ''}!
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                       </div>
                       
                       {/* Display points */}
-                      <div className="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                      <div className="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full animate-float">
                         {currentQuestion?.points || 10} points
                       </div>
                     </div>
                     
                     {/* Display question text if available */}
                     {currentQuestion?.questionText && (
-                      <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                      <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border animate-fade-in-up delay-100">
                         <ReactMarkdown>
                           {currentQuestion.questionText}
                         </ReactMarkdown>
@@ -1404,12 +1578,13 @@ const QuizComponent = ({ maMon, maDe }) => {
                             <div
                               key={`answer-${questionId}-${answerIndex}`}
                               className={`
-                                border rounded-lg p-3 cursor-pointer flex items-center hover:bg-opacity-10 transition-colors
+                                border rounded-lg p-3 cursor-pointer flex items-center hover:bg-opacity-10 transition-all duration-300 hover:shadow-md
+                                animate-fade-in-up delay-${100 + answerIndex * 100}
                                 ${isSelected 
-                                  ? 'bg-indigo-600 text-white border-indigo-600' 
+                                  ? 'bg-blue-100 text-blue-800 border-blue-300 animate-pulse-highlight shadow-sm' 
                                   : darkMode 
-                                    ? 'border-gray-700 hover:bg-indigo-600' 
-                                    : 'border-gray-300 hover:bg-gray-50'
+                                    ? 'border-gray-700 hover:bg-blue-50 hover:scale-[1.02] transition-transform duration-200' 
+                                    : 'border-gray-300 hover:bg-gray-50 hover:scale-[1.02] transition-transform duration-200'
                                 }
                                 ${isCorrectAnswer
                                   ? 'bg-green-600 text-white border-green-600' 
@@ -1418,9 +1593,9 @@ const QuizComponent = ({ maMon, maDe }) => {
                               `}
                               onClick={() => handleAnswerSelect(questionId, answer)}
                             >
-                              <div className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center ${
+                              <div className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center transition-all duration-300 hover:scale-110 ${
                                 isSelected 
-                                  ? 'bg-white text-indigo-600' 
+                                  ? 'bg-white text-blue-600 shadow-sm' 
                                   : darkMode ? 'bg-gray-700' : 'bg-gray-200'
                               }`}>
                                 {answer}
@@ -1440,7 +1615,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                 
                 {/* Check Result Display */}
                 {isChecked && checkResult && (
-                  <div className={`mt-4 p-4 rounded-lg ${
+                  <div className={`mt-4 p-4 rounded-lg animate-bounce-in ${
                     checkResult.isCorrect 
                       ? (darkMode ? 'bg-green-900 text-green-100' : 'bg-green-100 text-green-700')
                       : (darkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-700')
@@ -1483,10 +1658,10 @@ const QuizComponent = ({ maMon, maDe }) => {
                   <button
                     onClick={handlePrevious}
                     disabled={currentIndex === 0}
-                    className={`px-4 py-2 rounded flex items-center ${
+                    className={`px-4 py-2 rounded flex items-center transition-all duration-300 hover:scale-105 ${
                       currentIndex === 0 
                         ? (darkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-500 cursor-not-allowed') 
-                        : (darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')
+                        : (darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 animate-slide-in-left' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 animate-slide-in-left')
                     }`}
                   >
                     <i className="fas fa-arrow-left mr-2"></i> Câu trước
@@ -1507,7 +1682,7 @@ const QuizComponent = ({ maMon, maDe }) => {
 
                     <button
                       onClick={handleNext}
-                      className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 flex items-center"
+                      className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 flex items-center transition-all duration-300 hover:scale-105 animate-slide-in-right"
                     >
                       Câu tiếp theo <i className="fas fa-arrow-right ml-2"></i>
                     </button>
@@ -1515,7 +1690,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                     {currentIndex === questions.length - 1 && (
                       <button
                         onClick={handleSubmit}
-                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center"
+                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center transition-all duration-300 hover:scale-105 animate-pulse-highlight"
                       >
                         Nộp bài <i className="fas fa-check ml-2"></i>
                       </button>
@@ -1577,7 +1752,7 @@ const QuizComponent = ({ maMon, maDe }) => {
         {/* Out of bounds warning modal */}
         {outOfBounds && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fadeIn">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4 animate-zoomIn">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4 animate-bounce-in">
               <div className="flex items-center mb-4 text-red-600">
                 <i className="fas fa-exclamation-triangle text-2xl mr-2"></i>
                 <h3 className="text-xl font-bold">Cảnh báo!</h3>
