@@ -1,5 +1,6 @@
 package com.mycompany.fstudymate.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,12 +49,15 @@ public class Quiz {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
     
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
     private List<Question> questions;
     
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
     private List<QuizTaken> quizTakens;
     
     @PrePersist

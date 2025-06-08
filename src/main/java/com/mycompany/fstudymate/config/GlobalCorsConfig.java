@@ -10,27 +10,28 @@ import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.logging.Logger;
 
 /**
  * Global CORS configuration for all endpoints
- * This has been replaced by more specific CORS filter configurations
- * Don't use @Configuration here to avoid conflicts with other CORS settings
+ * This provides a fallback for CORS in case the Spring MVC configuration doesn't work
  */
-//@Configuration
+@Configuration
 public class GlobalCorsConfig {
+    private static final Logger logger = Logger.getLogger(GlobalCorsConfig.class.getName());
 
-    //@Bean
+    @Bean
     public FilterRegistrationBean<CorsFilter> globalCorsFilter() {
-        // Remove debug output
-        // System.out.println("Registering Global CORS Filter with proper credentials support");
+        logger.info("Registering Global CORS Filter with full access support");
         
         CorsConfiguration config = new CorsConfiguration();
         
-        // When using wildcard origins, allowCredentials must be false
+        // IMPORTANT: When using setAllowCredentials(true), you cannot use '*' for allowedOrigins
+        // Instead, we use allowedOriginPatterns
         config.setAllowedOriginPatterns(Collections.singletonList("*"));
         
-        // Set allowCredentials to false when using wildcard origins
-        config.setAllowCredentials(false);
+        // Critical for cookies/auth to work
+        config.setAllowCredentials(true);
         
         // Allow all common headers
         config.setAllowedHeaders(Arrays.asList(
@@ -64,6 +65,8 @@ public class GlobalCorsConfig {
         
         FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        
+        logger.info("Global CORS Filter configured with allowedOriginPatterns=[*], allowCredentials=true");
         return bean;
     }
 } 

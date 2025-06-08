@@ -95,14 +95,22 @@ public class QuestionController {
         try {
             List<Question> questions = questionService.getQuestionsByMaMonAndMaDe(maMon, maDe);
             
-            // Don't set MaMon and MaDe on questions - these should only be in the Quiz table
-            
-            if (option != null && option.equals("random")) {
-                logger.info("Randomizing question order");
+            // Handle randomization if requested
+            if ("random".equalsIgnoreCase(option) && !questions.isEmpty()) {
                 Collections.shuffle(questions);
             }
             
-            logger.info("Returning " + questions.size() + " questions");
+            // Eagerly fetch Quiz data to avoid lazy loading issues
+            for (Question question : questions) {
+                if (question.getQuiz() != null) {
+                    // Trigger loading of quiz data to avoid lazy load exception
+                    Integer quizId = question.getQuiz().getId();
+                    question.setQuizId(quizId);
+                    // Set quiz to null to avoid serialization issues
+                    question.setQuiz(null);
+                }
+            }
+            
             return ResponseEntity.ok(questions);
         } catch (Exception e) {
             logger.severe("Error retrieving questions: " + e.getMessage());

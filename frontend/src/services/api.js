@@ -694,7 +694,8 @@ export const getQuizMetadata = async (maMon, maDe) => {
     const formattedMaMon = maMon.toString().trim();
     const formattedMaDe = maDe.toString().trim();
     
-    const response = await axios.get(`${API_URL}/quizzes/metadata`, {
+    // Fix: Change endpoint from /quizzes/metadata to /questions/quizzes/metadata
+    const response = await axios.get(`${API_URL}/questions/quizzes/metadata`, {
       params: { 
         maMon: formattedMaMon,
         maDe: formattedMaDe
@@ -872,5 +873,28 @@ export const getQuizAttempt = async (quizTakenId) => {
   } catch (error) {
     console.error('Error fetching quiz attempt:', error);
     throw error;
+  }
+};
+
+export const getClassLeaderboard = async (quizId) => {
+  try {
+    // Get user's class ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    const classId = user?.classId;
+    
+    if (!classId) {
+      console.warn('[API] No class ID found for leaderboard, using generic leaderboard');
+    }
+    
+    const response = await axios.get(`${API_URL}/quiz-attempts/class-leaderboard`, {
+      params: { quizId, classId }
+    });
+    
+    console.log('[API] Class leaderboard fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching class leaderboard:', error);
+    // Return empty array on error
+    return [];
   }
 }; 

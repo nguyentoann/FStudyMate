@@ -1,5 +1,6 @@
 package com.mycompany.fstudymate.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -49,6 +50,7 @@ public class Question {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "questions", "quizTakens"})
     private Quiz quiz;
     
     @Transient
@@ -232,5 +234,15 @@ public class Question {
     // Manual setter for points
     public void setPoints(Integer points) {
         this.points = points;
+    }
+    
+    // Manual getter for quiz
+    public Quiz getQuiz() {
+        return quiz;
+    }
+    
+    // Manual setter for quiz
+    public void setQuiz(Quiz quiz) {
+        this.quiz = quiz;
     }
 } 

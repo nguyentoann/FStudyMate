@@ -27,17 +27,18 @@ public class CorsFilter implements Filter {
         // Get the Origin header from the request
         String origin = request.getHeader("Origin");
         
-        // Allow any origin, but specifically handle known origins
+        // Allow any origin with proper reflection
         if (origin != null) {
-            logger.info("Request origin: " + origin);
+            logger.info("Request origin: " + origin + ", allowing access");
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else {
+            logger.info("No Origin header in request, setting Access-Control-Allow-Origin: *");
             response.setHeader("Access-Control-Allow-Origin", "*");
         }
         
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Max-Age", "3600");
-        response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept");
+        response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept, origin");
         
         // CRITICAL: Set Allow-Credentials to true for all requests
         response.setHeader("Access-Control-Allow-Credentials", "true");

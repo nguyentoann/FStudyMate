@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject, startQuiz, submitQuiz } from '../services/api';
+import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject, startQuiz, submitQuiz, getClassLeaderboard } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../services/config';
 import ReactMarkdown from 'react-markdown';
@@ -143,8 +143,12 @@ const QuizComponent = ({ maMon, maDe }) => {
     isAIGenerated: false,
     createdAt: null,
     timeLimit: null,
-    userId: null
+    userId: null,
+    id: null
   });
+  
+  // State for leaderboard data
+  const [leaderboardData, setLeaderboardData] = useState([]);
   
   // Mouse tracking state
   const [outOfBounds, setOutOfBounds] = useState(false);
@@ -614,16 +618,16 @@ const QuizComponent = ({ maMon, maDe }) => {
       
       // Initialize quiz session if not already done
       let quizTakenId = localStorage.getItem(`quiz_session_${maMon}_${maDe}`);
+      let usedQuizId = quizMetadata?.id;
       
       if (!quizTakenId) {
         // Get quiz ID (assuming it's available in quiz metadata)
-        const quizId = quizMetadata?.id;
-        if (!quizId) {
+        if (!usedQuizId) {
           throw new Error("Quiz ID not found. Cannot save results.");
         }
         
         // Start a new quiz session
-        const startResponse = await startQuiz(quizId);
+        const startResponse = await startQuiz(usedQuizId);
         if (!startResponse.success) {
           throw new Error("Failed to start quiz session: " + startResponse.message);
         }
@@ -634,6 +638,17 @@ const QuizComponent = ({ maMon, maDe }) => {
       
       // Submit answers
       await submitQuiz(quizTakenId, selectedAnswers);
+      
+      // Fetch leaderboard data after submitting
+      if (usedQuizId) {
+        try {
+          const leaderboard = await getClassLeaderboard(usedQuizId);
+          setLeaderboardData(leaderboard);
+        } catch (leaderboardError) {
+          console.error("Failed to fetch leaderboard:", leaderboardError);
+          // Continue with the results display even if leaderboard fails
+        }
+      }
       
       // Show results
       setShowResults(true);
@@ -1102,114 +1117,142 @@ const QuizComponent = ({ maMon, maDe }) => {
     });
     
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>
+      <div className="min-h-screen flex flex-col bg-gray-900">
         {/* Only show the TeacherAvatar when showTeacher is true */}
         {showTeacher && <TeacherAvatar />}
         
-        <div className="max-w-4xl mx-auto my-8 px-4">
-          <div className={`${darkMode ? 'bg-blue-900' : 'bg-blue-600'} text-white p-5 rounded-t-lg`}>
-            <h1 className="text-2xl font-bold">Kết Quả Kiểm Tra</h1>
-          </div>
-          
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-8 rounded-b-lg shadow-lg mb-8`}>
-            <div className="text-center mb-10">
-              <div className="text-6xl font-bold text-blue-600">{percentage}%</div>
-              <p className="text-xl mt-3">
-                {partialScore !== score && (
-                  <span className="text-blue-500 font-medium">
-                    {partialScore.toFixed(2)} ≈ {score}
-                  </span>
-                )} / {total} điểm
-              </p>
-              <p className="text-lg mt-1">Bạn đã đạt được {score} trên tổng số {total} điểm</p>
+        <div className="flex flex-col md:flex-row flex-grow">
+          {/* Left panel - Summary and Leaderboard */}
+          <div className="w-full md:w-2/5 p-4">
+            <div className="bg-blue-600 text-white p-4 rounded-t-lg shadow-md">
+              <h1 className="text-xl font-bold flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Kết Quả Kiểm Tra
+              </h1>
             </div>
             
-            {questionResults.map((result, index) => (
-              <div key={`result-${result.id || index}`} className={`mb-8 p-5 rounded-lg ${result.fullScore ? (darkMode ? 'bg-green-900 bg-opacity-20' : 'bg-green-50') : (darkMode ? 'bg-red-900 bg-opacity-20' : 'bg-red-50')}`}>
-                <div className="mb-2 flex items-start">
-                  <div className="flex-grow">
-                    <span className="font-medium">Câu {index + 1}: </span>
-                    <ReactMarkdown
-                      components={{
-                        code: ({node, inline, className, children, ...props}) => {
-                          return (
-                            <code className={`${inline 
-                              ? darkMode 
-                                ? 'bg-gray-700 text-red-400 px-1 rounded' 
-                                : 'bg-gray-200 text-red-600 px-1 rounded' 
-                              : darkMode
-                                ? 'block bg-gray-800 p-2 rounded'
-                                : 'block bg-gray-100 p-2 rounded'} ${className || ''}`} {...props}>
-                              {children}
-                            </code>
-                          )
-                        }
-                      }}
-                    >
-                      {result.questionText || result.question}
-                    </ReactMarkdown>
-                  </div>
-                  <div className="flex-shrink-0 ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium whitespace-nowrap">
-                    {Math.round(result.earnedPoints)} / {result.questionPoints} points
-                  </div>
-                </div>
-                
-                {result.isMultipleChoice && (
-                  <div className={`text-sm ${result.fullScore ? 'text-green-500' : 'text-blue-500'} mb-2`}>
-                    Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
-                    {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
-                      <span> = {(result.questionScoreRatio * 100).toFixed()}% partial credit</span>
-                    )}
-                  </div>
-                )}
-                
-                <div className="font-medium">
-                  <span className={`${darkMode ? 'text-red-300' : 'text-red-600'}`}>Đáp án của bạn: </span>
-                  {result.selected.length > 0 ? result.selected.join(', ') : 'Không chọn đáp án'}
-                </div>
-                
-                <div className="font-medium mt-1">
-                  <span className={`${darkMode ? 'text-green-300' : 'text-green-600'}`}>Đáp án đúng: </span>
-                  {result.correct.join(', ')}
-                </div>
-                
-                {result.explanation && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="font-medium">Giải thích:</div>
-                    <div className="mt-1">
+            <div className="bg-gray-800 text-white p-6 rounded-b-lg mb-6 shadow-md">
+              {/* Big score percentage */}
+              <div className="text-center mb-6">
+                <div className="text-7xl font-bold text-blue-500">{percentage}%</div>
+                <p className="text-lg mt-2 text-gray-300">
+                  / {total} điểm
+                </p>
+                <p className="text-sm mt-1 text-gray-400">
+                  Bạn đã đạt được {score} trên tổng số {total} điểm
+                </p>
+              </div>
+              
+              {/* Leaderboard */}
+              <div className="mt-8">
+                <LeaderboardComponent 
+                  leaderboardData={leaderboardData} 
+                  score={score} 
+                  darkMode={darkMode}
+                />
+              </div>
+              
+              <div className="mt-10">
+                <button
+                  onClick={() => navigate('/quiz')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors shadow-sm"
+                >
+                  Làm bài kiểm tra khác
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right panel - Question details */}
+          <div className="w-full md:w-3/5 p-4 overflow-y-auto max-h-screen">
+            {questionResults.map((result, index) => {
+              // Determine background color based on correctness
+              const bgColorClass = result.fullScore ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+              const textColorClass = result.fullScore ? 'text-green-800' : 'text-red-800';
+              
+              return (
+                <div key={`result-${result.id || index}`} className={`mb-4 rounded-lg overflow-hidden border shadow-sm`}>
+                  <div className={`p-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : bgColorClass}`}>
+                    {/* Question number and points */}
+                    <div className="flex justify-between items-center mb-2">
+                      <div className={`text-xl font-bold ${darkMode ? (result.fullScore ? 'text-green-400' : 'text-red-400') : textColorClass}`}>
+                        Câu {index + 1}:
+                      </div>
+                      <div className={`text-xs font-medium py-1 px-2 rounded-full ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
+                        {Math.round(result.earnedPoints)} / {result.questionPoints} points
+                      </div>
+                    </div>
+                    
+                    {/* Question text */}
+                    <div className={`${darkMode ? 'text-gray-200' : 'text-gray-800'} mb-3`}>
                       <ReactMarkdown
                         components={{
                           code: ({node, inline, className, children, ...props}) => {
                             return (
                               <code className={`${inline 
-                                ? darkMode 
-                                  ? 'bg-gray-700 text-red-400 px-1 rounded' 
-                                  : 'bg-gray-200 text-red-600 px-1 rounded' 
-                                : darkMode
-                                  ? 'block bg-gray-800 p-2 rounded'
-                                  : 'block bg-gray-100 p-2 rounded'} ${className || ''}`} {...props}>
+                                ? darkMode ? 'bg-gray-700 text-blue-300 px-1 rounded' : 'bg-gray-100 text-blue-600 px-1 rounded' 
+                                : darkMode ? 'block bg-gray-700 p-2 rounded border border-gray-600' : 'block bg-gray-50 p-2 rounded border border-gray-200'} ${className || ''}`} {...props}>
                                 {children}
                               </code>
                             )
                           }
                         }}
                       >
-                        {result.explanation}
+                        {result.questionText || result.question}
                       </ReactMarkdown>
                     </div>
+                    
+                    {/* Multiple choice info */}
+                    {result.isMultipleChoice && (
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                        Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
+                        {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
+                          <span> = {(result.questionScoreRatio * 100).toFixed()}% partial credit</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* User answer */}
+                    <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                      <span className={`${darkMode ? 'text-red-400' : 'text-red-600'} font-medium`}>Đáp án của bạn: </span>
+                      {result.selected.length > 0 ? result.selected.join(', ') : 'Không chọn đáp án'}
+                    </div>
+                    
+                    {/* Correct answer */}
+                    <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <span className={`${darkMode ? 'text-green-400' : 'text-green-600'} font-medium`}>Đáp án đúng: </span>
+                      {result.correct.join(', ')}
+                    </div>
+                    
+                    {/* Explanation */}
+                    {result.explanation && (
+                      <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <div className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Giải thích:</div>
+                        <div className={`mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          <ReactMarkdown
+                            components={{
+                              code: ({node, inline, className, children, ...props}) => {
+                                return (
+                                  <code className={`${inline 
+                                    ? darkMode ? 'bg-gray-700 text-blue-300 px-1 rounded' : 'bg-gray-100 text-blue-600 px-1 rounded' 
+                                    : darkMode ? 'block bg-gray-700 p-2 rounded border border-gray-600' : 'block bg-gray-50 p-2 rounded border border-gray-200'} ${className || ''}`} {...props}>
+                                    {children}
+                                  </code>
+                                )
+                              }
+                            }}
+                          >
+                            {result.explanation}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-            
-            <div className="mt-10 text-center">
-              <button
-                onClick={() => navigate('/quiz')}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Làm lại bài kiểm tra khác
-              </button>
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1978,6 +2021,259 @@ const QuizSelection = () => {
         </div>
       </div>
     </DashboardLayout>
+  );
+};
+
+// Leaderboard component for better organization
+const LeaderboardComponent = ({ leaderboardData, score, darkMode }) => {
+  // Process leaderboard data
+  const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+  const currentUserId = currentUser.id;
+  const currentUsername = currentUser.username || localStorage.getItem('username') || 'You';
+  
+  // Sort by score (highest first)
+  const sortedLeaderboard = [...leaderboardData]
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+      isCurrentUser: entry.userId === currentUserId
+    }));
+  
+  // Find the current user in the leaderboard
+  const currentUserEntry = sortedLeaderboard.find(entry => entry.isCurrentUser);
+  const userRank = currentUserEntry?.rank || 'N/A';
+  
+  // Get top 3 users
+  const topUsers = sortedLeaderboard.slice(0, 3);
+  
+  // Get a few users before and after the current user
+  let nearbyUsers = [];
+  if (currentUserEntry && userRank > 6) {
+    const startIdx = Math.max(0, sortedLeaderboard.findIndex(entry => entry.isCurrentUser) - 1);
+    nearbyUsers = sortedLeaderboard.slice(startIdx, startIdx + 4);
+  }
+  
+  // Regular users (positions 4-6)
+  const regularUsers = sortedLeaderboard.slice(3, 6);
+  
+  // Add current user score to the leaderboard if not already present
+  if (!currentUserEntry && score > 0) {
+    // Create an entry for the current user
+    // Calculate an estimated rank for the current user
+    const estimatedRank = sortedLeaderboard.findIndex(entry => (entry.score || 0) < score) + 1;
+    
+    // If couldn't find a position (user's score is lowest)
+    const finalRank = estimatedRank > 0 ? estimatedRank : sortedLeaderboard.length + 1;
+    
+    const userEntry = {
+      userId: currentUserId,
+      username: currentUsername,
+      name: currentUser.name || currentUsername,
+      score: Math.round(score),
+      rank: finalRank,
+      isCurrentUser: true,
+      avatar: "https://randomuser.me/api/portraits/lego/1.jpg"
+    };
+    
+    // Add to nearby section
+    nearbyUsers = [userEntry];
+  }
+  
+  // Default image for users without avatars
+  const getDefaultAvatar = (userId, username) => {
+    if (!userId) return "https://randomuser.me/api/portraits/lego/1.jpg";
+    return `https://randomuser.me/api/portraits/${userId % 2 === 0 ? 'men' : 'women'}/${userId % 70}.jpg`;
+  };
+  
+  // Render placeholder for empty position
+  const renderEmptyPlace = (position) => {
+    const styles = {
+      1: {
+        containerClass: "px-3 text-center -mt-4",
+        imageClass: "w-20 h-20", 
+        borderClass: "border-yellow-500",
+        badgeClass: "bg-yellow-500",
+        badgeSize: "w-7 h-7",
+        textClass: "text-yellow-400"
+      },
+      2: {
+        containerClass: "px-3 text-center",
+        imageClass: "w-16 h-16", 
+        borderClass: "border-indigo-500",
+        badgeClass: "bg-indigo-600",
+        badgeSize: "w-6 h-6",
+        textClass: "text-blue-400"
+      },
+      3: {
+        containerClass: "px-3 text-center",
+        imageClass: "w-16 h-16", 
+        borderClass: "border-green-500",
+        badgeClass: "bg-green-600",
+        badgeSize: "w-6 h-6",
+        textClass: "text-green-400"
+      }
+    };
+    
+    const style = styles[position];
+    
+    return (
+      <div className={style.containerClass}>
+        <div className="relative inline-block">
+          <div className={`${style.imageClass} rounded-full overflow-hidden border-2 ${style.borderClass} bg-gray-700 flex items-center justify-center`}>
+            <span className="text-2xl text-gray-500">?</span>
+          </div>
+          <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${style.badgeClass} rounded-full ${style.badgeSize} flex items-center justify-center text-sm font-bold`}>{position}</div>
+        </div>
+        <p className="mt-2 font-medium">No data</p>
+        <p className={`font-bold ${style.textClass}`}>--</p>
+        <p className="text-xs text-gray-400">@username</p>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg text-white">
+      {/* Top 3 users */}
+      <div className="flex justify-center items-end pt-6 pb-4 px-4 bg-gray-800 relative">
+        {/* Crown icon for first place */}
+        {topUsers.length > 0 && (
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
+            <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M10 2a1 1 0 01.894.553l2.991 5.982a1 1 0 01.068.756l-1.07 3.756a1 1 0 01-.962.753H8.079a1 1 0 01-.962-.753l-1.07-3.756a1 1 0 01.068-.756l2.991-5.982A1 1 0 0110 2zm0-2a3 3 0 00-2.683 1.658L4.336 7.256a3 3 0 00-.204 2.268l1.071 3.755A3 3 0 008.08 16h3.84a3 3 0 002.878-2.721l1.07-3.755a3 3 0 00-.204-2.268L12.683 1.658A3 3 0 0010 0z"></path>
+            </svg>
+          </div>
+        )}
+        
+        {/* Second Place */}
+        {topUsers.length >= 2 ? (
+          <div className="px-3 text-center">
+            <div className="relative inline-block">
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-indigo-500">
+                <img 
+                  src={topUsers[1].avatar || getDefaultAvatar(topUsers[1].userId, topUsers[1].username)} 
+                  alt="2nd place" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-indigo-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+            </div>
+            <p className="mt-2 font-medium">{topUsers[1].name || topUsers[1].username}</p>
+            <p className="text-blue-400 font-bold">{topUsers[1].score || '--'}</p>
+            <p className="text-xs text-gray-400">@{topUsers[1].username}</p>
+          </div>
+        ) : renderEmptyPlace(2)}
+        
+        {/* First Place */}
+        {topUsers.length >= 1 ? (
+          <div className="px-3 text-center -mt-4">
+            <div className="relative inline-block">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-yellow-500 z-10">
+                <img 
+                  src={topUsers[0].avatar || getDefaultAvatar(topUsers[0].userId, topUsers[0].username)} 
+                  alt="1st place" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-yellow-500 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">1</div>
+            </div>
+            <p className="mt-2 font-medium">{topUsers[0].name || topUsers[0].username}</p>
+            <p className="text-yellow-400 font-bold">{topUsers[0].score || '--'}</p>
+            <p className="text-xs text-gray-400">@{topUsers[0].username}</p>
+          </div>
+        ) : renderEmptyPlace(1)}
+        
+        {/* Third Place */}
+        {topUsers.length >= 3 ? (
+          <div className="px-3 text-center">
+            <div className="relative inline-block">
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-green-500">
+                <img 
+                  src={topUsers[2].avatar || getDefaultAvatar(topUsers[2].userId, topUsers[2].username)}
+                  alt="3rd place" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
+            </div>
+            <p className="mt-2 font-medium">{topUsers[2].name || topUsers[2].username}</p>
+            <p className="text-green-400 font-bold">{topUsers[2].score || '--'}</p>
+            <p className="text-xs text-gray-400">@{topUsers[2].username}</p>
+          </div>
+        ) : renderEmptyPlace(3)}
+      </div>
+      
+      {/* Other rankings */}
+      <div className="divide-y divide-gray-800">
+        {/* Regular ranking rows (positions 4-6) */}
+        {regularUsers.length > 0 ? (
+          regularUsers.map((entry) => (
+            <div key={`rank-${entry.rank}`} className="flex items-center px-4 py-2">
+              <div className="w-8 text-right mr-3 text-gray-500">{entry.rank}</div>
+              <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                <img 
+                  src={entry.avatar || getDefaultAvatar(entry.userId, entry.username)} 
+                  alt={entry.name || entry.username} 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="flex-grow">
+                <p className="font-medium">{entry.name || entry.username}</p>
+                <p className="text-xs text-gray-400">@{entry.username}</p>
+              </div>
+              <div className="font-bold text-gray-300">{entry.score || '--'}</div>
+            </div>
+          ))
+        ) : sortedLeaderboard.length > 3 ? (
+          <div className="px-4 py-6 text-center text-gray-500">
+            <p>More students will show here</p>
+            <p className="text-sm">when they take the quiz</p>
+          </div>
+        ) : null}
+        
+        {/* Ellipsis to show there are more entries */}
+        {sortedLeaderboard.length > 6 && nearbyUsers.length > 0 && (
+          <div className="px-4 py-3 text-center text-gray-500">
+            <div className="flex justify-center space-x-1">
+              <div className="w-1 h-1 rounded-full bg-gray-500"></div>
+              <div className="w-1 h-1 rounded-full bg-gray-500"></div>
+              <div className="w-1 h-1 rounded-full bg-gray-500"></div>
+            </div>
+          </div>
+        )}
+        
+        {/* Current user section */}
+        {nearbyUsers.length > 0 && 
+          nearbyUsers.map((entry) => (
+            <div 
+              key={`rank-${entry.rank}-${entry.userId}`} 
+              className={`flex items-center px-4 py-2 ${entry.isCurrentUser ? 'bg-green-900 bg-opacity-30 border-l-4 border-green-500' : ''}`}
+            >
+              <div className="w-8 text-right mr-3 text-gray-500">{entry.rank}</div>
+              <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                <img 
+                  src={entry.avatar || getDefaultAvatar(entry.userId, entry.username)} 
+                  alt={entry.name || entry.username} 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="flex-grow">
+                <p className="font-medium">{entry.name || entry.username}</p>
+                <p className="text-xs text-gray-400">@{entry.username}</p>
+              </div>
+              <div className="font-bold text-gray-300">{entry.score || '--'}</div>
+              {entry.isCurrentUser && (
+                <div className="ml-2 text-green-400">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </div>
   );
 };
 
