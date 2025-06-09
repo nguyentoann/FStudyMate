@@ -324,7 +324,7 @@ export const GroupChatProvider = ({ children }) => {
       return { success: false };
     }
   };
-  
+
   // Upload or update a group image
   const uploadGroupImage = async (groupId, file) => {
     if (!user || !groupId || !file) return { success: false };
@@ -437,6 +437,10 @@ export const GroupChatProvider = ({ children }) => {
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          console.error('Access denied: Admin privileges required');
+          throw { status: 403, message: 'Access denied: Admin privileges required' };
+        }
         throw new Error('Failed to fetch class groups');
       }
 
@@ -445,8 +449,8 @@ export const GroupChatProvider = ({ children }) => {
       
     } catch (error) {
       console.error('Error fetching class groups:', error);
-      setError(error.message);
-      return [];
+      setError(error.message || 'Failed to fetch class groups');
+      throw error;
     } finally {
       setLoading(false);
     }

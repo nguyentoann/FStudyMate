@@ -9,6 +9,8 @@ const AdminClassGroupsPanel = () => {
   const [classGroups, setClassGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 2;
 
   // Fetch all class groups when component mounts
   useEffect(() => {
@@ -18,17 +20,33 @@ const AdminClassGroupsPanel = () => {
         try {
           const groups = await fetchAllClassGroups();
           setClassGroups(groups);
+          setRetryCount(0); // Reset retry count on success
         } catch (err) {
-          setError('Failed to load class groups');
           console.error(err);
+          if (err.message?.includes('403') || err.status === 403) {
+            setError('Access denied. Please refresh the page or login again.');
+          } else {
+            setError('Failed to load class groups');
+          }
+          // Increment retry count and avoid further retries if limit reached
+          setRetryCount(prevCount => {
+            const newCount = prevCount + 1;
+            if (newCount >= MAX_RETRIES) {
+              console.log(`Max retries (${MAX_RETRIES}) reached for loading class groups`);
+            }
+            return newCount;
+          });
         } finally {
           setLoading(false);
         }
       }
     };
     
-    loadClassGroups();
-  }, [user, fetchAllClassGroups]);
+    // Only attempt to load if we haven't exceeded retry limit
+    if (user && user.role === 'admin' && retryCount < MAX_RETRIES) {
+      loadClassGroups();
+    }
+  }, [user, fetchAllClassGroups, retryCount]);
   
   // Format the date for display
   const formatDate = (dateString) => {

@@ -466,7 +466,10 @@ public class ChatController {
             
             if (resource.exists() && resource.isReadable()) {
                 HttpHeaders headers = new HttpHeaders();
-                headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + chatFile.getFileName() + "\"");
+                
+                // Handle Unicode characters in filenames using RFC 5987 encoding
+                String encodedFilename = encodeFilename(chatFile.getFileName());
+                headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFilename);
                 
                 return ResponseEntity.ok()
                     .headers(headers)
@@ -487,6 +490,20 @@ public class ChatController {
                 "status", "error",
                 "message", "Error downloading file: " + e.getMessage()
             ));
+        }
+    }
+    
+    /**
+     * Encode filename for Content-Disposition header according to RFC 5987.
+     * This ensures Unicode characters are properly handled.
+     */
+    private String encodeFilename(String filename) {
+        try {
+            return java.net.URLEncoder.encode(filename, "UTF-8").replace("+", "%20");
+        } catch (java.io.UnsupportedEncodingException e) {
+            logger.warning("Failed to encode filename: " + e.getMessage());
+            // Fall back to ASCII filename
+            return filename.replaceAll("[^\\x00-\\x7F]", "_");
         }
     }
     
@@ -925,8 +942,14 @@ public class ChatController {
             
             String contentType = determineContentType(imagePath);
             
+            // Get filename from the path
+            String filename = path.getFileName().toString();
+            
+            // Encode the filename for Content-Disposition header
+            String encodedFilename = encodeFilename(filename);
+            
             return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFilename)
                 .contentType(MediaType.parseMediaType(contentType))
                 .body(resource);
             
