@@ -955,4 +955,27 @@ public class ChatController {
             default: return "application/octet-stream";
         }
     }
+
+    /**
+     * Get all class groups (Admin only)
+     */
+    @GetMapping("/groups/class/all")
+    public ResponseEntity<List<Map<String, Object>>> getAllClassGroups(@RequestHeader(name = "X-User-Role", required = false) String userRole) {
+        try {
+            // Only allow admins to access this endpoint
+            if (!"admin".equalsIgnoreCase(userRole)) {
+                return ResponseEntity.status(403).body(List.of(Map.of(
+                    "status", "error",
+                    "message", "Access denied. Admin privileges required."
+                )));
+            }
+            
+            List<Map<String, Object>> classGroups = chatDAO.getAllClassGroups();
+            return ResponseEntity.ok(classGroups);
+        } catch (Exception e) {
+            logger.severe("Error getting all class groups: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 } 

@@ -769,8 +769,28 @@ public class ChatDAO {
                 ps = connection.prepareStatement(query);
                 ps.setInt(1, userId);
                 ps.setInt(2, userId);
+            } else if ("admin".equalsIgnoreCase(userRole)) {
+                // For admins, get ALL class groups and custom groups they're members of
+                query = "SELECT g.*, " +
+                       "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
+                       "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
+                       "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
+                       "FROM chat_groups g " +
+                       "WHERE g.is_custom = false " + // All class groups
+                       "UNION " +
+                       "SELECT g.*, " +
+                       "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
+                       "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
+                       "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
+                       "FROM chat_groups g " +
+                       "JOIN group_members gm ON g.id = gm.group_id " +
+                       "WHERE gm.user_id = ? AND g.is_custom = true " + // Custom groups they're members of
+                       "ORDER BY last_activity IS NULL, last_activity DESC";
+                
+                ps = connection.prepareStatement(query);
+                ps.setInt(1, userId);
             } else {
-                // For non-students, only get custom groups they're members of
+                // For non-students (lecturers), only get custom groups they're members of
                 query = "SELECT g.*, " +
                        "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
                        "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +

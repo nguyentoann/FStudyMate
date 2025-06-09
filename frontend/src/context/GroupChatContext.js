@@ -426,6 +426,32 @@ export const GroupChatProvider = ({ children }) => {
     setClassStudentCount(0);
   };
 
+  // Fetch all class groups (admin only)
+  const fetchAllClassGroups = async () => {
+    if (!user || user.role !== 'admin') return [];
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/class/all`, 'GET', null, {
+        'X-User-Role': user.role
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch class groups');
+      }
+
+      const data = await response.json();
+      return data;
+      
+    } catch (error) {
+      console.error('Error fetching class groups:', error);
+      setError(error.message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Initial fetch of groups when user logs in
   useEffect(() => {
     if (user) {
@@ -475,7 +501,8 @@ export const GroupChatProvider = ({ children }) => {
         removeGroupMember,
         fetchClassStudentCount,
         uploadGroupImage,
-        removeGroupImage
+        removeGroupImage,
+        fetchAllClassGroups
       }}
     >
       {children}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
+import AdminClassGroupsPanel from '../../components/AdminClassGroupsPanel';
 import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo } from '../../services/api';
 
 const AdminDashboard = () => {
@@ -512,6 +513,11 @@ const AdminDashboard = () => {
         
         {/* Storage Information */}
         {renderStorageSection()}
+        
+        {/* Class Groups Panel */}
+        <div className="mb-8">
+          <AdminClassGroupsPanel />
+        </div>
         
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow">
