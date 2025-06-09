@@ -14,6 +14,7 @@ export const GroupChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [localMessages, setLocalMessages] = useState([]);
   const [groupMembers, setGroupMembers] = useState([]);
+  const [classStudentCount, setClassStudentCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -91,6 +92,29 @@ export const GroupChatProvider = ({ children }) => {
       
     } catch (error) {
       console.error('Error fetching group members:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch student count for a class
+  const fetchClassStudentCount = async (classId) => {
+    if (!user || !classId) return;
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/class/${classId}/student-count`, 'GET');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch class student count');
+      }
+
+      const data = await response.json();
+      setClassStudentCount(data.count || 0);
+      
+    } catch (error) {
+      console.error('Error fetching class student count:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -311,8 +335,13 @@ export const GroupChatProvider = ({ children }) => {
       // Load the messages for this group
       await fetchMessages(groupId);
       
-      // Load the members for this group
+      // Always load group members
       await fetchGroupMembers(groupId);
+      
+      // For class groups, also fetch the student count
+      if (!group.isCustom && group.classId) {
+        await fetchClassStudentCount(group.classId);
+      }
     }
   };
 
@@ -321,6 +350,8 @@ export const GroupChatProvider = ({ children }) => {
     setActiveGroup(null);
     setMessages([]);
     setLocalMessages([]);
+    setGroupMembers([]);
+    setClassStudentCount(0);
   };
 
   // Initial fetch of groups when user logs in
@@ -355,6 +386,7 @@ export const GroupChatProvider = ({ children }) => {
         localMessages,
         setLocalMessages,
         groupMembers,
+        classStudentCount,
         loading,
         error,
         fetchGroups,
@@ -369,6 +401,7 @@ export const GroupChatProvider = ({ children }) => {
         fetchGroupMembers,
         addGroupMember,
         removeGroupMember,
+        fetchClassStudentCount
       }}
     >
       {children}

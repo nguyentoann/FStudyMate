@@ -1360,4 +1360,38 @@ public class UserDAO {
         
         return users;
     }
+
+    /**
+     * Count students by class ID
+     * 
+     * @param classId The class ID
+     * @return Number of students in the class
+     */
+    public int countStudentsByClassId(String classId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        int count = 0;
+        
+        try {
+            String query = "SELECT COUNT(*) AS count FROM students WHERE class_id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setString(1, classId);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                count = rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error counting students by class ID: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return count;
+    }
 } 

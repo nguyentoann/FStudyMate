@@ -6,7 +6,7 @@ const ChatButton = ({ userId, userName }) => {
   
   const handleStartChat = (e) => {
     e.stopPropagation(); // Prevent triggering parent click events
-    openConversation(userId);
+    openConversation(userId, { fullName: userName });
   };
   
   return (

@@ -1064,6 +1064,7 @@ public class ChatDAO {
             
             if (rs.next()) {
                 boolean isCustom = rs.getBoolean("is_custom");
+                String classId = rs.getString("class_id");
                 
                 DBUtils.closeResultSet(rs);
                 DBUtils.closePreparedStatement(ps);
@@ -1081,13 +1082,9 @@ public class ChatDAO {
                             "ORDER BY is_creator DESC, u.full_name";
                     ps = connection.prepareStatement(query);
                     ps.setInt(1, groupId);
-                } else {
+                } else if (classId != null && !classId.isEmpty()) {
                     // For class groups, get all students in the class
-                    String classId = rs.getString("class_id");
-                    
-                    query = "SELECT s.user_id, u.username, u.full_name, u.profile_image_url, u.role, " +
-                            "NULL as added_by_username, 0 as is_creator, " +
-                            "s.student_id as student_id " +
+                    query = "SELECT s.user_id, s.student_id, u.username, u.full_name, u.profile_image_url, u.role " +
                             "FROM students s " +
                             "JOIN users u ON s.user_id = u.id " +
                             "WHERE s.class_id = ? " +

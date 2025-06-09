@@ -10,7 +10,7 @@ import Navbar from './Navbar';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
-  const { unreadCount } = useChat();
+  const { unreadCount, fetchConversations } = useChat();
   const { groups } = useGroupChat();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +54,13 @@ const DashboardLayout = ({ children }) => {
     // Close other chats if open
     setIsAIChatOpen(false);
     setIsGroupChatOpen(false);
+    
+    // If opening the chat, refresh conversations
+    if (!isChatOpen) {
+      // Force refresh conversations
+      fetchConversations();
+    }
+    
     setIsChatOpen(!isChatOpen);
   };
   

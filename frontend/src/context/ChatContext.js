@@ -105,8 +105,17 @@ export const ChatProvider = ({ children }) => {
         }
       }
       
-      setMessages(data);
-      setLocalMessages(data);
+      // Find any temp messages that should be preserved (not yet on server)
+      const tempMessages = localMessages.filter(msg => 
+        msg.isTemp && 
+        !data.find(serverMsg => serverMsg.id === msg.id)
+      );
+      
+      // Combine server messages with any temporary UI messages
+      const combinedMessages = [...data, ...tempMessages];
+      
+      setMessages(combinedMessages);
+      setLocalMessages(combinedMessages);
       
       // After successfully fetching messages, update unread count
       fetchConversations();
@@ -137,8 +146,7 @@ export const ChatProvider = ({ children }) => {
 
       const data = await response.json();
       
-      // After sending a message, refresh the conversation
-      await fetchMessages(receiverId);
+      // Return success without triggering full refresh to keep optimistic UI update
       return {
         success: true,
         messageId: data.messageId
@@ -259,8 +267,8 @@ export const ChatProvider = ({ children }) => {
   };
 
   // Set active conversation and load its messages
-  const openConversation = async (userId) => {
-    console.log(`[ChatContext] Opening conversation with user ID: ${userId}`);
+  const openConversation = async (userId, userInfo = {}) => {
+    console.log(`[ChatContext] Opening conversation with user ID: ${userId}`, userInfo);
     
     // Find conversation in the list if it exists
     const conversation = conversations.find(c => c.userId === userId);
@@ -272,6 +280,9 @@ export const ChatProvider = ({ children }) => {
       console.log(`[ChatContext] Creating new conversation object for user ID: ${userId}`);
       setActiveConversation({
         userId,
+        fullName: userInfo.fullName || 'User',
+        username: userInfo.username || '',
+        profileImageUrl: userInfo.profileImageUrl || 'https://via.placeholder.com/40',
         unreadCount: 0,
         lastMessage: '',
         lastMessageTime: null,
@@ -340,13 +351,16 @@ export const ChatProvider = ({ children }) => {
   // Use stabilized context to prevent unnecessary re-renders
   const stabilizedContextValue = useStabilizedContext(
     contextValue, 
-    ['conversations', 'messages'], // Only these state changes should trigger re-renders
+    ['conversations', 'messages', 'localMessages'], // Track localMessages changes too
     1000 // 1-second debounce
   );
   
   // Set up periodic refresh of conversations
   useEffect(() => {
     if (!user) return;
+    
+    // On initial mount, perform an immediate refresh of conversations
+    fetchConversations();
     
     const intervalId = setInterval(() => {
       // Skip refresh if video is playing

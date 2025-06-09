@@ -6,7 +6,7 @@ import VideoCallButton from './VideoCallButton';
 import { API_URL } from '../services/config';
 
 const ChatBox = () => {
-  const { activeConversation, localMessages, setLocalMessages, sendMessage, deleteMessage, closeConversation, uploadFile, downloadFile, unsendMessage } = useChat();
+  const { activeConversation, localMessages, setLocalMessages, sendMessage, deleteMessage, closeConversation, uploadFile, downloadFile, unsendMessage, fetchMessages } = useChat();
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +25,28 @@ const ChatBox = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  // Focus the input field and refresh messages when activeConversation changes
+  useEffect(() => {
+    if (activeConversation) {
+      // Clear old messages immediately to avoid confusion
+      setLocalMessages([]);
+      
+      // Focus the input
+      setTimeout(() => {
+        if (messageInputAreaRef.current) {
+          messageInputAreaRef.current.focus();
+        }
+      }, 100);
+      
+      // Request fresh messages
+      const conversationId = activeConversation.userId;
+      if (conversationId) {
+        console.log(`[ChatBox] Explicitly refreshing messages for user ${conversationId}`);
+        fetchMessages(conversationId);
+      }
+    }
+  }, [activeConversation?.userId]);
   
   // Scroll to bottom when local messages change
   useEffect(() => {
@@ -61,7 +83,12 @@ const ChatBox = () => {
     console.log('[ChatBox] Active conversation:', activeConversation);
     console.log('[ChatBox] Local messages:', localMessages);
     console.log('[ChatBox] Other user:', otherUser);
-  }, [activeConversation, localMessages]);
+    
+    // If activeConversation exists but other user details are missing, log warning
+    if (activeConversation && (!otherUser || !otherUser.name || otherUser.name === 'User')) {
+      console.warn('[ChatBox] Missing user information in conversation:', activeConversation);
+    }
+  }, [activeConversation, localMessages, otherUser]);
 
   const checkFileSize = (file) => {
     if (file.size > MAX_FILE_SIZE) {
@@ -148,6 +175,19 @@ const ChatBox = () => {
     const result = await sendMessage(otherUser.id, tempMessage.message || ' ');
     
     if (result.success) {
+      console.log(`[ChatBox] Message sent successfully! Temp ID: ${tempMessage.id}, Real ID: ${result.messageId}`);
+      
+      // Update the temp message with the real message ID and mark as not temporary
+      setLocalMessages(prev => {
+        const updated = prev.map(msg => 
+          msg.id === tempMessage.id 
+            ? { ...msg, id: result.messageId, isTemp: false } 
+            : msg
+        );
+        console.log('[ChatBox] Updated local messages after send:', updated);
+        return updated;
+      });
+      
       // If there's a file to upload
       if (selectedFile && result.messageId) {
         const uploadResult = await uploadFile(selectedFile, result.messageId);
@@ -157,10 +197,9 @@ const ChatBox = () => {
           // Update the message to remove "Sending file:" text on success
           setLocalMessages(prev => 
             prev.map(msg => 
-              msg.id === tempMessage.id 
+              msg.id === result.messageId  // Use the real message ID now
                 ? { 
                     ...msg, 
-                    isTemp: false,
                     message: msg.message.startsWith("Sending file:") ? "" : msg.message,
                     files: uploadResult.file ? [uploadResult.file] : []
                   } 
@@ -645,6 +684,13 @@ const ChatBox = () => {
     }
   };
   
+  const handleRefreshMessages = async () => {
+    if (activeConversation && otherUser) {
+      console.log(`[ChatBox] Manually refreshing messages for ${otherUser.id}`);
+      await fetchMessages(otherUser.id);
+    }
+  };
+  
   if (!activeConversation) return null;
   
   return (
@@ -672,6 +718,15 @@ const ChatBox = () => {
           </div>
         </div>
         <div className="flex items-center">
+          <button
+            onClick={handleRefreshMessages}
+            className="text-white hover:text-gray-200 ml-2 p-1.5"
+            title="Refresh messages"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
           <VideoCallButton userId={otherUser.id} userName={otherUser.name} />
           <button 
             onClick={closeConversation}
@@ -897,6 +952,7 @@ const ChatBox = () => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={isSubmitting}
+            ref={messageInputAreaRef}
           />
           <button
             type="submit"

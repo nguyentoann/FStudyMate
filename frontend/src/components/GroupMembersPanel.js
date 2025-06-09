@@ -3,6 +3,7 @@ import { useGroupChat } from '../context/GroupChatContext';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../services/config';
 import { makeApiCall } from '../utils/ApiUtils';
+import ChatButton from './ChatButton';
 
 const GroupMembersPanel = ({ onClose }) => {
   const { activeGroup, groupMembers, fetchGroupMembers, addGroupMember, removeGroupMember } = useGroupChat();
@@ -80,6 +81,12 @@ const GroupMembersPanel = ({ onClose }) => {
   };
 
   const handleRemoveMember = async (userId) => {
+    // Don't allow removing members from class groups
+    if (!activeGroup.isCustom) {
+      alert("Students cannot be removed from class groups.");
+      return;
+    }
+
     // Don't allow removing yourself from the group
     if (userId === user.id) {
       if (!window.confirm('Are you sure you want to leave this group?')) {
@@ -120,11 +127,12 @@ const GroupMembersPanel = ({ onClose }) => {
         </div>
         <div className="mt-2 text-sm text-gray-500">
           {groupMembers.length} members
+          {!activeGroup.isCustom && <span className="ml-2 text-blue-600">(Class Group)</span>}
         </div>
       </div>
 
-      {/* Search and add members section - only visible if user can manage members */}
-      {canManageMembers && (
+      {/* Search and add members section - only visible if user can manage members AND it's a custom group */}
+      {canManageMembers && activeGroup.isCustom && (
         <div className="p-4 border-b">
           <div className="mb-2 font-medium">Add Members</div>
           <div className="relative">
@@ -192,55 +200,75 @@ const GroupMembersPanel = ({ onClose }) => {
       <div className="p-4">
         <div className="mb-2 font-medium">Group Members</div>
         <div className="max-h-64 overflow-y-auto">
-          {groupMembers.map((member) => {
-            const isCreator = activeGroup.isCustom && activeGroup.creatorId === member.userId;
-            const isSelf = member.userId === user.id;
-            const canRemove = canManageMembers && (!isCreator || isSelf);
-            
-            return (
-              <div key={member.userId} className="flex justify-between items-center p-2 hover:bg-gray-50 border-b last:border-b-0">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-200">
-                    {member.profileImageUrl ? (
-                      <img 
-                        src={`${member.profileImageUrl}`} 
-                        alt={member.fullName} 
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-blue-500 text-white">
-                        {member.fullName ? member.fullName.charAt(0).toUpperCase() : '?'}
+          {groupMembers.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">
+              No members found
+            </div>
+          ) : (
+            groupMembers.map((member) => {
+              const isCreator = activeGroup.isCustom && activeGroup.creatorId === member.userId;
+              const isSelf = member.userId === user.id;
+              // Only allow removing from custom groups
+              const canRemove = activeGroup.isCustom && canManageMembers && (!isCreator || isSelf);
+              
+              return (
+                <div key={member.userId} className="flex justify-between items-center p-2 hover:bg-gray-50 border-b last:border-b-0">
+                  <div className="flex items-center">
+                    <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-200">
+                      {member.profileImageUrl ? (
+                        <img 
+                          src={`${member.profileImageUrl}`} 
+                          alt={member.fullName} 
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-blue-500 text-white">
+                          {member.fullName ? member.fullName.charAt(0).toUpperCase() : '?'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-2">
+                      <div className="font-medium text-sm">
+                        {member.fullName}
+                        {isCreator && <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">Creator</span>}
+                        {isSelf && <span className="ml-2 text-xs text-gray-500">(You)</span>}
+                        {!activeGroup.isCustom && member.studentId && (
+                          <span className="ml-2 text-xs text-gray-500"></span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">@{member.username}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    {/* Chat button - Only show for other users */}
+                    {!isSelf && (
+                      <div className="mr-2">
+                        <ChatButton userId={member.userId} userName={member.fullName} />
                       </div>
                     )}
-                  </div>
-                  <div className="ml-2">
-                    <div className="font-medium text-sm">
-                      {member.fullName}
-                      {isCreator && <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">Creator</span>}
-                      {isSelf && <span className="ml-2 text-xs text-gray-500">(You)</span>}
-                    </div>
-                    <div className="text-xs text-gray-500">@{member.username}</div>
+                  
+                    {/* Remove button - Only show for custom groups */}
+                    {canRemove && (
+                      <button
+                        onClick={() => handleRemoveMember(member.userId)}
+                        className="p-1 text-gray-500 hover:text-red-500"
+                        title={isSelf ? "Leave group" : "Remove member"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          {isSelf ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          )}
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
-                
-                {canRemove && (
-                  <button
-                    onClick={() => handleRemoveMember(member.userId)}
-                    className="ml-2 p-1 text-gray-500 hover:text-red-500"
-                    title={isSelf ? "Leave group" : "Remove member"}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      {isSelf ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      )}
-                    </svg>
-                  </button>
-                )}
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

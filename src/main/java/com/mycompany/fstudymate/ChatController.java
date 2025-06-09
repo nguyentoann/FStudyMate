@@ -2,6 +2,7 @@ package com.mycompany.fstudymate;
 
 import dao.ChatDAO;
 import dao.ChatFileDAO;
+import dao.UserDAO;
 import model.ChatFile;
 import service.OpenAIService;
 import util.FileStorageService;
@@ -776,6 +777,22 @@ public class ChatController {
             return ResponseEntity.ok(groups);
         } catch (Exception e) {
             logger.severe("Error getting user custom groups: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Get student count for a class group
+     */
+    @GetMapping("/class/{classId}/student-count")
+    public ResponseEntity<Map<String, Object>> getClassStudentCount(@PathVariable String classId) {
+        try {
+            UserDAO userDAO = new UserDAO();
+            int count = userDAO.countStudentsByClassId(classId);
+            return ResponseEntity.ok(Map.of("count", count));
+        } catch (Exception e) {
+            logger.severe("Error getting class student count: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
