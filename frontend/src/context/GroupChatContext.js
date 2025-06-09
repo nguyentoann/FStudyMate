@@ -324,6 +324,78 @@ export const GroupChatProvider = ({ children }) => {
       return { success: false };
     }
   };
+  
+  // Upload or update a group image
+  const uploadGroupImage = async (groupId, file) => {
+    if (!user || !groupId || !file) return { success: false };
+    
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('userId', user.id);
+      
+      // Use fetch directly since we're sending FormData
+      const response = await fetch(`${API_URL}/chat/groups/${groupId}/image`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload group image');
+      }
+
+      const data = await response.json();
+      
+      // After updating a group image, refresh the groups list and members
+      await fetchGroups();
+      if (activeGroup && activeGroup.id === groupId) {
+        await fetchGroupMembers(groupId);
+      }
+      
+      return {
+        success: true,
+        imagePath: data.imagePath
+      };
+      
+    } catch (error) {
+      console.error('Error uploading group image:', error);
+      setError(error.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Remove a group image
+  const removeGroupImage = async (groupId) => {
+    if (!user || !groupId) return { success: false };
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/${groupId}/image?userId=${user.id}`, 'DELETE');
+
+      if (!response.ok) {
+        throw new Error('Failed to remove group image');
+      }
+      
+      // After removing a group image, refresh the groups list and members
+      await fetchGroups();
+      if (activeGroup && activeGroup.id === groupId) {
+        await fetchGroupMembers(groupId);
+      }
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error removing group image:', error);
+      setError(error.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Set active group, load its messages and members
   const openGroup = async (groupId) => {
@@ -401,7 +473,9 @@ export const GroupChatProvider = ({ children }) => {
         fetchGroupMembers,
         addGroupMember,
         removeGroupMember,
-        fetchClassStudentCount
+        fetchClassStudentCount,
+        uploadGroupImage,
+        removeGroupImage
       }}
     >
       {children}

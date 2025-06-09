@@ -159,6 +159,7 @@ CREATE TABLE `chat_groups` (
   `class_id` varchar(20) DEFAULT NULL,
   `is_custom` tinyint(1) DEFAULT 0,
   `creator_id` int(11) DEFAULT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `class_id` (`class_id`),

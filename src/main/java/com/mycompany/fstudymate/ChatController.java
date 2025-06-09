@@ -797,4 +797,162 @@ public class ChatController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    /**
+     * Uploads or updates a group image
+     */
+    @PostMapping("/groups/{groupId}/image")
+    public ResponseEntity<Map<String, Object>> uploadGroupImage(
+            @PathVariable int groupId,
+            @RequestParam("image") MultipartFile image,
+            @RequestParam("userId") int userId) {
+        
+        try {
+            logger.info("Uploading image for group: " + groupId + " by user: " + userId);
+            
+            if (image.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "No file provided"
+                ));
+            }
+            
+            // Check if file is an image
+            String contentType = image.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Only image files are allowed"
+                ));
+            }
+            
+            // Upload the image to Samba storage
+            String filePath = FileStorageService.uploadGroupImage(
+                image.getInputStream(), 
+                image.getOriginalFilename(), 
+                image.getContentType(), 
+                groupId
+            );
+            
+            // Update the group record with the image path
+            boolean success = chatDAO.updateGroupImage(groupId, filePath, userId);
+            
+            if (success) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Group image updated successfully",
+                    "imagePath", filePath
+                ));
+            } else {
+                return ResponseEntity.status(403).body(Map.of(
+                    "status", "error",
+                    "message", "You do not have permission to update this group's image"
+                ));
+            }
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                "status", "error",
+                "message", "Failed to upload image: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Removes a group image
+     */
+    @DeleteMapping("/groups/{groupId}/image")
+    public ResponseEntity<Map<String, Object>> removeGroupImage(
+            @PathVariable int groupId,
+            @RequestParam int userId) {
+        
+        try {
+            logger.info("Removing image for group: " + groupId + " by user: " + userId);
+            
+            boolean success = chatDAO.removeGroupImage(groupId, userId);
+            
+            if (success) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Group image removed successfully"
+                ));
+            } else {
+                return ResponseEntity.status(403).body(Map.of(
+                    "status", "error",
+                    "message", "You do not have permission to remove this group's image"
+                ));
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                "status", "error",
+                "message", "Failed to remove image: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Get a group image
+     */
+    @GetMapping("/groups/image/{groupId}")
+    public ResponseEntity<?> getGroupImage(@PathVariable int groupId) {
+        try {
+            // Get the group details first to get the image path
+            List<Map<String, Object>> groupMembers = chatDAO.getGroupMembers(groupId);
+            
+            if (groupMembers.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // The first result will have the group details
+            String imagePath = (String) groupMembers.get(0).get("imagePath");
+            
+            if (imagePath == null || imagePath.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Check if the file exists in the Samba storage
+            if (!FileStorageService.fileExists(imagePath)) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Download the file from Samba and serve it
+            File file = FileStorageService.downloadFile(imagePath);
+            Path path = Paths.get(file.getAbsolutePath());
+            Resource resource = new UrlResource(path.toUri());
+            
+            String contentType = determineContentType(imagePath);
+            
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                "status", "error",
+                "message", "Error retrieving group image: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Determine content type based on file extension
+     */
+    private String determineContentType(String filePath) {
+        String extension = filePath.substring(filePath.lastIndexOf(".") + 1).toLowerCase();
+        
+        switch (extension) {
+            case "png": return "image/png";
+            case "jpg":
+            case "jpeg": return "image/jpeg";
+            case "gif": return "image/gif";
+            case "webp": return "image/webp";
+            case "bmp": return "image/bmp";
+            default: return "application/octet-stream";
+        }
+    }
 } 

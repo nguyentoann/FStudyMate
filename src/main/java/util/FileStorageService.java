@@ -39,7 +39,7 @@ public class FileStorageService {
     private static final String SMB_SHARE = "SWP391";
     private static final String SMB_BASE_PATH = "smb://" + SMB_HOST + "/" + SMB_SHARE + "/";
     
-    // File categories and paths
+    // File categories and paths        
     private static final String CHAT_FILES_DIR = "ChatFiles";
     private static final String GROUP_CHAT_FILES_DIR = "GroupChatFiles";
     private static final String PROFILE_PICS_DIR = "ProfilePictures";
@@ -595,5 +595,102 @@ public class FileStorageService {
      */
     public static String getQuizImagePath(String maMon, String maDe, String fileName) {
         return QUIZ_IMAGES_DIR + "/" + sanitizeFileName(maMon) + "/" + sanitizeFileName(maDe) + "/" + sanitizeFileName(fileName);
+    }
+    
+    /**
+     * Uploads a group chat image to the SMB server
+     * 
+     * @param inputStream file input stream
+     * @param originalFileName original file name
+     * @param contentType MIME type of the file
+     * @param groupId ID of the group
+     * @return Path of the stored file
+     * @throws IOException if file upload fails
+     */
+    public static String uploadGroupImage(InputStream inputStream, String originalFileName, String contentType, 
+                                        int groupId) throws IOException {
+        
+        try {
+            // Check if content type is an image
+            if (!contentType.startsWith("image/")) {
+                throw new IOException("Only image files are allowed for group images");
+            }
+            
+            String cleanFileName = sanitizeFileName(originalFileName);
+            String fileExtension = FilenameUtils.getExtension(cleanFileName);
+            
+            logger.info("Uploading group image: " + originalFileName + " with extension: " + fileExtension);
+            
+            // Generate unique name with date and random UUID
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+            String dateString = dateFormat.format(new Date());
+            
+            String newFileName = "group_" + groupId + "_" + dateString + "_" + uniqueId + 
+                                (fileExtension.isEmpty() ? "" : "." + fileExtension);
+            
+            // Custom directory for group images
+            String targetDir = "GroupImages";
+            
+            // Create year/month subdirectories for better organization
+            SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy");
+            SimpleDateFormat monthFormat = new SimpleDateFormat("MM");
+            String year = yearFormat.format(new Date());
+            String month = monthFormat.format(new Date());
+            
+            String relativePath = targetDir + "/" + year + "/" + month + "/";
+            String fullPath = relativePath + newFileName;
+            
+            logger.info("Target path: " + fullPath);
+            
+            // Store the file on SMB server
+            CIFSContext context = createContext();
+            logger.info("SMB context created successfully");
+            
+            // Ensure all directories in path exist
+            createDirectoryStructure(context, relativePath);
+            
+            // Create temporary file from input stream
+            logger.info("Creating temporary file from input stream...");
+            File tempFile = createTempFile(inputStream);
+            logger.info("Temp file created: " + tempFile.getAbsolutePath() + ", size: " + tempFile.length() + " bytes");
+            
+            // Write the file to SMB server
+            SmbFile smbFile = new SmbFile(SMB_BASE_PATH + fullPath, context);
+            logger.info("Writing content to: " + smbFile.getPath());
+            
+            try {
+                // Create the file on SMB server
+                smbFile.createNewFile();
+                
+                // Write the temp file content to SMB file
+                try (SmbFileOutputStream smbOut = new SmbFileOutputStream(smbFile);
+                     java.io.FileInputStream fileIn = new java.io.FileInputStream(tempFile)) {
+                    
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    long totalWritten = 0;
+                    
+                    while ((bytesRead = fileIn.read(buffer)) != -1) {
+                        smbOut.write(buffer, 0, bytesRead);
+                        totalWritten += bytesRead;
+                    }
+                    
+                    logger.info("Group image uploaded successfully: " + fullPath + ", size: " + totalWritten + " bytes");
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error writing group image to SMB file: " + e.getMessage(), e);
+                throw new IOException("Failed to write group image to SMB file: " + e.getMessage());
+            }
+            
+            return fullPath;
+            
+        } catch (CIFSException e) {
+            logger.log(Level.SEVERE, "SMB connection error: " + e.getMessage(), e);
+            throw new IOException("Failed to connect to file server: " + e.getMessage());
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error uploading group image: " + e.getMessage(), e);
+            throw new IOException("Failed to upload group image: " + e.getMessage());
+        }
     }
 } 

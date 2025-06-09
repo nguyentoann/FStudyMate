@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGroupChat } from '../context/GroupChatContext';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../services/config';
@@ -6,13 +6,18 @@ import { makeApiCall } from '../utils/ApiUtils';
 import ChatButton from './ChatButton';
 
 const GroupMembersPanel = ({ onClose }) => {
-  const { activeGroup, groupMembers, fetchGroupMembers, addGroupMember, removeGroupMember } = useGroupChat();
+  const { activeGroup, groupMembers, fetchGroupMembers, addGroupMember, removeGroupMember, uploadGroupImage, removeGroupImage } = useGroupChat();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+  
+  // Get group image path from the first member (all members have the same group info)
+  const groupImagePath = groupMembers.length > 0 ? groupMembers[0].imagePath : null;
 
   // Check if the current user can manage members (creator or admin)
   const canManageMembers = activeGroup && (
@@ -45,6 +50,61 @@ const GroupMembersPanel = ({ onClose }) => {
       setError(err.message || 'An error occurred');
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed');
+      return;
+    }
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
+      return;
+    }
+    
+    setIsUploadingImage(true);
+    setError(null);
+    
+    try {
+      const result = await uploadGroupImage(activeGroup.id, file);
+      
+      if (!result.success) {
+        setError('Failed to upload image');
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+  
+  // Handle image removal
+  const handleRemoveImage = async () => {
+    if (!window.confirm('Are you sure you want to remove the group image?')) {
+      return;
+    }
+    
+    setIsUploadingImage(true);
+    setError(null);
+    
+    try {
+      const result = await removeGroupImage(activeGroup.id);
+      
+      if (!result.success) {
+        setError('Failed to remove image');
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -129,6 +189,60 @@ const GroupMembersPanel = ({ onClose }) => {
           {groupMembers.length} members
           {!activeGroup.isCustom && <span className="ml-2 text-blue-600">(Class Group)</span>}
         </div>
+      </div>
+      
+      {/* Group Image Section - always visible for class groups, for custom groups only if user can manage */}
+      <div className="p-4 border-b">
+        <div className="mb-2 font-medium">Group Image</div>
+        <div className="flex items-center">
+          <div className="h-20 w-20 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
+            {groupImagePath ? (
+              <img 
+                src={`${API_URL}/chat/groups/image/${activeGroup.id}`} 
+                alt={activeGroup.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <svg className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            )}
+          </div>
+          
+          {/* Show image controls to anyone in class groups, or to creators/admins in custom groups */}
+          {(!activeGroup.isCustom || canManageMembers) && (
+            <div className="ml-4 space-y-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current.click()}
+                className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 block w-full"
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? 'Uploading...' : (groupImagePath ? 'Change Image' : 'Upload Image')}
+              </button>
+              
+              {groupImagePath && (
+                <button
+                  onClick={handleRemoveImage}
+                  className="px-3 py-1 text-sm font-medium text-red-600 border border-red-600 rounded hover:bg-red-50 disabled:opacity-50 block w-full"
+                  disabled={isUploadingImage}
+                >
+                  Remove Image
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {error && (
+          <div className="mt-2 text-red-500 text-sm">{error}</div>
+        )}
       </div>
 
       {/* Search and add members section - only visible if user can manage members AND it's a custom group */}

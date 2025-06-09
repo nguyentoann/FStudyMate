@@ -745,25 +745,68 @@ public class ChatDAO {
         List<Map<String, Object>> groups = new ArrayList<>();
         
         try {
-            // First get custom groups for all users
-            List<Map<String, Object>> customGroups = getUserCustomGroups(userId);
-            groups.addAll(customGroups);
+            String query;
             
-            // Then add role-specific groups
-            if ("admin".equals(userRole)) {
-                // Admins can see all class groups
-                List<Map<String, Object>> classGroups = getAllClassGroups();
-                groups.addAll(classGroups);
-            } else if ("student".equals(userRole)) {
-                // Students can only see their class group
-                Map<String, Object> group = getStudentClassGroup(userId);
-                if (!group.isEmpty()) {
-                    groups.add(group);
-                }
+            if ("student".equalsIgnoreCase(userRole) || "outsrc_student".equalsIgnoreCase(userRole)) {
+                // For students, get their class group
+                query = "SELECT g.*, " +
+                       "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
+                       "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
+                       "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
+                       "FROM chat_groups g " +
+                       "JOIN students s ON g.class_id = s.class_id " +
+                       "WHERE s.user_id = ? " +
+                       "UNION " +
+                       "SELECT g.*, " +
+                       "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
+                       "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
+                       "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
+                       "FROM chat_groups g " +
+                       "JOIN group_members gm ON g.id = gm.group_id " +
+                       "WHERE gm.user_id = ? AND g.is_custom = true " +
+                       "ORDER BY last_activity IS NULL, last_activity DESC";
+                
+                ps = connection.prepareStatement(query);
+                ps.setInt(1, userId);
+                ps.setInt(2, userId);
+            } else {
+                // For non-students, only get custom groups they're members of
+                query = "SELECT g.*, " +
+                       "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
+                       "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
+                       "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
+                       "FROM chat_groups g " +
+                       "JOIN group_members gm ON g.id = gm.group_id " +
+                       "WHERE gm.user_id = ? " +
+                       "ORDER BY last_activity IS NULL, last_activity DESC";
+                
+                ps = connection.prepareStatement(query);
+                ps.setInt(1, userId);
             }
-            // Lecturers only see their custom groups which are already added
             
-        } catch (Exception e) {
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> group = new HashMap<>();
+                group.put("id", rs.getInt("id"));
+                group.put("name", rs.getString("name"));
+                group.put("classId", rs.getString("class_id"));
+                group.put("isCustom", rs.getBoolean("is_custom"));
+                group.put("creatorId", rs.getInt("creator_id"));
+                group.put("imagePath", rs.getString("image_path"));
+                group.put("createdAt", rs.getTimestamp("created_at"));
+                group.put("messageCount", rs.getInt("message_count"));
+                group.put("memberCount", rs.getInt("member_count"));
+                
+                // Handle nullable last activity
+                if (rs.getTimestamp("last_activity") != null) {
+                    group.put("lastActivity", rs.getTimestamp("last_activity"));
+                }
+                
+                groups.add(group);
+            }
+            
+        } catch (SQLException e) {
             System.err.println("Error getting user groups: " + e.getMessage());
             e.printStackTrace();
         } finally {
@@ -1003,6 +1046,41 @@ public class ChatDAO {
         boolean canManage = false;
         
         try {
+            // First check if this is a class group
+            String groupTypeQuery = "SELECT is_custom, class_id FROM chat_groups WHERE id = ?";
+            ps = connection.prepareStatement(groupTypeQuery);
+            ps.setInt(1, groupId);
+            rs = ps.executeQuery();
+            
+            boolean isCustom = true;
+            String classId = null;
+            
+            if (rs.next()) {
+                isCustom = rs.getBoolean("is_custom");
+                classId = rs.getString("class_id");
+            }
+            
+            // For class groups, check if user is a member of the class
+            if (!isCustom && classId != null) {
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+                
+                String classQuery = "SELECT COUNT(*) AS count FROM students WHERE user_id = ? AND class_id = ?";
+                ps = connection.prepareStatement(classQuery);
+                ps.setInt(1, userId);
+                ps.setString(2, classId);
+                rs = ps.executeQuery();
+                
+                if (rs.next() && rs.getInt("count") > 0) {
+                    // User is a student in this class
+                    return true;
+                }
+            }
+            
+            // For custom groups or if user is not a student in the class
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            
             // Check if user is the group creator
             String query = "SELECT creator_id FROM chat_groups WHERE id = ?";
             ps = connection.prepareStatement(query);
@@ -1043,10 +1121,10 @@ public class ChatDAO {
     }
     
     /**
-     * Gets members of a group
+     * Retrieves members of a chat group
      * 
-     * @param groupId The group ID
-     * @return List of group members with user details
+     * @param groupId the group ID
+     * @return List of group member objects
      */
     public List<Map<String, Object>> getGroupMembers(int groupId) {
         ConnectionPool pool = ConnectionPool.getInstance();
@@ -1056,67 +1134,87 @@ public class ChatDAO {
         List<Map<String, Object>> members = new ArrayList<>();
         
         try {
-            // For class groups, get all students in the class
-            String query = "SELECT is_custom, class_id FROM chat_groups WHERE id = ?";
-            ps = connection.prepareStatement(query);
+            // First get group info
+            String groupQuery = "SELECT * FROM chat_groups WHERE id = ?";
+            ps = connection.prepareStatement(groupQuery);
             ps.setInt(1, groupId);
             rs = ps.executeQuery();
             
+            String groupName = null;
+            String classId = null;
+            boolean isCustom = false;
+            int creatorId = -1;
+            String imagePath = null;
+            
             if (rs.next()) {
-                boolean isCustom = rs.getBoolean("is_custom");
-                String classId = rs.getString("class_id");
+                groupName = rs.getString("name");
+                classId = rs.getString("class_id");
+                isCustom = rs.getBoolean("is_custom");
+                creatorId = rs.getInt("creator_id");
+                imagePath = rs.getString("image_path");
+            } else {
+                // Group doesn't exist
+                return members;
+            }
+            
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            
+            String query;
+            
+            if (isCustom) {
+                // For custom groups, get members from group_members
+                query = "SELECT u.id as userId, u.username, u.full_name as fullName, u.profile_image_url as profileImageUrl, " +
+                        "u.role, gm.added_by as addedBy, gm.joined_at as joinedAt " +
+                        "FROM group_members gm " +
+                        "JOIN users u ON gm.user_id = u.id " +
+                        "WHERE gm.group_id = ? " +
+                        "ORDER BY u.full_name";
+                        
+                ps = connection.prepareStatement(query);
+                ps.setInt(1, groupId);
+            } else {
+                // For class groups, get students in the class
+                query = "SELECT u.id as userId, u.username, u.full_name as fullName, u.profile_image_url as profileImageUrl, " +
+                        "u.role, NULL as addedBy, NULL as joinedAt " +
+                        "FROM students s " +
+                        "JOIN users u ON s.user_id = u.id " +
+                        "WHERE s.class_id = ? " +
+                        "ORDER BY u.full_name";
+                        
+                ps = connection.prepareStatement(query);
+                ps.setString(1, classId);
+            }
+            
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> member = new HashMap<>();
+                member.put("userId", rs.getInt("userId"));
+                member.put("username", rs.getString("username"));
+                member.put("fullName", rs.getString("fullName"));
+                member.put("profileImageUrl", rs.getString("profileImageUrl"));
+                member.put("role", rs.getString("role"));
                 
-                DBUtils.closeResultSet(rs);
-                DBUtils.closePreparedStatement(ps);
+                // Group info (same for all members)
+                member.put("groupId", groupId);
+                member.put("groupName", groupName);
+                member.put("classId", classId);
+                member.put("isCustom", isCustom);
+                member.put("creatorId", creatorId);
+                member.put("imagePath", imagePath);
                 
+                // Custom group specific fields
                 if (isCustom) {
-                    // Get members from group_members table for custom groups
-                    query = "SELECT gm.*, u.username, u.full_name, u.profile_image_url, u.role, " +
-                            "a.username as added_by_username, " +
-                            "g.creator_id = u.id as is_creator " +
-                            "FROM group_members gm " +
-                            "JOIN users u ON gm.user_id = u.id " +
-                            "LEFT JOIN users a ON gm.added_by = a.id " +
-                            "JOIN chat_groups g ON gm.group_id = g.id " +
-                            "WHERE gm.group_id = ? " +
-                            "ORDER BY is_creator DESC, u.full_name";
-                    ps = connection.prepareStatement(query);
-                    ps.setInt(1, groupId);
-                } else if (classId != null && !classId.isEmpty()) {
-                    // For class groups, get all students in the class
-                    query = "SELECT s.user_id, s.student_id, u.username, u.full_name, u.profile_image_url, u.role " +
-                            "FROM students s " +
-                            "JOIN users u ON s.user_id = u.id " +
-                            "WHERE s.class_id = ? " +
-                            "ORDER BY u.full_name";
-                    ps = connection.prepareStatement(query);
-                    ps.setString(1, classId);
+                    member.put("addedBy", rs.getInt("addedBy"));
+                    member.put("joinedAt", rs.getTimestamp("joinedAt"));
                 }
                 
-                rs = ps.executeQuery();
-                
-                while (rs.next()) {
-                    Map<String, Object> member = new HashMap<>();
-                    member.put("userId", rs.getInt("user_id"));
-                    member.put("username", rs.getString("username"));
-                    member.put("fullName", rs.getString("full_name"));
-                    member.put("profileImageUrl", rs.getString("profile_image_url"));
-                    member.put("role", rs.getString("role"));
-                    
-                    if (isCustom) {
-                        member.put("addedBy", rs.getString("added_by_username"));
-                        member.put("joinedAt", rs.getTimestamp("joined_at"));
-                        member.put("isCreator", rs.getBoolean("is_creator"));
-                    } else {
-                        member.put("studentId", rs.getString("student_id"));
-                    }
-                    
-                    members.add(member);
-                }
+                members.add(member);
             }
             
         } catch (SQLException e) {
-            System.err.println("Error getting group members: " + e.getMessage());
+            System.err.println("Error retrieving group members: " + e.getMessage());
             e.printStackTrace();
         } finally {
             DBUtils.closeResultSet(rs);
@@ -1142,31 +1240,35 @@ public class ChatDAO {
         
         try {
             String query = "SELECT g.*, " +
-                           "(SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count, " +
-                           "(SELECT COUNT(*) FROM group_chat_messages WHERE group_id = g.id) as message_count, " +
-                           "(SELECT MAX(created_at) FROM group_chat_messages WHERE group_id = g.id) as last_activity, " +
-                           "g.creator_id = ? as is_creator " +
-                           "FROM chat_groups g " +
-                           "JOIN group_members gm ON g.id = gm.group_id " +
-                           "WHERE gm.user_id = ? AND g.is_custom = 1 " +
-                           "ORDER BY last_activity DESC";
-            
+                          "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
+                          "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
+                          "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
+                          "FROM chat_groups g " +
+                          "JOIN group_members gm ON g.id = gm.group_id " +
+                          "WHERE gm.user_id = ? AND g.is_custom = true " +
+                          "ORDER BY g.created_at DESC";
+                          
             ps = connection.prepareStatement(query);
             ps.setInt(1, userId);
-            ps.setInt(2, userId);
             rs = ps.executeQuery();
             
             while (rs.next()) {
                 Map<String, Object> group = new HashMap<>();
                 group.put("id", rs.getInt("id"));
                 group.put("name", rs.getString("name"));
+                group.put("classId", rs.getString("class_id"));
                 group.put("isCustom", rs.getBoolean("is_custom"));
                 group.put("creatorId", rs.getInt("creator_id"));
+                group.put("imagePath", rs.getString("image_path"));
                 group.put("createdAt", rs.getTimestamp("created_at"));
                 group.put("messageCount", rs.getInt("message_count"));
                 group.put("memberCount", rs.getInt("member_count"));
-                group.put("lastActivity", rs.getTimestamp("last_activity"));
-                group.put("isCreator", rs.getBoolean("is_creator"));
+                
+                // Handle nullable last activity
+                if (rs.getTimestamp("last_activity") != null) {
+                    group.put("lastActivity", rs.getTimestamp("last_activity"));
+                }
+                
                 groups.add(group);
             }
             
@@ -1180,5 +1282,85 @@ public class ChatDAO {
         }
         
         return groups;
+    }
+
+    /**
+     * Updates the image path for a chat group
+     * 
+     * @param groupId the group ID
+     * @param imagePath the path to the image file
+     * @param userId the user making the change (for class groups: any member, for custom groups: creator or admin only)
+     * @return true if successful
+     */
+    public boolean updateGroupImage(int groupId, String imagePath, int userId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First check if user has permission
+            if (!canManageGroupMembers(connection, groupId, userId)) {
+                System.out.println("User " + userId + " doesn't have permission to update group " + groupId);
+                return false;
+            }
+            
+            // Update the group image path
+            String query = "UPDATE chat_groups SET image_path = ? WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setString(1, imagePath);
+            ps.setInt(2, groupId);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating group image: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Removes the image for a chat group
+     * 
+     * @param groupId the group ID
+     * @param userId the user making the change (for class groups: any member, for custom groups: creator or admin only)
+     * @return true if successful
+     */
+    public boolean removeGroupImage(int groupId, int userId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First check if user has permission
+            if (!canManageGroupMembers(connection, groupId, userId)) {
+                System.out.println("User " + userId + " doesn't have permission to update group " + groupId);
+                return false;
+            }
+            
+            // Set image path to null
+            String query = "UPDATE chat_groups SET image_path = NULL WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, groupId);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error removing group image: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
     }
 } 
