@@ -1311,4 +1311,53 @@ public class UserDAO {
         
         return exists;
     }
+
+    /**
+     * Search for users by name or username
+     * 
+     * @param searchTerm The search term to match against name or username
+     * @return List of matching users with basic info
+     */
+    public List<Map<String, Object>> searchUsers(String searchTerm) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Map<String, Object>> users = new ArrayList<>();
+        
+        try {
+            String query = "SELECT id, username, full_name, email, role, profile_image_url " +
+                          "FROM users " +
+                          "WHERE full_name LIKE ? OR username LIKE ? " +
+                          "ORDER BY full_name " +
+                          "LIMIT 20";
+            
+            ps = connection.prepareStatement(query);
+            String likePattern = "%" + searchTerm + "%";
+            ps.setString(1, likePattern);
+            ps.setString(2, likePattern);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> user = new HashMap<>();
+                user.put("id", rs.getInt("id"));
+                user.put("username", rs.getString("username"));
+                user.put("fullName", rs.getString("full_name"));
+                user.put("email", rs.getString("email"));
+                user.put("role", rs.getString("role"));
+                user.put("profileImageUrl", rs.getString("profile_image_url"));
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching users: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return users;
+    }
 } 

@@ -156,11 +156,15 @@ DROP TABLE IF EXISTS `chat_groups`;
 CREATE TABLE `chat_groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
-  `class_id` varchar(20) NOT NULL,
+  `class_id` varchar(20) DEFAULT NULL,
+  `is_custom` tinyint(1) DEFAULT 0,
+  `creator_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `class_id` (`class_id`),
-  KEY `idx_chat_groups_class_id` (`class_id`)
+  KEY `idx_chat_groups_class_id` (`class_id`),
+  KEY `idx_chat_groups_creator_id` (`creator_id`),
+  CONSTRAINT `chat_groups_creator_fk` FOREIGN KEY (`creator_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -404,5 +408,24 @@ CREATE TABLE `chat_message_files` (
   UNIQUE KEY `idx_unique_message_file` (`message_id`,`file_id`,`message_type`),
   KEY `idx_message_files_file_id` (`file_id`),
   CONSTRAINT `chat_message_files_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `chat_files` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `group_members`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `group_members` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `group_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `added_by` int(11) DEFAULT NULL,
+  `joined_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_unique_group_member` (`group_id`,`user_id`),
+  KEY `idx_group_members_user` (`user_id`),
+  KEY `idx_group_members_added_by` (`added_by`),
+  CONSTRAINT `group_members_group_fk` FOREIGN KEY (`group_id`) REFERENCES `chat_groups` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `group_members_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `group_members_added_by_fk` FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;

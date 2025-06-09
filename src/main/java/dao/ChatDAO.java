@@ -729,8 +729,9 @@ public class ChatDAO {
 
     /**
      * Gets groups with latest message for a user
-     * For students: returns only their class group
-     * For admins: returns all class groups
+     * For students: returns their class group and any custom groups they're a member of
+     * For admins: returns all class groups and any custom groups they're a member of
+     * For lecturers: returns any custom groups they're a member of
      * 
      * @param userId The user's ID
      * @param userRole The user's role
@@ -744,19 +745,23 @@ public class ChatDAO {
         List<Map<String, Object>> groups = new ArrayList<>();
         
         try {
+            // First get custom groups for all users
+            List<Map<String, Object>> customGroups = getUserCustomGroups(userId);
+            groups.addAll(customGroups);
+            
+            // Then add role-specific groups
             if ("admin".equals(userRole)) {
-                // Admins can see all groups
-                return getAllClassGroups();
+                // Admins can see all class groups
+                List<Map<String, Object>> classGroups = getAllClassGroups();
+                groups.addAll(classGroups);
             } else if ("student".equals(userRole)) {
                 // Students can only see their class group
                 Map<String, Object> group = getStudentClassGroup(userId);
                 if (!group.isEmpty()) {
                     groups.add(group);
                 }
-            } else if ("lecturer".equals(userRole)) {
-                // For future implementation: get lecturer's class groups
-                // Currently lecturers don't see any class groups
             }
+            // Lecturers only see their custom groups which are already added
             
         } catch (Exception e) {
             System.err.println("Error getting user groups: " + e.getMessage());
@@ -856,5 +861,327 @@ public class ChatDAO {
         }
         
         return success;
+    }
+
+    /**
+     * Creates a custom chat group
+     * 
+     * @param name Group name
+     * @param creatorId User ID of the creator
+     * @return The created group ID or -1 if failed
+     */
+    public int createCustomChatGroup(String name, int creatorId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet generatedKeys = null;
+        int groupId = -1;
+        
+        try {
+            // Create the group
+            String query = "INSERT INTO chat_groups (name, is_custom, creator_id) VALUES (?, 1, ?)";
+            ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, name);
+            ps.setInt(2, creatorId);
+            
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                generatedKeys = ps.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    groupId = generatedKeys.getInt(1);
+                    
+                    // Add the creator as a member
+                    DBUtils.closeResultSet(generatedKeys);
+                    DBUtils.closePreparedStatement(ps);
+                    
+                    query = "INSERT INTO group_members (group_id, user_id, added_by) VALUES (?, ?, ?)";
+                    ps = connection.prepareStatement(query);
+                    ps.setInt(1, groupId);
+                    ps.setInt(2, creatorId);
+                    ps.setInt(3, creatorId);
+                    ps.executeUpdate();
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error creating custom chat group: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(generatedKeys);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return groupId;
+    }
+    
+    /**
+     * Adds a user to a group
+     * 
+     * @param groupId Group ID
+     * @param userId User ID to add
+     * @param addedById ID of user who added them (for tracking)
+     * @return True if successful
+     */
+    public boolean addGroupMember(int groupId, int userId, int addedById) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First verify the group exists and the adding user is either creator or admin
+            if (!canManageGroupMembers(connection, groupId, addedById)) {
+                return false;
+            }
+            
+            String query = "INSERT IGNORE INTO group_members (group_id, user_id, added_by) VALUES (?, ?, ?)";
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, groupId);
+            ps.setInt(2, userId);
+            ps.setInt(3, addedById);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error adding group member: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Removes a user from a group
+     * 
+     * @param groupId Group ID
+     * @param userId User ID to remove
+     * @param removedById ID of user who removed them
+     * @return True if successful
+     */
+    public boolean removeGroupMember(int groupId, int userId, int removedById) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First verify the group exists and the removing user is either creator or admin
+            if (!canManageGroupMembers(connection, groupId, removedById)) {
+                return false;
+            }
+            
+            String query = "DELETE FROM group_members WHERE group_id = ? AND user_id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, groupId);
+            ps.setInt(2, userId);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error removing group member: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
+    }
+    
+    /**
+     * Checks if a user can manage group members (creator or admin)
+     */
+    private boolean canManageGroupMembers(Connection connection, int groupId, int userId) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        boolean canManage = false;
+        
+        try {
+            // Check if user is the group creator
+            String query = "SELECT creator_id FROM chat_groups WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, groupId);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                int creatorId = rs.getInt("creator_id");
+                if (creatorId == userId) {
+                    canManage = true;
+                }
+            }
+            
+            // If not creator, check if admin
+            if (!canManage) {
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+                
+                query = "SELECT role FROM users WHERE id = ?";
+                ps = connection.prepareStatement(query);
+                ps.setInt(1, userId);
+                rs = ps.executeQuery();
+                
+                if (rs.next() && "admin".equals(rs.getString("role"))) {
+                    canManage = true;
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking group management permissions: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+        }
+        
+        return canManage;
+    }
+    
+    /**
+     * Gets members of a group
+     * 
+     * @param groupId The group ID
+     * @return List of group members with user details
+     */
+    public List<Map<String, Object>> getGroupMembers(int groupId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Map<String, Object>> members = new ArrayList<>();
+        
+        try {
+            // For class groups, get all students in the class
+            String query = "SELECT is_custom, class_id FROM chat_groups WHERE id = ?";
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, groupId);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                boolean isCustom = rs.getBoolean("is_custom");
+                
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+                
+                if (isCustom) {
+                    // Get members from group_members table for custom groups
+                    query = "SELECT gm.*, u.username, u.full_name, u.profile_image_url, u.role, " +
+                            "a.username as added_by_username, " +
+                            "g.creator_id = u.id as is_creator " +
+                            "FROM group_members gm " +
+                            "JOIN users u ON gm.user_id = u.id " +
+                            "LEFT JOIN users a ON gm.added_by = a.id " +
+                            "JOIN chat_groups g ON gm.group_id = g.id " +
+                            "WHERE gm.group_id = ? " +
+                            "ORDER BY is_creator DESC, u.full_name";
+                    ps = connection.prepareStatement(query);
+                    ps.setInt(1, groupId);
+                } else {
+                    // For class groups, get all students in the class
+                    String classId = rs.getString("class_id");
+                    
+                    query = "SELECT s.user_id, u.username, u.full_name, u.profile_image_url, u.role, " +
+                            "NULL as added_by_username, 0 as is_creator, " +
+                            "s.student_id as student_id " +
+                            "FROM students s " +
+                            "JOIN users u ON s.user_id = u.id " +
+                            "WHERE s.class_id = ? " +
+                            "ORDER BY u.full_name";
+                    ps = connection.prepareStatement(query);
+                    ps.setString(1, classId);
+                }
+                
+                rs = ps.executeQuery();
+                
+                while (rs.next()) {
+                    Map<String, Object> member = new HashMap<>();
+                    member.put("userId", rs.getInt("user_id"));
+                    member.put("username", rs.getString("username"));
+                    member.put("fullName", rs.getString("full_name"));
+                    member.put("profileImageUrl", rs.getString("profile_image_url"));
+                    member.put("role", rs.getString("role"));
+                    
+                    if (isCustom) {
+                        member.put("addedBy", rs.getString("added_by_username"));
+                        member.put("joinedAt", rs.getTimestamp("joined_at"));
+                        member.put("isCreator", rs.getBoolean("is_creator"));
+                    } else {
+                        member.put("studentId", rs.getString("student_id"));
+                    }
+                    
+                    members.add(member);
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting group members: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return members;
+    }
+
+    /**
+     * Gets all custom and class groups a user is a member of
+     * 
+     * @param userId The user's ID
+     * @return List of groups
+     */
+    public List<Map<String, Object>> getUserCustomGroups(int userId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Map<String, Object>> groups = new ArrayList<>();
+        
+        try {
+            String query = "SELECT g.*, " +
+                           "(SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count, " +
+                           "(SELECT COUNT(*) FROM group_chat_messages WHERE group_id = g.id) as message_count, " +
+                           "(SELECT MAX(created_at) FROM group_chat_messages WHERE group_id = g.id) as last_activity, " +
+                           "g.creator_id = ? as is_creator " +
+                           "FROM chat_groups g " +
+                           "JOIN group_members gm ON g.id = gm.group_id " +
+                           "WHERE gm.user_id = ? AND g.is_custom = 1 " +
+                           "ORDER BY last_activity DESC";
+            
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, userId);
+            ps.setInt(2, userId);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> group = new HashMap<>();
+                group.put("id", rs.getInt("id"));
+                group.put("name", rs.getString("name"));
+                group.put("isCustom", rs.getBoolean("is_custom"));
+                group.put("creatorId", rs.getInt("creator_id"));
+                group.put("createdAt", rs.getTimestamp("created_at"));
+                group.put("messageCount", rs.getInt("message_count"));
+                group.put("memberCount", rs.getInt("member_count"));
+                group.put("lastActivity", rs.getTimestamp("last_activity"));
+                group.put("isCreator", rs.getBoolean("is_creator"));
+                groups.add(group);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting user custom groups: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return groups;
     }
 } 

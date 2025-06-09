@@ -641,4 +641,143 @@ public class ChatController {
             ));
         }
     }
+
+    /**
+     * Create a custom chat group
+     */
+    @PostMapping("/groups/create")
+    public ResponseEntity<Map<String, Object>> createCustomChatGroup(@RequestBody Map<String, Object> payload) {
+        try {
+            String name = (String) payload.get("name");
+            int creatorId = Integer.parseInt(payload.get("creatorId").toString());
+            
+            if (name == null || name.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Group name cannot be empty"
+                ));
+            }
+            
+            int groupId = chatDAO.createCustomChatGroup(name, creatorId);
+            
+            if (groupId > 0) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Group created successfully",
+                    "groupId", groupId
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to create group"
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.severe("Error creating custom chat group: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error creating custom chat group: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Add a member to a chat group
+     */
+    @PostMapping("/groups/{groupId}/members/add")
+    public ResponseEntity<Map<String, Object>> addGroupMember(
+            @PathVariable int groupId,
+            @RequestBody Map<String, Object> payload) {
+        try {
+            int userId = Integer.parseInt(payload.get("userId").toString());
+            int addedById = Integer.parseInt(payload.get("addedById").toString());
+            
+            boolean success = chatDAO.addGroupMember(groupId, userId, addedById);
+            
+            if (success) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Member added successfully"
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to add member or insufficient permissions"
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.severe("Error adding group member: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error adding group member: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Remove a member from a chat group
+     */
+    @DeleteMapping("/groups/{groupId}/members/{userId}")
+    public ResponseEntity<Map<String, Object>> removeGroupMember(
+            @PathVariable int groupId,
+            @PathVariable int userId,
+            @RequestParam int removedById) {
+        try {
+            boolean success = chatDAO.removeGroupMember(groupId, userId, removedById);
+            
+            if (success) {
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Member removed successfully"
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to remove member or insufficient permissions"
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.severe("Error removing group member: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Error removing group member: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Get all members of a chat group
+     */
+    @GetMapping("/groups/{groupId}/members")
+    public ResponseEntity<List<Map<String, Object>>> getGroupMembers(@PathVariable int groupId) {
+        try {
+            List<Map<String, Object>> members = chatDAO.getGroupMembers(groupId);
+            return ResponseEntity.ok(members);
+        } catch (Exception e) {
+            logger.severe("Error getting group members: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Get all custom groups a user is a member of
+     */
+    @GetMapping("/groups/custom/{userId}")
+    public ResponseEntity<List<Map<String, Object>>> getUserCustomGroups(@PathVariable int userId) {
+        try {
+            List<Map<String, Object>> groups = chatDAO.getUserCustomGroups(userId);
+            return ResponseEntity.ok(groups);
+        } catch (Exception e) {
+            logger.severe("Error getting user custom groups: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 } 

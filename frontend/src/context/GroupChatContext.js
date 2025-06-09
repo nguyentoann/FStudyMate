@@ -13,6 +13,7 @@ export const GroupChatProvider = ({ children }) => {
   const [activeGroup, setActiveGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [localMessages, setLocalMessages] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,6 +35,118 @@ export const GroupChatProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching groups:', error);
       setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create a new custom chat group
+  const createCustomGroup = async (groupName) => {
+    if (!user || !groupName.trim()) return { success: false };
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/create`, 'POST', {
+        name: groupName,
+        creatorId: user.id
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create group');
+      }
+
+      const data = await response.json();
+      
+      // After creating a group, refresh the groups list
+      await fetchGroups();
+      
+      return {
+        success: true,
+        groupId: data.groupId
+      };
+      
+    } catch (error) {
+      console.error('Error creating custom group:', error);
+      setError(error.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch members of a group
+  const fetchGroupMembers = async (groupId) => {
+    if (!user || !groupId) return;
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/${groupId}/members`, 'GET');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch group members');
+      }
+
+      const data = await response.json();
+      setGroupMembers(data);
+      
+    } catch (error) {
+      console.error('Error fetching group members:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add a member to a group
+  const addGroupMember = async (groupId, userId) => {
+    if (!user || !groupId || !userId) return { success: false };
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/${groupId}/members/add`, 'POST', {
+        userId: userId,
+        addedById: user.id
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add member');
+      }
+      
+      // After adding a member, refresh the member list
+      await fetchGroupMembers(groupId);
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error adding group member:', error);
+      setError(error.message);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Remove a member from a group
+  const removeGroupMember = async (groupId, userId) => {
+    if (!user || !groupId || !userId) return { success: false };
+    
+    setLoading(true);
+    try {
+      const response = await makeApiCall(`/chat/groups/${groupId}/members/${userId}?removedById=${user.id}`, 'DELETE');
+
+      if (!response.ok) {
+        throw new Error('Failed to remove member');
+      }
+      
+      // After removing a member, refresh the member list
+      await fetchGroupMembers(groupId);
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error removing group member:', error);
+      setError(error.message);
+      return { success: false };
     } finally {
       setLoading(false);
     }
@@ -188,7 +301,7 @@ export const GroupChatProvider = ({ children }) => {
     }
   };
 
-  // Set active group and load its messages
+  // Set active group, load its messages and members
   const openGroup = async (groupId) => {
     // Find group in the list if it exists
     const group = groups.find(g => g.id === groupId);
@@ -197,6 +310,9 @@ export const GroupChatProvider = ({ children }) => {
       
       // Load the messages for this group
       await fetchMessages(groupId);
+      
+      // Load the members for this group
+      await fetchGroupMembers(groupId);
     }
   };
 
@@ -238,6 +354,7 @@ export const GroupChatProvider = ({ children }) => {
         messages,
         localMessages,
         setLocalMessages,
+        groupMembers,
         loading,
         error,
         fetchGroups,
@@ -248,6 +365,10 @@ export const GroupChatProvider = ({ children }) => {
         unsendMessage,
         openGroup,
         closeGroup,
+        createCustomGroup,
+        fetchGroupMembers,
+        addGroupMember,
+        removeGroupMember,
       }}
     >
       {children}
