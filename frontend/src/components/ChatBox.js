@@ -17,6 +17,9 @@ const ChatBox = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const messageInputAreaRef = useRef(null);
+  const messageContainerRef = useRef(null);
+  const [userScrolled, setUserScrolled] = useState(false);
+  const [previousMessagesLength, setPreviousMessagesLength] = useState(0);
   
   // File size constants
   const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB in bytes
@@ -25,12 +28,29 @@ const ChatBox = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Handle user scroll events
+  const handleScroll = () => {
+    if (messageContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+      // If user scrolled away from bottom
+      if (scrollHeight - scrollTop - clientHeight > 10) {
+        setUserScrolled(true);
+      } else {
+        setUserScrolled(false);
+      }
+    }
+  };
   
   // Focus the input field and refresh messages when activeConversation changes
   useEffect(() => {
     if (activeConversation) {
       // Clear old messages immediately to avoid confusion
       setLocalMessages([]);
+      
+      // Reset scroll state when opening a new conversation
+      setUserScrolled(false);
+      setPreviousMessagesLength(0);
       
       // Focus the input
       setTimeout(() => {
@@ -44,13 +64,29 @@ const ChatBox = () => {
       if (conversationId) {
         console.log(`[ChatBox] Explicitly refreshing messages for user ${conversationId}`);
         fetchMessages(conversationId);
+        
+        // Force scroll to bottom immediately when opening chat
+        setTimeout(() => {
+          scrollToBottom();
+        }, 1000);
       }
     }
   }, [activeConversation?.userId]);
   
-  // Scroll to bottom when local messages change
+  // Smart scroll to bottom when local messages change
   useEffect(() => {
-    scrollToBottom();
+    // When user sends a new message, force scroll to bottom
+    const newMessageAdded = localMessages.length > previousMessagesLength;
+    
+    if (newMessageAdded && localMessages.length > 0 && localMessages[localMessages.length - 1]?.senderId === user?.id) {
+      scrollToBottom();
+    } 
+    // When conversation is first opened or user isn't reading earlier messages
+    else if (!userScrolled || localMessages.length === 0 || previousMessagesLength === 0) {
+      scrollToBottom();
+    }
+    
+    setPreviousMessagesLength(localMessages.length);
   }, [localMessages]);
   
   // Handle menu toggle for file options
@@ -740,7 +776,7 @@ const ChatBox = () => {
       </div>
       
       {/* Messages */}
-      <div className="flex-1 p-2 overflow-y-auto bg-gray-50">
+      <div className="flex-1 p-2 overflow-y-auto bg-gray-50" ref={messageContainerRef} onScroll={handleScroll}>
         {localMessages.length === 0 ? (
           <div className="text-center text-gray-500 py-4 text-sm">
             No messages yet. Start a conversation!

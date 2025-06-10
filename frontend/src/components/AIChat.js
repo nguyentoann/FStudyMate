@@ -85,6 +85,9 @@ const AIChat = ({ onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const messageContainerRef = useRef(null);
+  const [userScrolled, setUserScrolled] = useState(false);
+  const [previousMessagesLength, setPreviousMessagesLength] = useState(0);
   
   // Choose appropriate markdown styles based on theme
   const mdStyles = darkMode ? markdownStyles.dark : markdownStyles.light;
@@ -113,13 +116,38 @@ const AIChat = ({ onClose }) => {
     console.log("User information available to AI:", enrichedUserInfo);
   }, [user]);
   
+  // Handle user scroll events
+  const handleScroll = () => {
+    if (messageContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+      // If user scrolled away from bottom
+      if (scrollHeight - scrollTop - clientHeight > 10) {
+        setUserScrolled(true);
+      } else {
+        setUserScrolled(false);
+      }
+    }
+  };
+  
   // Scroll to bottom when messages change
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
+  // Smart scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    // When user sends a new message, force scroll to bottom
+    const newMessageAdded = messages.length > previousMessagesLength;
+    
+    if (newMessageAdded && messages.length > 0 && messages[messages.length - 1]?.isUserMessage) {
+      scrollToBottom();
+    } 
+    // When conversation is first opened or user isn't reading earlier messages
+    else if (!userScrolled || messages.length === 0 || previousMessagesLength === 0) {
+      scrollToBottom();
+    }
+    
+    setPreviousMessagesLength(messages.length);
     
     // Save messages to localStorage whenever they change
     if (user && messages.length > 0) {
@@ -142,6 +170,15 @@ const AIChat = ({ onClose }) => {
             showTypingEffect: false // Disable typing effect for saved messages
           }));
           setMessages(messagesWithoutTypingEffect);
+          
+          // Force scroll to bottom when chat opens
+          setTimeout(() => {
+            scrollToBottom();
+          }, 600);
+          
+          // Reset scroll state when opening chat
+          setUserScrolled(false);
+          setPreviousMessagesLength(0);
         } catch (error) {
           console.error('Error parsing saved messages:', error);
           fetchMessages(); // Fallback to fetching from server
@@ -188,6 +225,15 @@ const AIChat = ({ onClose }) => {
       if (formattedMessages.length > 0) {
         localStorage.setItem(`ai_chat_${user.id}`, JSON.stringify(formattedMessages));
       }
+      
+      // Force scroll to bottom after messages are fetched
+      setTimeout(() => {
+        scrollToBottom();
+      }, 300);
+      
+      // Reset scroll state
+      setUserScrolled(false);
+      setPreviousMessagesLength(formattedMessages.length);
       
     } catch (error) {
       console.error('Error fetching AI chat messages:', error);
@@ -401,7 +447,7 @@ const AIChat = ({ onClose }) => {
       </div>
       
       {/* Messages */}
-      <div className={`flex-1 p-2 overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+      <div className={`flex-1 p-2 overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`} ref={messageContainerRef} onScroll={handleScroll}>
         {isLoading && messages.length === 0 ? (
           <div className="text-center text-gray-500 py-4">
             <svg className="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24">

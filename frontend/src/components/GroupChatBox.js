@@ -16,6 +16,9 @@ const GroupChatBox = () => {
   const fileInputRef = useRef(null);
   const messageInputAreaRef = useRef(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const messageContainerRef = useRef(null);
+  const [userScrolled, setUserScrolled] = useState(false);
+  const [previousMessagesLength, setPreviousMessagesLength] = useState(0);
 
   // File size constants
   const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB in bytes
@@ -25,9 +28,53 @@ const GroupChatBox = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  // Scroll to bottom when local messages change
+  // Handle user scroll events
+  const handleScroll = () => {
+    if (messageContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+      // If user scrolled away from bottom
+      if (scrollHeight - scrollTop - clientHeight > 10) {
+        setUserScrolled(true);
+      } else {
+        setUserScrolled(false);
+      }
+    }
+  };
+  
+  // Reset scroll state when opening a new group
   useEffect(() => {
-    scrollToBottom();
+    if (activeGroup) {
+      setUserScrolled(false);
+      setPreviousMessagesLength(0);
+      
+      // Focus the input
+      setTimeout(() => {
+        if (messageInputAreaRef.current) {
+          messageInputAreaRef.current.focus();
+        }
+      }, 100);
+      
+      // Force scroll to bottom immediately when opening chat
+      setTimeout(() => {
+        scrollToBottom();
+      }, 1000);
+    }
+  }, [activeGroup?.id]);
+  
+  // Smart scroll to bottom when local messages change
+  useEffect(() => {
+    // When user sends a new message, force scroll to bottom
+    const newMessageAdded = localMessages.length > previousMessagesLength;
+    
+    if (newMessageAdded && localMessages.length > 0 && localMessages[localMessages.length - 1]?.senderId === user?.id) {
+      scrollToBottom();
+    } 
+    // When conversation is first opened or user isn't reading earlier messages
+    else if (!userScrolled || localMessages.length === 0 || previousMessagesLength === 0) {
+      scrollToBottom();
+    }
+    
+    setPreviousMessagesLength(localMessages.length);
   }, [localMessages]);
   
   // Get group image URL if available
@@ -569,7 +616,7 @@ const GroupChatBox = () => {
       </div>
       
       {/* Messages */}
-      <div className="flex-1 p-2 overflow-y-auto bg-gray-50">
+      <div className="flex-1 p-2 overflow-y-auto bg-gray-50" ref={messageContainerRef} onScroll={handleScroll}>
         {localMessages.length === 0 ? (
           <div className="text-center text-gray-500 py-4 text-sm">
             No messages yet. Start a conversation with your class group!
