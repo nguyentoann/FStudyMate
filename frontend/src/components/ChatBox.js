@@ -209,24 +209,25 @@ const ChatBox = () => {
     
     if (isSubmitting) return;
     
+    // Create a temporary ID and message outside the try block
+    const tempId = `temp-${Date.now()}`;
+    const tempMessage = {
+      id: tempId,
+      senderId: user.id,
+      recipientId: otherUser.id,
+      message: newMessage.trim(),
+      createdAt: new Date().toISOString(),
+      senderName: user.fullName,
+      senderUsername: user.username,
+      senderImage: user.profileImageUrl,
+      receiverName: otherUser.name,
+      receiverUsername: otherUser.username,
+      receiverImage: otherUser.profileImageUrl,
+      isTemp: true // Flag to identify temporary messages
+    };
+    
     try {
       setIsSubmitting(true);
-      
-      // Create a temporary message for immediate display
-      const tempMessage = {
-        id: `temp-${Date.now()}`,
-        senderId: user.id,
-        recipientId: otherUser.id,
-        message: newMessage.trim(),
-        createdAt: new Date().toISOString(),
-        senderName: user.fullName,
-        senderUsername: user.username,
-        senderImage: user.profileImageUrl,
-        receiverName: otherUser.name,
-        receiverUsername: otherUser.username,
-        receiverImage: otherUser.profileImageUrl,
-        isTemp: true // Flag to identify temporary messages
-      };
       
       // If there's a file, add a placeholder
       if (selectedFile) {
@@ -243,7 +244,7 @@ const ChatBox = () => {
       const filesToSend = selectedFile ? [selectedFile] : [];
       
       // Send the message and optional file as one request
-      const result = await sendMessage(otherUser.id, tempMessage.message || ' ', filesToSend);
+      const result = await sendMessage(otherUser.id, tempMessage.message || ' ', filesToSend, tempId);
       
       if (result && result.id) {
         // Update the temporary message with real message ID

@@ -293,14 +293,11 @@ export const ChatProvider = ({ children }) => {
   };
 
   // Update message send function to use our cache system
-  const sendMessage = async (recipientId, content, files = []) => {
+  const sendMessage = async (recipientId, content, files = [], tempId = `temp-${Date.now()}`) => {
     if (!user || !recipientId || (!content && files.length === 0)) {
       console.error('Cannot send message: Missing required fields');
       return;
     }
-
-    // Generate a temporary ID for the message
-    const tempId = `temp-${Date.now()}`;
 
     // Create a temporary message to show immediately in UI
     const tempMessage = {
@@ -363,7 +360,7 @@ export const ChatProvider = ({ children }) => {
         }
       }
       
-      // Add the uploaded files to the message data
+      // Add uploaded files to the message data
       messageData.files = uploadedFiles;
       
       // Replace the temporary message with the real one
@@ -382,7 +379,11 @@ export const ChatProvider = ({ children }) => {
       // Update conversations to show the new message
       await fetchConversations();
 
-      return messageData;
+      // Return message data with tempId for reference
+      return {
+        ...messageData,
+        tempId: tempId
+      };
 
     } catch (error) {
       console.error('Error sending message:', error);
