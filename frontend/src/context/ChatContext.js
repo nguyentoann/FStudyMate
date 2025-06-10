@@ -330,21 +330,17 @@ export const ChatProvider = ({ children }) => {
     saveMessagesToCache(recipientId, allMessages);
 
     try {
-      // Prepare form data for the file upload
-      const formData = new FormData();
-      formData.append('senderId', user.id);
-      formData.append('recipientId', recipientId);
-      if (content) formData.append('message', content);
-
-      // Add files to the form data if present
-      files.forEach(file => {
-        formData.append('files', file);
-      });
-
       // Send the message to the backend
       const response = await fetch(`${API_URL}/chat/send`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          senderId: user.id,
+          receiverId: recipientId,
+          message: content || ""
+        }),
         credentials: 'include'
       });
 
@@ -354,7 +350,22 @@ export const ChatProvider = ({ children }) => {
 
       // Get the real message back from the server
       const messageData = await response.json();
-
+      const messageId = messageData.messageId || messageData.id;
+      
+      // Upload files if any
+      let uploadedFiles = [];
+      if (files && files.length > 0 && messageId) {
+        for (const file of files) {
+          const result = await uploadFile(file, messageId);
+          if (result.success) {
+            uploadedFiles.push(result.file);
+          }
+        }
+      }
+      
+      // Add the uploaded files to the message data
+      messageData.files = uploadedFiles;
+      
       // Replace the temporary message with the real one
       setLocalMessages(prev => 
         prev.map(msg => msg.id === tempId ? { ...messageData, files: messageData.files || [] } : msg)

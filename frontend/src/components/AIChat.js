@@ -144,7 +144,7 @@ const AIChat = ({ onClose }) => {
     } 
     // When conversation is first opened or user isn't reading earlier messages
     else if (!userScrolled || messages.length === 0 || previousMessagesLength === 0) {
-      scrollToBottom();
+    scrollToBottom();
     }
     
     setPreviousMessagesLength(messages.length);

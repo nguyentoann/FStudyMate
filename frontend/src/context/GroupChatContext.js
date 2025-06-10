@@ -224,21 +224,17 @@ export const GroupChatProvider = ({ children }) => {
     const tempId = `temp-${Date.now()}`;
 
     try {
-      // Prepare form data for the file upload
-      const formData = new FormData();
-      formData.append('senderId', user.id);
-      formData.append('groupId', groupId);
-      if (content) formData.append('message', content);
-
-      // Add files to the form data if present
-      files.forEach(file => {
-        formData.append('files', file);
-      });
-
-      // Send the message to the backend
-      const response = await fetch(`${API_URL}/chat/groups/message`, {
+      // Only handle text message, files will be uploaded separately
+      const response = await fetch(`${API_URL}/chat/groups/send`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          groupId: groupId,
+          senderId: user.id,
+          message: content || ""
+        }),
         credentials: 'include'
       });
 
@@ -250,12 +246,25 @@ export const GroupChatProvider = ({ children }) => {
       const data = await response.json();
       console.log('[GroupChatContext] Message sent successfully:', data);
       
+      // Upload files if there are any
+      let uploadedFiles = [];
+      if (files && files.length > 0 && data.messageId) {
+        for (const file of files) {
+          const result = await uploadFile(file, data.messageId);
+          if (result.success) {
+            uploadedFiles.push(result.file);
+          }
+        }
+      }
+      
       // Ensure proper message formatting for optimistic UI
-      return { 
-        success: true, 
-        messageId: data.id || data.messageId 
+      return {
+        success: true,
+        messageId: data.messageId || data.id,
+        files: uploadedFiles,
+        tempId: tempId
       };
-
+      
     } catch (error) {
       console.error('[GroupChatContext] Error sending message:', error);
       return { success: false };

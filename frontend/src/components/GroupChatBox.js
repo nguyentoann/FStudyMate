@@ -56,7 +56,7 @@ const GroupChatBox = () => {
       
       // Force scroll to bottom immediately when opening chat
       setTimeout(() => {
-        scrollToBottom();
+    scrollToBottom();
       }, 1000);
     }
   }, [activeGroup?.id]);
@@ -192,73 +192,73 @@ const GroupChatBox = () => {
     if (isSubmitting) return;
     
     try {
-      setIsSubmitting(true);
-      
-      // Create a temporary message for immediate display
-      const tempMessage = {
-        id: `temp-${Date.now()}`,
-        groupId: activeGroup.id,
-        senderId: user.id,
-        message: newMessage.trim(),
-        createdAt: new Date().toISOString(),
-        senderName: user.fullName,
-        senderUsername: user.username,
-        senderImage: user.profileImageUrl,
-        senderRole: user.role,
-        isTemp: true // Flag to identify temporary messages
-      };
-      
-      // If there's a file, add a placeholder
-      if (selectedFile) {
-        tempMessage.hasFile = true;
-        tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
-        tempMessage.tempFileName = selectedFile.name;
-      }
-      
-      // Optimistically add the message to the UI
-      setLocalMessages(prev => [...prev, tempMessage]);
-      setNewMessage('');
-      
+    setIsSubmitting(true);
+    
+    // Create a temporary message for immediate display
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      groupId: activeGroup.id,
+      senderId: user.id,
+      message: newMessage.trim(),
+      createdAt: new Date().toISOString(),
+      senderName: user.fullName,
+      senderUsername: user.username,
+      senderImage: user.profileImageUrl,
+      senderRole: user.role,
+      isTemp: true // Flag to identify temporary messages
+    };
+    
+    // If there's a file, add a placeholder
+    if (selectedFile) {
+      tempMessage.hasFile = true;
+      tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
+      tempMessage.tempFileName = selectedFile.name;
+    }
+    
+    // Optimistically add the message to the UI
+    setLocalMessages(prev => [...prev, tempMessage]);
+    setNewMessage('');
+    
       // Get files ready to send
       const filesToSend = selectedFile ? [selectedFile] : [];
       
       // Send the message and optional file as one request
       const result = await sendMessage(activeGroup.id, tempMessage.message || ' ', filesToSend);
-      
-      if (result.success) {
+    
+    if (result.success) {
         // Update the temporary message with real message ID
-        setLocalMessages(prev => 
-          prev.map(msg => 
-            msg.id === tempMessage.id 
-              ? { 
-                  ...msg, 
-                  isTemp: false,
+          setLocalMessages(prev => 
+            prev.map(msg => 
+              msg.id === tempMessage.id 
+                ? { 
+                    ...msg, 
+                    isTemp: false,
                   id: result.messageId,
                   message: msg.message.startsWith("Sending file:") ? "" : msg.message
-                } 
-              : msg
-          )
-        );
+                  } 
+                : msg
+            )
+          );
         
         // Clear file input
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
-        }
-      } else {
-        // If sending failed, mark the message as failed
-        setLocalMessages(prev => 
-          prev.map(msg => 
-            msg.id === tempMessage.id 
-              ? { ...msg, sendFailed: true } 
-              : msg
-          )
-        );
       }
+    } else {
+      // If sending failed, mark the message as failed
+      setLocalMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempMessage.id 
+            ? { ...msg, sendFailed: true } 
+            : msg
+        )
+      );
+    }
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
-      setIsSubmitting(false);
+    setIsSubmitting(false);
     }
   };
   
