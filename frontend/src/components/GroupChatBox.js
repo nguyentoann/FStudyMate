@@ -131,50 +131,54 @@ const GroupChatBox = () => {
   const sendLike = async () => {
     if (isSubmitting) return;
     
-    setIsSubmitting(true);
-    
-    // Create a temporary message for immediate display
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      groupId: activeGroup.id,
-      senderId: user.id,
-      message: "👍", // Thumbs up emoji
-      createdAt: new Date().toISOString(),
-      senderName: user.fullName,
-      senderUsername: user.username,
-      senderImage: user.profileImageUrl,
-      senderRole: user.role,
-      isTemp: true, // Flag to identify temporary messages
-      isLike: true  // Flag to identify like messages
-    };
-    
-    // Optimistically add the message to the UI
-    setLocalMessages(prev => [...prev, tempMessage]);
-    
-    // Actually send the message to the server
-    const result = await sendMessage(activeGroup.id, tempMessage.message);
-    
-    if (result.success) {
-      // Update the temp message with the real message ID
-      setLocalMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, isTemp: false } 
-            : msg
-        )
-      );
-    } else {
-      // If sending failed, mark the message as failed
-      setLocalMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, sendFailed: true } 
-            : msg
-        )
-      );
+    try {
+      setIsSubmitting(true);
+      
+      // Create a temporary message for immediate display
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        groupId: activeGroup.id,
+        senderId: user.id,
+        message: "👍", // Thumbs up emoji
+        createdAt: new Date().toISOString(),
+        senderName: user.fullName,
+        senderUsername: user.username,
+        senderImage: user.profileImageUrl,
+        senderRole: user.role,
+        isTemp: true, // Flag to identify temporary messages
+        isLike: true  // Flag to identify like messages
+      };
+      
+      // Optimistically add the message to the UI
+      setLocalMessages(prev => [...prev, tempMessage]);
+      
+      // Use the updated sendMessage function with empty files array
+      const result = await sendMessage(activeGroup.id, "👍", []);
+      
+      if (result.success) {
+        // Update the temp message with the real message ID
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { ...msg, isTemp: false } 
+              : msg
+          )
+        );
+      } else {
+        // If sending failed, mark the message as failed
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { ...msg, sendFailed: true } 
+              : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error sending like:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
   
   const handleSendMessage = async (e) => {
@@ -187,74 +191,75 @@ const GroupChatBox = () => {
     
     if (isSubmitting) return;
     
-    setIsSubmitting(true);
-    
-    // Create a temporary message for immediate display
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      groupId: activeGroup.id,
-      senderId: user.id,
-      message: newMessage.trim(),
-      createdAt: new Date().toISOString(),
-      senderName: user.fullName,
-      senderUsername: user.username,
-      senderImage: user.profileImageUrl,
-      senderRole: user.role,
-      isTemp: true // Flag to identify temporary messages
-    };
-    
-    // If there's a file, add a placeholder
-    if (selectedFile) {
-      tempMessage.hasFile = true;
-      tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
-      tempMessage.tempFileName = selectedFile.name;
-    }
-    
-    // Optimistically add the message to the UI
-    setLocalMessages(prev => [...prev, tempMessage]);
-    setNewMessage('');
-    
-    // Actually send the message to the server
-    const result = await sendMessage(activeGroup.id, tempMessage.message || ' ');
-    
-    if (result.success) {
-      // If there's a file to upload
-      if (selectedFile && result.messageId) {
-        const uploadResult = await uploadFile(selectedFile, result.messageId);
-        if (!uploadResult.success) {
-          console.error("Failed to upload file");
-        } else {
-          // Update the message to remove "Sending file:" text on success
-          setLocalMessages(prev => 
-            prev.map(msg => 
-              msg.id === tempMessage.id 
-                ? { 
-                    ...msg, 
-                    isTemp: false,
-                    message: msg.message.startsWith("Sending file:") ? "" : msg.message,
-                    files: uploadResult.file ? [uploadResult.file] : []
-                  } 
-                : msg
-            )
-          );
-        }
+    try {
+      setIsSubmitting(true);
+      
+      // Create a temporary message for immediate display
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        groupId: activeGroup.id,
+        senderId: user.id,
+        message: newMessage.trim(),
+        createdAt: new Date().toISOString(),
+        senderName: user.fullName,
+        senderUsername: user.username,
+        senderImage: user.profileImageUrl,
+        senderRole: user.role,
+        isTemp: true // Flag to identify temporary messages
+      };
+      
+      // If there's a file, add a placeholder
+      if (selectedFile) {
+        tempMessage.hasFile = true;
+        tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
+        tempMessage.tempFileName = selectedFile.name;
+      }
+      
+      // Optimistically add the message to the UI
+      setLocalMessages(prev => [...prev, tempMessage]);
+      setNewMessage('');
+      
+      // Get files ready to send
+      const filesToSend = selectedFile ? [selectedFile] : [];
+      
+      // Send the message and optional file as one request
+      const result = await sendMessage(activeGroup.id, tempMessage.message || ' ', filesToSend);
+      
+      if (result.success) {
+        // Update the temporary message with real message ID
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { 
+                  ...msg, 
+                  isTemp: false,
+                  id: result.messageId,
+                  message: msg.message.startsWith("Sending file:") ? "" : msg.message
+                } 
+              : msg
+          )
+        );
+        
+        // Clear file input
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
+      } else {
+        // If sending failed, mark the message as failed
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { ...msg, sendFailed: true } 
+              : msg
+          )
+        );
       }
-    } else {
-      // If sending failed, mark the message as failed
-      setLocalMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, sendFailed: true } 
-            : msg
-        )
-      );
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
   
   const handleUnsendMessage = async (messageId) => {

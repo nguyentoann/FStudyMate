@@ -124,7 +124,19 @@ const ChatBox = () => {
     if (activeConversation && (!otherUser || !otherUser.name || otherUser.name === 'User')) {
       console.warn('[ChatBox] Missing user information in conversation:', activeConversation);
     }
-  }, [activeConversation, localMessages, otherUser]);
+    
+    // Add an extra check to ensure messages are loaded
+    if (activeConversation && localMessages.length === 0 && !isSubmitting) {
+      console.log('[ChatBox] Conversation is empty, checking if we need to reload messages...');
+      // Check if conversation should have messages
+      if (activeConversation.lastMessage) {
+        console.log('[ChatBox] Conversation should have messages based on lastMessage. Triggering refresh...');
+        setTimeout(() => {
+          fetchMessages(activeConversation.userId);
+        }, 1500);
+      }
+    }
+  }, [activeConversation, localMessages, otherUser, isSubmitting]);
 
   const checkFileSize = (file) => {
     if (file.size > MAX_FILE_SIZE) {
@@ -171,61 +183,20 @@ const ChatBox = () => {
     }
   };
   
-  // Prepare data for like message
+  // Updated to use the new sendMessage signature with empty files array
   const sendLike = async () => {
     if (isSubmitting) return;
     
-    setIsSubmitting(true);
-    
-    // Create a temporary message for immediate display
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      senderId: user.id,
-      receiverId: otherUser.id,
-      message: "👍", // Thumbs up emoji
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      senderName: user.fullName,
-      senderUsername: user.username,
-      senderImage: user.profileImageUrl,
-      receiverName: otherUser.name,
-      receiverUsername: otherUser.username,
-      receiverImage: otherUser.profileImageUrl,
-      isTemp: true, // Flag to identify temporary messages,
-      isLike: true  // Flag to identify like messages
-    };
-    
-    // Optimistically add the message to the UI
-    setLocalMessages(prev => [...prev, tempMessage]);
-    
-    // Actually send the message to the server
-    const result = await sendMessage(otherUser.id, tempMessage.message);
-    
-    if (result.success) {
-      console.log(`[ChatBox] Like message sent successfully! Temp ID: ${tempMessage.id}, Real ID: ${result.messageId}`);
-      
-      // Update the temp message with the real message ID and mark as not temporary
-      setLocalMessages(prev => {
-        const updated = prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, id: result.messageId, isTemp: false } 
-            : msg
-        );
-        console.log('[ChatBox] Updated local messages after send:', updated);
-        return updated;
-      });
-    } else {
-      // If sending failed, mark the message as failed
-      setLocalMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, sendFailed: true } 
-            : msg
-        )
-      );
+    try {
+      setIsSubmitting(true);
+      // Use the thumbs up emoji as message content, pass empty files array
+      await sendMessage(otherUser.id, "👍", []);
+      setNewMessage('');
+    } catch (error) {
+      console.error("Error sending like:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
   
   const handleSendMessage = async (e) => {
@@ -238,79 +209,76 @@ const ChatBox = () => {
     
     if (isSubmitting) return;
     
-    setIsSubmitting(true);
-    
-    // Create a temporary message for immediate display
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      senderId: user.id,
-      receiverId: otherUser.id,
-      message: newMessage.trim(),
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      senderName: user.fullName,
-      senderUsername: user.username,
-      senderImage: user.profileImageUrl,
-      receiverName: otherUser.name,
-      receiverUsername: otherUser.username,
-      receiverImage: otherUser.profileImageUrl,
-      isTemp: true // Flag to identify temporary messages
-    };
-    
-    // If there's a file, add a placeholder
-    if (selectedFile) {
-      tempMessage.hasFile = true;
-      tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
-      tempMessage.tempFileName = selectedFile.name;
-    }
-    
-    // Optimistically add the message to the UI
-    setLocalMessages(prev => [...prev, tempMessage]);
-    setNewMessage('');
-    
-    // Actually send the message to the server
-    const result = await sendMessage(otherUser.id, tempMessage.message || ' ');
-    
-    if (result.success) {
-      console.log(`[ChatBox] Message sent successfully! Temp ID: ${tempMessage.id}, Real ID: ${result.messageId}`);
+    try {
+      setIsSubmitting(true);
       
-      // Update the temp message with the real message ID and mark as not temporary
-      setLocalMessages(prev => {
-        const updated = prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, id: result.messageId, isTemp: false } 
-            : msg
+      // Create a temporary message for immediate display
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        senderId: user.id,
+        recipientId: otherUser.id,
+        message: newMessage.trim(),
+        createdAt: new Date().toISOString(),
+        senderName: user.fullName,
+        senderUsername: user.username,
+        senderImage: user.profileImageUrl,
+        receiverName: otherUser.name,
+        receiverUsername: otherUser.username,
+        receiverImage: otherUser.profileImageUrl,
+        isTemp: true // Flag to identify temporary messages
+      };
+      
+      // If there's a file, add a placeholder
+      if (selectedFile) {
+        tempMessage.hasFile = true;
+        tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
+        tempMessage.tempFileName = selectedFile.name;
+      }
+      
+      // Optimistically add the message to the UI
+      setLocalMessages(prev => [...prev, tempMessage]);
+      setNewMessage('');
+      
+      // Get files ready to send
+      const filesToSend = selectedFile ? [selectedFile] : [];
+      
+      // Send the message and optional file as one request
+      const result = await sendMessage(otherUser.id, tempMessage.message || ' ', filesToSend);
+      
+      if (result && result.id) {
+        // Update the temporary message with real message ID
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { 
+                  ...msg, 
+                  isTemp: false,
+                  id: result.id,
+                  message: msg.message.startsWith("Sending file:") ? "" : msg.message,
+                  files: result.files || []
+                } 
+              : msg
+          )
         );
-        console.log('[ChatBox] Updated local messages after send:', updated);
-        return updated;
-      });
-      
-      // If there's a file to upload
-      if (selectedFile && result.messageId) {
-        const uploadResult = await uploadFile(selectedFile, result.messageId);
-        if (!uploadResult.success) {
-          console.error("Failed to upload file");
-        } else {
-          // Update the message to remove "Sending file:" text on success
-          setLocalMessages(prev => 
-            prev.map(msg => 
-              msg.id === result.messageId  // Use the real message ID now
-                ? { 
-                    ...msg, 
-                    message: msg.message.startsWith("Sending file:") ? "" : msg.message,
-                    files: uploadResult.file ? [uploadResult.file] : []
-                  } 
-                : msg
-            )
-          );
-        }
+        
+        // Clear file input
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
+      } else {
+        // If sending failed, mark the message as failed
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { ...msg, sendFailed: true } 
+              : msg
+          )
+        );
       }
-    } else {
-      // If sending failed, mark the message as failed
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // Mark the message as failed
       setLocalMessages(prev => 
         prev.map(msg => 
           msg.id === tempMessage.id 
@@ -318,9 +286,9 @@ const ChatBox = () => {
             : msg
         )
       );
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
   
   const handleDeleteMessage = async (messageId) => {
@@ -781,12 +749,6 @@ const ChatBox = () => {
     }
   };
   
-  const handleRefreshMessages = async () => {
-    if (activeConversation && otherUser) {
-      console.log(`[ChatBox] Manually refreshing messages for ${otherUser.id}`);
-      await fetchMessages(otherUser.id);
-    }
-  };
   
   if (!activeConversation) return null;
   
@@ -815,15 +777,6 @@ const ChatBox = () => {
           </div>
         </div>
         <div className="flex items-center">
-          <button
-            onClick={handleRefreshMessages}
-            className="text-white hover:text-gray-200 ml-2 p-1.5"
-            title="Refresh messages"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
           <VideoCallButton userId={otherUser.id} userName={otherUser.name} />
           <button 
             onClick={closeConversation}

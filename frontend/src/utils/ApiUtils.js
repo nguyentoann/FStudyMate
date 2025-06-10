@@ -47,7 +47,7 @@ export const makeApiCall = async (url, method, body, headers = {}, withCredentia
   }
 
   let retryCount = 0;
-  
+
   try {
     // First attempt with credentials if requested
     if (withCredentials) {
@@ -70,14 +70,14 @@ export const makeApiCall = async (url, method, body, headers = {}, withCredentia
           console.log(`[API] Request failed with status: ${response.status}, not retrying`);
         }
         return response;
-      }
+        }
       
       // If CORS issues, try without credentials (but only once)
       if (DEBUG_LOGGING && retryCount < MAX_RETRY_ATTEMPTS) {
         console.log(`[API] Request failed with status: ${response.status}, trying without credentials (retry ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
         retryCount++;
       } else if (retryCount >= MAX_RETRY_ATTEMPTS) {
-        if (DEBUG_LOGGING) {
+      if (DEBUG_LOGGING) {
           console.log(`[API] Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached, returning last response`);
         }
         return response;
@@ -86,23 +86,23 @@ export const makeApiCall = async (url, method, body, headers = {}, withCredentia
     
     // Only proceed with fallback if we haven't reached the retry limit
     if (retryCount < MAX_RETRY_ATTEMPTS) {
-      // Fall back to request without credentials
-      options.credentials = 'omit';
-      if (DEBUG_LOGGING) {
-        console.log(`[API] Attempting request without credentials`);
-      }
-      const fallbackResponse = await fetch(`${API_URL}${url}`, options);
-      
-      if (DEBUG_LOGGING) {
-        console.log(`[API] Fallback request status: ${fallbackResponse.status}`);
-      }
-      
-      // Log warning if fallback succeeded but original failed
-      if (fallbackResponse.ok && withCredentials && DEBUG_LOGGING) {
-        console.warn(`[API] Request succeeded without credentials but failed with credentials. This may indicate a CORS configuration issue.`);
-      }
-      
-      return fallbackResponse;
+    // Fall back to request without credentials
+    options.credentials = 'omit';
+    if (DEBUG_LOGGING) {
+      console.log(`[API] Attempting request without credentials`);
+    }
+    const fallbackResponse = await fetch(`${API_URL}${url}`, options);
+    
+    if (DEBUG_LOGGING) {
+      console.log(`[API] Fallback request status: ${fallbackResponse.status}`);
+    }
+    
+    // Log warning if fallback succeeded but original failed
+    if (fallbackResponse.ok && withCredentials && DEBUG_LOGGING) {
+      console.warn(`[API] Request succeeded without credentials but failed with credentials. This may indicate a CORS configuration issue.`);
+    }
+    
+    return fallbackResponse;
     }
     
   } catch (error) {

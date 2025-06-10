@@ -213,37 +213,52 @@ export const GroupChatProvider = ({ children }) => {
     }
   };
 
-  // Send a group message
-  const sendMessage = async (groupId, message) => {
-    if (!user || !groupId || !message.trim()) return false;
-    
-    setLoading(true);
+  // Send a message to a group with files support
+  const sendMessage = async (groupId, content, files = []) => {
+    if (!user || !groupId || (!content && files.length === 0)) {
+      console.error('[GroupChatContext] Cannot send message: Missing required fields');
+      return { success: false };
+    }
+
+    // Generate a temporary ID for the message
+    const tempId = `temp-${Date.now()}`;
+
     try {
-      const response = await makeApiCall(`/chat/groups/send`, 'POST', {
-        senderId: user.id,
-        groupId,
-        message,
+      // Prepare form data for the file upload
+      const formData = new FormData();
+      formData.append('senderId', user.id);
+      formData.append('groupId', groupId);
+      if (content) formData.append('message', content);
+
+      // Add files to the form data if present
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+
+      // Send the message to the backend
+      const response = await fetch(`${API_URL}/chat/groups/message`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        console.error(`[GroupChatContext] Failed to send message: ${response.status}`);
+        return { success: false };
       }
 
       const data = await response.json();
+      console.log('[GroupChatContext] Message sent successfully:', data);
       
-      // After sending a message, refresh the group messages
-      await fetchMessages(groupId);
-      return {
-        success: true,
-        messageId: data.messageId
+      // Ensure proper message formatting for optimistic UI
+      return { 
+        success: true, 
+        messageId: data.id || data.messageId 
       };
-      
+
     } catch (error) {
-      console.error('Error sending group message:', error);
-      setError(error.message);
+      console.error('[GroupChatContext] Error sending message:', error);
       return { success: false };
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -474,7 +489,7 @@ export const GroupChatProvider = ({ children }) => {
       if (activeGroup) {
         fetchMessages(activeGroup.id);
       }
-    }, 5000); // Refresh every 5 seconds
+    }, 3000); // Refresh every 5 seconds
     
     return () => clearInterval(intervalId);
   }, [user, activeGroup]);
