@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import DashboardLayout from '../components/DashboardLayout';
+import BackgroundCustomizer from '../components/BackgroundCustomizer';
 import { API_URL } from '../services/config';
 
 const Profile = () => {
@@ -369,6 +370,9 @@ const Profile = () => {
             </div>
           </div>
         </div>
+        
+        {/* Background Customization */}
+        <BackgroundCustomizer />
       </div>
     </DashboardLayout>
   );

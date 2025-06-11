@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 import { useGroupChat } from '../context/GroupChatContext';
+import { useTheme } from '../context/ThemeContext';
 import Chat from './Chat';
 import AIChat from './AIChat';
 import GroupChat from './GroupChat';
@@ -12,13 +13,24 @@ const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const { unreadCount, fetchConversations } = useChat();
   const { groups } = useGroupChat();
+  const { backgroundImage, backgroundOpacity } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isGroupChatOpen, setIsGroupChatOpen] = useState(false);
+  const [contentLoaded, setContentLoaded] = useState(false);
 
+  // Mark content as loaded after a short delay to ensure all components have rendered
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setContentLoaded(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -75,8 +87,34 @@ const DashboardLayout = ({ children }) => {
   // Check if user role is student or admin (roles that can use group chat)
   const canUseGroupChat = user?.role === 'student' || user?.role === 'admin';
 
+  // Create background style object
+  const backgroundStyle = backgroundImage && contentLoaded ? {
+    position: 'relative',
+    zIndex: 0,
+  } : {};
+
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-gray-100" style={backgroundStyle}>
+      {/* Custom Background Layer */}
+      {backgroundImage && contentLoaded && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: backgroundOpacity / 100,
+            zIndex: -1
+          }}
+          aria-hidden="true"
+        />
+      )}
+      
       {/* Navbar - visible on all screens */}
       <Navbar toggleSidebar={() => setIsMenuOpen(!isMenuOpen)} />
       

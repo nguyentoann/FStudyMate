@@ -10,7 +10,7 @@ import PasswordChange from './pages/PasswordChange';
 import UserManagement from './pages/admin/UserManagement';
 import UserEdit from './pages/admin/UserEdit';
 import MathTest from './pages/MathTest';
-import AuthenticatedRedirect from './components/AuthenticatedRedirect';
+import AuthenticatedRedirect from './components/AuthenticatedRedirect'; 
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';

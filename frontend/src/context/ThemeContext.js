@@ -28,6 +28,28 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize background image state
+  const [backgroundImage, setBackgroundImage] = useState(() => {
+    try {
+      const savedBgImage = localStorage.getItem('appBackgroundImage');
+      return savedBgImage || '';
+    } catch (error) {
+      console.error("Error initializing background image:", error);
+      return '';
+    }
+  });
+
+  // Initialize opacity state (default: 50%)
+  const [backgroundOpacity, setBackgroundOpacity] = useState(() => {
+    try {
+      const savedOpacity = localStorage.getItem('appBackgroundOpacity');
+      return savedOpacity !== null ? parseInt(savedOpacity, 10) : 50;
+    } catch (error) {
+      console.error("Error initializing background opacity:", error);
+      return 50;
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -62,6 +84,58 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [darkMode]);
 
+  // Apply background image and opacity
+  useEffect(() => {
+    try {
+      // Save to localStorage
+      localStorage.setItem('appBackgroundImage', backgroundImage);
+      localStorage.setItem('appBackgroundOpacity', backgroundOpacity.toString());
+
+      // Apply background styles
+      const bodyElement = document.body;
+      
+      // Create a style block for the background
+      let styleElement = document.getElementById('custom-background-style');
+      if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = 'custom-background-style';
+        document.head.appendChild(styleElement);
+      }
+
+      // If we have a background image, set it with opacity
+      if (backgroundImage) {
+        // Create an opacity value as decimal (0-1)
+        const opacityValue = backgroundOpacity / 100;
+        
+        // Set the style with pseudo element to control opacity
+        styleElement.textContent = `
+          body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: url(${backgroundImage});
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: ${opacityValue};
+            pointer-events: none;
+          }
+        `;
+      } else {
+        // Remove background image styles if no image is set
+        styleElement.textContent = '';
+      }
+
+      console.log("Background updated successfully:", backgroundImage ? "custom" : "none");
+    } catch (error) {
+      console.error("Error applying background:", error);
+    }
+  }, [backgroundImage, backgroundOpacity]);
+
   // Toggle dark mode
   const toggleDarkMode = () => {
     console.log("Toggle function called");
@@ -72,10 +146,27 @@ export const ThemeProvider = ({ children }) => {
     });
   };
 
+  // Update background image
+  const updateBackgroundImage = (imageUrl) => {
+    setBackgroundImage(imageUrl);
+  };
+
+  // Update background opacity
+  const updateBackgroundOpacity = (opacity) => {
+    setBackgroundOpacity(opacity);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+    <ThemeContext.Provider value={{ 
+      darkMode, 
+      toggleDarkMode,
+      backgroundImage,
+      backgroundOpacity,
+      updateBackgroundImage,
+      updateBackgroundOpacity
+    }}>
       {children}
     </ThemeContext.Provider>
   );
