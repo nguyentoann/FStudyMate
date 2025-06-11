@@ -30,7 +30,7 @@ const DashboardLayout = ({ children }) => {
     
     return () => clearTimeout(timer);
   }, []);
-  
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -87,15 +87,9 @@ const DashboardLayout = ({ children }) => {
   // Check if user role is student or admin (roles that can use group chat)
   const canUseGroupChat = user?.role === 'student' || user?.role === 'admin';
 
-  // Create background style object
-  const backgroundStyle = backgroundImage && contentLoaded ? {
-    position: 'relative',
-    zIndex: 0,
-  } : {};
-
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100" style={backgroundStyle}>
-      {/* Custom Background Layer */}
+    <div className="flex h-screen overflow-hidden bg-gray-100 relative">
+      {/* Custom Background Layer - This will be applied after content is loaded */}
       {backgroundImage && contentLoaded && (
         <div 
           style={{
@@ -109,7 +103,8 @@ const DashboardLayout = ({ children }) => {
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             opacity: backgroundOpacity / 100,
-            zIndex: -1
+            zIndex: -1,
+            pointerEvents: 'none'
           }}
           aria-hidden="true"
         />
@@ -302,13 +297,9 @@ const DashboardLayout = ({ children }) => {
               </div>
             </div>
           </div>
-          
-          <div className="flex-shrink-0 w-14">
-            {/* Force sidebar to shrink to fit close icon */}
-          </div>
         </div>
       )}
-      
+
       {/* Main content */}
       <div className="flex flex-col flex-1 w-0 overflow-hidden">
         {/* Mobile header - only show if not in the dashboard page */}

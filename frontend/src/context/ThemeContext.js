@@ -50,6 +50,17 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize component opacity state (default: 90%)
+  const [componentOpacity, setComponentOpacity] = useState(() => {
+    try {
+      const savedComponentOpacity = localStorage.getItem('appComponentOpacity');
+      return savedComponentOpacity !== null ? parseInt(savedComponentOpacity, 10) : 90;
+    } catch (error) {
+      console.error("Error initializing component opacity:", error);
+      return 90;
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -109,6 +120,10 @@ export const ThemeProvider = ({ children }) => {
         
         // Set the style with pseudo element to control opacity
         styleElement.textContent = `
+          body {
+            position: relative;
+          }
+          
           body::before {
             content: "";
             position: fixed;
@@ -124,6 +139,12 @@ export const ThemeProvider = ({ children }) => {
             opacity: ${opacityValue};
             pointer-events: none;
           }
+          
+          /* Ensure the main container has a relative position */
+          #root, #app, .app-container, main {
+            position: relative;
+            z-index: 1;
+          }
         `;
       } else {
         // Remove background image styles if no image is set
@@ -135,6 +156,70 @@ export const ThemeProvider = ({ children }) => {
       console.error("Error applying background:", error);
     }
   }, [backgroundImage, backgroundOpacity]);
+
+  // Apply component opacity
+  useEffect(() => {
+    try {
+      // Save to localStorage
+      localStorage.setItem('appComponentOpacity', componentOpacity.toString());
+
+      // Create a style block for component opacity
+      let componentStyleElement = document.getElementById('custom-component-style');
+      if (!componentStyleElement) {
+        componentStyleElement = document.createElement('style');
+        componentStyleElement.id = 'custom-component-style';
+        document.head.appendChild(componentStyleElement);
+      }
+
+      // Calculate opacity value
+      const opacityValue = componentOpacity / 100;
+      
+      // Apply the opacity to specific elements more selectively
+      componentStyleElement.textContent = `
+        /* Apply to content cards and panels */
+        .bg-white:not(nav):not(.navbar):not(header),
+        .bg-gray-50:not(nav):not(.navbar):not(header),
+        .bg-gray-100:not(nav):not(.navbar):not(header),
+        .card:not(nav):not(.navbar):not(header),
+        .rounded-lg.shadow-md:not(nav):not(.navbar):not(header),
+        .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header),
+        .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header),
+        .rounded-md.shadow-md:not(nav):not(.navbar):not(header) {
+          background-color: rgba(255, 255, 255, ${opacityValue}) !important;
+          backdrop-filter: blur(5px);
+        }
+
+        /* Apply to dark themed components with the same rule */
+        .dark .bg-gray-800:not(nav):not(.navbar):not(header),
+        .dark .bg-gray-900:not(nav):not(.navbar):not(header) {
+          background-color: rgba(31, 41, 55, ${opacityValue}) !important;
+          backdrop-filter: blur(5px);
+        }
+        
+        /* Special rule for top navigation elements only */
+        header, .navbar:not(.sidebar), nav.top-nav {
+          position: relative;
+          z-index: 10;
+          background-color: rgba(var(--navbar-bg-color, 79, 70, 229), 0.9) !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Fix for sidebar - keep it white */
+        .sidebar, aside, #sidebar, .side-nav, [class*="menu"] {
+          background-color: #ffffff !important;
+        }
+        
+        /* Add a CSS variable to store the navbar color if not already present */
+        :root {
+          --navbar-bg-color: 79, 70, 229; /* Default indigo color for navbar */
+        }
+      `;
+
+      console.log("Component opacity updated successfully:", componentOpacity + "%");
+    } catch (error) {
+      console.error("Error applying component opacity:", error);
+    }
+  }, [componentOpacity]);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -156,6 +241,11 @@ export const ThemeProvider = ({ children }) => {
     setBackgroundOpacity(opacity);
   };
 
+  // Update component opacity
+  const updateComponentOpacity = (opacity) => {
+    setComponentOpacity(opacity);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -165,7 +255,9 @@ export const ThemeProvider = ({ children }) => {
       backgroundImage,
       backgroundOpacity,
       updateBackgroundImage,
-      updateBackgroundOpacity
+      updateBackgroundOpacity,
+      componentOpacity,
+      updateComponentOpacity
     }}>
       {children}
     </ThemeContext.Provider>
