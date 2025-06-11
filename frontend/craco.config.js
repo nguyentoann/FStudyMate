@@ -1,5 +1,5 @@
-const webpack = require('webpack');
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const webpack = require("webpack");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
 module.exports = {
   webpack: {
@@ -7,10 +7,10 @@ module.exports = {
       // Add Node.js polyfills
       webpackConfig.resolve.fallback = {
         ...webpackConfig.resolve.fallback,
-        process: require.resolve('process/browser'),
-        buffer: require.resolve('buffer'),
-        util: require.resolve('util/'),
-        stream: require.resolve('stream-browserify'),
+        process: require.resolve("process/browser"),
+        buffer: require.resolve("buffer"),
+        util: require.resolve("util/"),
+        stream: require.resolve("stream-browserify"),
         crypto: false,
         zlib: false,
         http: false,
@@ -23,15 +23,13 @@ module.exports = {
       webpackConfig.plugins = [
         ...webpackConfig.plugins,
         new webpack.ProvidePlugin({
-          process: ['process/browser'],
-          Buffer: ['buffer', 'Buffer'],
+          process: ["process/browser"],
+          Buffer: ["buffer", "Buffer"],
         }),
       ];
 
       return webpackConfig;
     },
-    plugins: [
-      new NodePolyfillPlugin(),
-    ],
+    plugins: [new NodePolyfillPlugin()],
   },
-}; 
+};
