@@ -61,6 +61,17 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize component blur level state (default: 5px)
+  const [blurLevel, setBlurLevel] = useState(() => {
+    try {
+      const savedBlurLevel = localStorage.getItem('appBlurLevel');
+      return savedBlurLevel !== null ? parseInt(savedBlurLevel, 10) : 5;
+    } catch (error) {
+      console.error("Error initializing blur level:", error);
+      return 5;
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -162,6 +173,7 @@ export const ThemeProvider = ({ children }) => {
     try {
       // Save to localStorage
       localStorage.setItem('appComponentOpacity', componentOpacity.toString());
+      localStorage.setItem('appBlurLevel', blurLevel.toString());
 
       // Create a style block for component opacity
       let componentStyleElement = document.getElementById('custom-component-style');
@@ -186,14 +198,14 @@ export const ThemeProvider = ({ children }) => {
         .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header),
         .rounded-md.shadow-md:not(nav):not(.navbar):not(header) {
           background-color: rgba(255, 255, 255, ${opacityValue}) !important;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(${blurLevel}px);
         }
 
         /* Apply to dark themed components with the same rule */
         .dark .bg-gray-800:not(nav):not(.navbar):not(header),
         .dark .bg-gray-900:not(nav):not(.navbar):not(header) {
           background-color: rgba(31, 41, 55, ${opacityValue}) !important;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(${blurLevel}px);
         }
         
         /* Special rule for top navigation elements only */
@@ -216,10 +228,11 @@ export const ThemeProvider = ({ children }) => {
       `;
 
       console.log("Component opacity updated successfully:", componentOpacity + "%");
+      console.log("Blur level updated successfully:", blurLevel + "px");
     } catch (error) {
       console.error("Error applying component opacity:", error);
     }
-  }, [componentOpacity]);
+  }, [componentOpacity, blurLevel]);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -246,6 +259,11 @@ export const ThemeProvider = ({ children }) => {
     setComponentOpacity(opacity);
   };
 
+  // Update blur level
+  const updateBlurLevel = (level) => {
+    setBlurLevel(level);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -257,7 +275,9 @@ export const ThemeProvider = ({ children }) => {
       updateBackgroundImage,
       updateBackgroundOpacity,
       componentOpacity,
-      updateComponentOpacity
+      updateComponentOpacity,
+      blurLevel,
+      updateBlurLevel
     }}>
       {children}
     </ThemeContext.Provider>

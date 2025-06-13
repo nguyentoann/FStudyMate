@@ -6,13 +6,16 @@ const BackgroundCustomizer = () => {
     backgroundImage, 
     backgroundOpacity, 
     componentOpacity,
+    blurLevel,
     updateBackgroundImage, 
     updateBackgroundOpacity,
-    updateComponentOpacity 
+    updateComponentOpacity,
+    updateBlurLevel
   } = useTheme();
   const [imagePreview, setImagePreview] = useState(backgroundImage || '');
   const [bgOpacity, setBgOpacity] = useState(backgroundOpacity);
   const [compOpacity, setCompOpacity] = useState(componentOpacity);
+  const [blur, setBlur] = useState(blurLevel);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
@@ -78,14 +81,23 @@ const BackgroundCustomizer = () => {
     updateComponentOpacity(newOpacity);
   };
 
+  // Handle blur level change
+  const handleBlurChange = (e) => {
+    const newBlur = parseInt(e.target.value, 10);
+    setBlur(newBlur);
+    updateBlurLevel(newBlur);
+  };
+
   // Handle reset background
   const handleResetBackground = () => {
     setImagePreview('');
     setBgOpacity(50);
     setCompOpacity(90);
+    setBlur(5);
     updateBackgroundImage('');
     updateBackgroundOpacity(50);
     updateComponentOpacity(90);
+    updateBlurLevel(5);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -180,6 +192,28 @@ const BackgroundCustomizer = () => {
           </div>
           <p className="mt-1 text-sm text-gray-500">
             Adjust the transparency of UI components like cards and panels across the application.
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Blur Level: {blur}px
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="20"
+            value={blur}
+            onChange={handleBlurChange}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0px</span>
+            <span>10px</span>
+            <span>20px</span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Adjust the blur effect applied to transparent UI components (0px = no blur).
           </p>
         </div>
         
