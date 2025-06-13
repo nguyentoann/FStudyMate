@@ -9,13 +9,16 @@ const BackgroundCustomizer = () => {
     blurLevel,
     blurType,
     customCursor,
+    liquidGlassEffect,
     updateBackgroundImage, 
     updateBackgroundOpacity,
     updateComponentOpacity,
     updateBlurLevel,
     updateBlurType,
     toggleCustomCursor,
-    updateCustomCursor
+    updateCustomCursor,
+    toggleLiquidGlassEffect,
+    updateLiquidGlassEffect
   } = useTheme();
   const [imagePreview, setImagePreview] = useState(backgroundImage || '');
   const [bgOpacity, setBgOpacity] = useState(backgroundOpacity);
@@ -115,6 +118,8 @@ const BackgroundCustomizer = () => {
     updateBlurType('blur');
     // Reset custom cursor to default (enabled)
     updateCustomCursor(true);
+    // Reset liquid glass effect to default (enabled)
+    updateLiquidGlassEffect(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -329,6 +334,81 @@ const BackgroundCustomizer = () => {
             >
               Disable
             </button>
+          </div>
+        </div>
+        
+        {/* Liquid glass effect toggle */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700 cursor-pointer">
+              Liquid Glass Effect
+            </label>
+            <button 
+              onClick={() => updateLiquidGlassEffect(!liquidGlassEffect)}
+              className="relative inline-flex items-center h-6 rounded-full w-12 focus:outline-none"
+              aria-pressed={liquidGlassEffect}
+              role="switch"
+            >
+              <span className="sr-only">Toggle liquid glass effect</span>
+              <span 
+                className={`${
+                  liquidGlassEffect ? 'bg-indigo-600' : 'bg-gray-300'
+                } absolute h-6 w-12 mx-auto rounded-full transition-colors duration-200 ease-in-out`}
+              ></span>
+              <span
+                className={`${
+                  liquidGlassEffect ? 'translate-x-6' : 'translate-x-0'
+                } absolute left-0.5 top-0.5 inline-block h-5 w-5 rounded-full bg-white transform transition-transform duration-200 ease-in-out`}
+              ></span>
+            </button>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Enable or disable the liquid glass effect. When enabled, UI components will light up as your cursor moves near them, creating a dynamic lighting effect.
+          </p>
+          <div className="mt-2 flex space-x-2">
+            <button 
+              onClick={() => updateLiquidGlassEffect(true)}
+              className={`px-2 py-1 text-xs rounded ${liquidGlassEffect ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Enable
+            </button>
+            <button 
+              onClick={() => updateLiquidGlassEffect(false)}
+              className={`px-2 py-1 text-xs rounded ${!liquidGlassEffect ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Disable
+            </button>
+          </div>
+          
+          {/* Liquid glass effect preview */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Liquid Glass Effect Preview
+            </label>
+            <div className="relative h-40 border rounded-lg overflow-hidden bg-gradient-to-r from-blue-400 to-purple-500">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex space-x-4">
+                  <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg w-32 h-32 flex items-center justify-center border-2 border-white">
+                    <p className="text-center text-gray-800">
+                      Move your cursor near a specific part of the border
+                    </p>
+                  </div>
+                  <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg w-32 h-32 flex items-center justify-center border-2 border-white">
+                    <p className="text-center text-gray-800">
+                      Only that section will light up brightly
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {!liquidGlassEffect && (
+                <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+                  <p className="text-white font-medium">Effect Disabled</p>
+                </div>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              This effect creates a liquid glass appearance by illuminating only the specific part of the border closest to your cursor, creating a dynamic lighting effect.
+            </p>
           </div>
         </div>
         

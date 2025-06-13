@@ -94,6 +94,17 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize liquid glass effect state (default: true - enabled)
+  const [liquidGlassEffect, setLiquidGlassEffect] = useState(() => {
+    try {
+      const savedLiquidGlassEffect = localStorage.getItem('appLiquidGlassEffect');
+      return savedLiquidGlassEffect !== null ? savedLiquidGlassEffect === 'true' : true;
+    } catch (error) {
+      console.error("Error initializing liquid glass effect:", error);
+      return true;
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -320,6 +331,189 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [customCursor]);
 
+  // Apply liquid glass effect
+  useEffect(() => {
+    try {
+      // Save to localStorage
+      localStorage.setItem('appLiquidGlassEffect', liquidGlassEffect.toString());
+
+      // Create or get the liquid glass script element
+      let liquidGlassScriptElement = document.getElementById('liquid-glass-script');
+      
+      // If the effect is enabled and the script doesn't exist, create it
+      if (liquidGlassEffect) {
+        if (!liquidGlassScriptElement) {
+          liquidGlassScriptElement = document.createElement('script');
+          liquidGlassScriptElement.id = 'liquid-glass-script';
+          document.body.appendChild(liquidGlassScriptElement);
+        }
+
+        // Set the script content
+        liquidGlassScriptElement.textContent = `
+          (function() {
+            // Track mouse position
+            let mouseX = 0;
+            let mouseY = 0;
+            
+            // Update mouse position on move
+            document.addEventListener('mousemove', function(e) {
+              mouseX = e.clientX;
+              mouseY = e.clientY;
+              
+              // Apply the effect to glass elements
+              applyLiquidGlassBorderEffect();
+            });
+            
+            // Apply effect on scroll too
+            document.addEventListener('scroll', function() {
+              applyLiquidGlassBorderEffect();
+            });
+            
+            // Function to apply the liquid glass border effect
+            function applyLiquidGlassBorderEffect() {
+              // Target elements with backdrop-filter
+              const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
+              
+              glassElements.forEach(element => {
+                // Get element position
+                const rect = element.getBoundingClientRect();
+                
+                // Calculate nearest point on border to mouse
+                // First determine which region the mouse is in relative to the element
+                const isAbove = mouseY < rect.top;
+                const isBelow = mouseY > rect.bottom;
+                const isLeft = mouseX < rect.left;
+                const isRight = mouseX > rect.right;
+                
+                // Calculate the nearest point on the border to the mouse
+                let nearestX, nearestY;
+                
+                // X coordinate of nearest point
+                if (isLeft) {
+                  nearestX = rect.left;
+                } else if (isRight) {
+                  nearestX = rect.right;
+                } else {
+                  nearestX = mouseX;
+                }
+                
+                // Y coordinate of nearest point
+                if (isAbove) {
+                  nearestY = rect.top;
+                } else if (isBelow) {
+                  nearestY = rect.bottom;
+                } else {
+                  nearestY = mouseY;
+                }
+                
+                // Calculate distance from mouse to nearest point on border
+                const distX = mouseX - nearestX;
+                const distY = mouseY - nearestY;
+                const distance = Math.sqrt(distX * distX + distY * distY);
+                
+                // Calculate max distance for effect
+                const maxDistance = 100; // 100px max distance for effect
+                
+                // Calculate intensity based on distance (closer = more intense)
+                const normalizedDistance = Math.min(distance, maxDistance) / maxDistance;
+                const intensity = 1 - normalizedDistance; // 0 to 1 range
+                
+                // Only apply effect if the cursor is relatively close
+                if (intensity > 0.1) {
+                  // Create a gradient that's brightest at the nearest point
+                  // Determine which side(s) the nearest point is on
+                  const isOnTop = Math.abs(nearestY - rect.top) < 1;
+                  const isOnRight = Math.abs(nearestX - rect.right) < 1;
+                  const isOnBottom = Math.abs(nearestY - rect.bottom) < 1;
+                  const isOnLeft = Math.abs(nearestX - rect.left) < 1;
+                  
+                  // Calculate the position of the nearest point as a percentage of the element's dimensions
+                  const percentX = isOnLeft ? 0 : isOnRight ? 100 : ((nearestX - rect.left) / rect.width * 100);
+                  const percentY = isOnTop ? 0 : isOnBottom ? 100 : ((nearestY - rect.top) / rect.height * 100);
+                  
+                  // Create a radial gradient that's brightest at the nearest point
+                  let gradientPosition;
+                  if (isOnTop) {
+                    gradientPosition = \`\${percentX}% 0%\`;
+                  } else if (isOnRight) {
+                    gradientPosition = \`100% \${percentY}%\`;
+                  } else if (isOnBottom) {
+                    gradientPosition = \`\${percentX}% 100%\`;
+                  } else if (isOnLeft) {
+                    gradientPosition = \`0% \${percentY}%\`;
+                  } else {
+                    // Shouldn't happen, but just in case
+                    gradientPosition = \`\${percentX}% \${percentY}%\`;
+                  }
+                  
+                  // Apply the border effect
+                  element.style.borderImage = \`radial-gradient(circle at \${gradientPosition}, rgba(255,255,255,\${intensity * 0.9}), rgba(255,255,255,0.1) \${Math.min(100, intensity * 200)}%) 1\`;
+                  element.style.borderImageSlice = '1';
+                  
+                  // Ensure element has a border to show the effect
+                  if (getComputedStyle(element).borderWidth === '0px') {
+                    element.style.border = '1px solid transparent';
+                  }
+                  
+                  // Add glow effect around the border
+                  const glowSize = Math.round(intensity * 10);
+                  const glowOpacity = intensity * 0.8;
+                  element.style.boxShadow = \`0 0 \${glowSize}px rgba(255,255,255,\${glowOpacity})\`;
+                  
+                  // Add transition for smoother effect
+                  element.style.transition = 'border-image 0.1s ease-out, box-shadow 0.1s ease-out';
+                } else {
+                  // Reset styles when cursor is far away
+                  element.style.borderImage = '';
+                  element.style.borderImageSlice = '';
+                  element.style.boxShadow = '';
+                  if (getComputedStyle(element).borderWidth === '1px' && 
+                      getComputedStyle(element).borderColor === 'transparent') {
+                    element.style.border = '';
+                  }
+                }
+                
+                // Remove background effect from previous version
+                element.style.background = '';
+                element.style.filter = '';
+              });
+            }
+            
+            // Initial application
+            applyLiquidGlassBorderEffect();
+            
+            console.log("Liquid glass border effect initialized");
+          })();
+        `;
+      } else if (!liquidGlassEffect && liquidGlassScriptElement) {
+        // Remove the script if the effect is disabled
+        liquidGlassScriptElement.remove();
+        
+        // Reset any applied styles
+        const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
+        
+        glassElements.forEach(element => {
+          element.style.background = '';
+          element.style.filter = '';
+          element.style.boxShadow = '';
+          element.style.borderColor = '';
+          element.style.borderImage = '';
+          element.style.borderImageSlice = '';
+          element.style.transition = '';
+          // Only reset border if it was added by our script
+          if (getComputedStyle(element).borderWidth === '1px' && 
+              getComputedStyle(element).borderColor === 'transparent') {
+            element.style.border = '';
+          }
+        });
+      }
+
+      console.log("Liquid glass border effect updated successfully:", liquidGlassEffect ? "enabled" : "disabled");
+    } catch (error) {
+      console.error("Error applying liquid glass border effect:", error);
+    }
+  }, [liquidGlassEffect]);
+
   // Toggle dark mode
   const toggleDarkMode = () => {
     console.log("Toggle function called");
@@ -365,6 +559,16 @@ export const ThemeProvider = ({ children }) => {
     setCustomCursor(enabled);
   };
 
+  // Toggle liquid glass effect
+  const toggleLiquidGlassEffect = () => {
+    setLiquidGlassEffect(prev => !prev);
+  };
+
+  // Direct update for liquid glass effect
+  const updateLiquidGlassEffect = (enabled) => {
+    setLiquidGlassEffect(enabled);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -383,7 +587,10 @@ export const ThemeProvider = ({ children }) => {
       updateBlurType,
       customCursor,
       toggleCustomCursor,
-      updateCustomCursor
+      updateCustomCursor,
+      liquidGlassEffect,
+      toggleLiquidGlassEffect,
+      updateLiquidGlassEffect
     }}>
       {children}
     </ThemeContext.Provider>
