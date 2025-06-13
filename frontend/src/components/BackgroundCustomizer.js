@@ -7,15 +7,18 @@ const BackgroundCustomizer = () => {
     backgroundOpacity, 
     componentOpacity,
     blurLevel,
+    blurType,
     updateBackgroundImage, 
     updateBackgroundOpacity,
     updateComponentOpacity,
-    updateBlurLevel
+    updateBlurLevel,
+    updateBlurType
   } = useTheme();
   const [imagePreview, setImagePreview] = useState(backgroundImage || '');
   const [bgOpacity, setBgOpacity] = useState(backgroundOpacity);
   const [compOpacity, setCompOpacity] = useState(componentOpacity);
   const [blur, setBlur] = useState(blurLevel);
+  const [selectedBlurType, setSelectedBlurType] = useState(blurType);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
@@ -88,16 +91,25 @@ const BackgroundCustomizer = () => {
     updateBlurLevel(newBlur);
   };
 
+  // Handle blur type change
+  const handleBlurTypeChange = (e) => {
+    const newBlurType = e.target.value;
+    setSelectedBlurType(newBlurType);
+    updateBlurType(newBlurType);
+  };
+
   // Handle reset background
   const handleResetBackground = () => {
     setImagePreview('');
     setBgOpacity(50);
     setCompOpacity(90);
     setBlur(5);
+    setSelectedBlurType('blur');
     updateBackgroundImage('');
     updateBackgroundOpacity(50);
     updateComponentOpacity(90);
     updateBlurLevel(5);
+    updateBlurType('blur');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -195,9 +207,30 @@ const BackgroundCustomizer = () => {
           </p>
         </div>
 
+        <h4 className="font-medium text-gray-800 mb-3">Blur Effects</h4>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Blur Effect Type
+          </label>
+          <select
+            value={selectedBlurType}
+            onChange={handleBlurTypeChange}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="blur">Standard (Gaussian)</option>
+            <option value="motion">Motion Blur</option>
+            <option value="radial">Radial Blur</option>
+            <option value="lens">Lens Blur</option>
+          </select>
+          <p className="mt-1 text-sm text-gray-500">
+            Select the type of blur effect to apply to transparent UI components.
+          </p>
+        </div>
+
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Blur Level: {blur}px
+            Blur Intensity: {blur}px
           </label>
           <input
             type="range"
@@ -213,8 +246,38 @@ const BackgroundCustomizer = () => {
             <span>20px</span>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Adjust the blur effect applied to transparent UI components (0px = no blur).
+            Adjust the intensity of the blur effect (0px = no blur).
           </p>
+        </div>
+        
+        {/* Blur effect preview */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Blur Effect Preview
+          </label>
+          <div className="relative h-32 border rounded-lg overflow-hidden">
+            {/* Background image */}
+            <div 
+              className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500" 
+              style={{ opacity: 0.7 }}
+            ></div>
+            
+            {/* Sample content with blur effect */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div 
+                className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg"
+                style={{ 
+                  backdropFilter: selectedBlurType === 'blur' ? `blur(${blur}px)` :
+                                  selectedBlurType === 'motion' ? `blur(${Math.max(1, blur/2)}px) brightness(1.05)` :
+                                  selectedBlurType === 'radial' ? `blur(${blur}px) brightness(1.02) contrast(1.05)` :
+                                  `blur(${blur}px) saturate(1.1) brightness(1.05)`
+                }}
+              >
+                <p className="text-gray-800 font-medium">Preview Text</p>
+                <p className="text-gray-600 text-sm">This shows how the blur effect will look</p>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="flex justify-end">

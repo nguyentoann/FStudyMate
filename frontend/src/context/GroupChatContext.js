@@ -232,7 +232,7 @@ export const GroupChatProvider = ({ children }) => {
         },
         body: JSON.stringify({
           groupId: groupId,
-          senderId: user.id,
+        senderId: user.id,
           message: content || ""
         }),
         credentials: 'include'

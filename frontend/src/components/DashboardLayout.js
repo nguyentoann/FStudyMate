@@ -299,7 +299,7 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
       )}
-
+      
       {/* Main content */}
       <div className="flex flex-col flex-1 w-0 overflow-hidden">
         {/* Mobile header - only show if not in the dashboard page */}

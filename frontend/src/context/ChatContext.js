@@ -334,7 +334,7 @@ export const ChatProvider = ({ children }) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          senderId: user.id,
+        senderId: user.id,
           receiverId: recipientId,
           message: content || ""
         }),
@@ -384,7 +384,7 @@ export const ChatProvider = ({ children }) => {
         ...messageData,
         tempId: tempId
       };
-
+      
     } catch (error) {
       console.error('Error sending message:', error);
       // Remove the temp message if the send failed

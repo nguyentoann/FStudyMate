@@ -72,6 +72,17 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize blur type state (default: 'blur' - standard Gaussian blur)
+  const [blurType, setBlurType] = useState(() => {
+    try {
+      const savedBlurType = localStorage.getItem('appBlurType');
+      return savedBlurType || 'blur';
+    } catch (error) {
+      console.error("Error initializing blur type:", error);
+      return 'blur';
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -174,6 +185,7 @@ export const ThemeProvider = ({ children }) => {
       // Save to localStorage
       localStorage.setItem('appComponentOpacity', componentOpacity.toString());
       localStorage.setItem('appBlurLevel', blurLevel.toString());
+      localStorage.setItem('appBlurType', blurType);
 
       // Create a style block for component opacity
       let componentStyleElement = document.getElementById('custom-component-style');
@@ -185,6 +197,25 @@ export const ThemeProvider = ({ children }) => {
 
       // Calculate opacity value
       const opacityValue = componentOpacity / 100;
+      
+      // Determine blur filter based on type
+      let blurFilter = '';
+      switch(blurType) {
+        case 'blur':
+          blurFilter = `blur(${blurLevel}px)`;
+          break;
+        case 'motion':
+          blurFilter = `blur(${Math.max(1, blurLevel/2)}px) brightness(1.05)`;
+          break;
+        case 'radial':
+          blurFilter = `blur(${blurLevel}px) brightness(1.02) contrast(1.05)`;
+          break;
+        case 'lens':
+          blurFilter = `blur(${blurLevel}px) saturate(1.1) brightness(1.05)`;
+          break;
+        default:
+          blurFilter = `blur(${blurLevel}px)`;
+      }
       
       // Apply the opacity to specific elements more selectively
       componentStyleElement.textContent = `
@@ -198,14 +229,14 @@ export const ThemeProvider = ({ children }) => {
         .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header),
         .rounded-md.shadow-md:not(nav):not(.navbar):not(header) {
           background-color: rgba(255, 255, 255, ${opacityValue}) !important;
-          backdrop-filter: blur(${blurLevel}px);
+          backdrop-filter: ${blurFilter};
         }
 
         /* Apply to dark themed components with the same rule */
         .dark .bg-gray-800:not(nav):not(.navbar):not(header),
         .dark .bg-gray-900:not(nav):not(.navbar):not(header) {
           background-color: rgba(31, 41, 55, ${opacityValue}) !important;
-          backdrop-filter: blur(${blurLevel}px);
+          backdrop-filter: ${blurFilter};
         }
         
         /* Special rule for top navigation elements only */
@@ -229,10 +260,11 @@ export const ThemeProvider = ({ children }) => {
 
       console.log("Component opacity updated successfully:", componentOpacity + "%");
       console.log("Blur level updated successfully:", blurLevel + "px");
+      console.log("Blur type updated successfully:", blurType);
     } catch (error) {
       console.error("Error applying component opacity:", error);
     }
-  }, [componentOpacity, blurLevel]);
+  }, [componentOpacity, blurLevel, blurType]);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -264,6 +296,11 @@ export const ThemeProvider = ({ children }) => {
     setBlurLevel(level);
   };
 
+  // Update blur type
+  const updateBlurType = (type) => {
+    setBlurType(type);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -277,7 +314,9 @@ export const ThemeProvider = ({ children }) => {
       componentOpacity,
       updateComponentOpacity,
       blurLevel,
-      updateBlurLevel
+      updateBlurLevel,
+      blurType,
+      updateBlurType
     }}>
       {children}
     </ThemeContext.Provider>

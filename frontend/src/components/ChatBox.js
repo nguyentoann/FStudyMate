@@ -28,7 +28,7 @@ const ChatBox = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
+  
   // Handle user scroll events
   const handleScroll = () => {
     if (messageContainerRef.current) {
@@ -67,7 +67,7 @@ const ChatBox = () => {
         
         // Force scroll to bottom immediately when opening chat
         setTimeout(() => {
-          scrollToBottom();
+    scrollToBottom();
         }, 1000);
       }
     }
@@ -228,18 +228,18 @@ const ChatBox = () => {
     
     try {
       setIsSubmitting(true);
-      
-      // If there's a file, add a placeholder
-      if (selectedFile) {
-        tempMessage.hasFile = true;
-        tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
-        tempMessage.tempFileName = selectedFile.name;
-      }
-      
-      // Optimistically add the message to the UI
-      setLocalMessages(prev => [...prev, tempMessage]);
-      setNewMessage('');
-      
+    
+    // If there's a file, add a placeholder
+    if (selectedFile) {
+      tempMessage.hasFile = true;
+      tempMessage.message = tempMessage.message || `Sending file: ${selectedFile.name}`;
+      tempMessage.tempFileName = selectedFile.name;
+    }
+    
+    // Optimistically add the message to the UI
+    setLocalMessages(prev => [...prev, tempMessage]);
+    setNewMessage('');
+    
       // Get files ready to send
       const filesToSend = selectedFile ? [selectedFile] : [];
       
@@ -248,35 +248,35 @@ const ChatBox = () => {
       
       if (result && result.id) {
         // Update the temporary message with real message ID
-        setLocalMessages(prev => 
-          prev.map(msg => 
-            msg.id === tempMessage.id 
-              ? { 
-                  ...msg, 
-                  isTemp: false,
+          setLocalMessages(prev => 
+            prev.map(msg => 
+              msg.id === tempMessage.id 
+                ? { 
+                    ...msg, 
+                    isTemp: false,
                   id: result.id,
-                  message: msg.message.startsWith("Sending file:") ? "" : msg.message,
+                    message: msg.message.startsWith("Sending file:") ? "" : msg.message,
                   files: result.files || []
-                } 
-              : msg
-          )
-        );
+                  } 
+                : msg
+            )
+          );
         
         // Clear file input
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
-        }
-      } else {
-        // If sending failed, mark the message as failed
-        setLocalMessages(prev => 
-          prev.map(msg => 
-            msg.id === tempMessage.id 
-              ? { ...msg, sendFailed: true } 
-              : msg
-          )
-        );
       }
+    } else {
+      // If sending failed, mark the message as failed
+      setLocalMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempMessage.id 
+            ? { ...msg, sendFailed: true } 
+            : msg
+        )
+      );
+    }
     } catch (error) {
       console.error("Error sending message:", error);
       // Mark the message as failed
@@ -288,7 +288,7 @@ const ChatBox = () => {
         )
       );
     } finally {
-      setIsSubmitting(false);
+    setIsSubmitting(false);
     }
   };
   
