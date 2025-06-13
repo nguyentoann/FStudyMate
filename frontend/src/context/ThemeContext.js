@@ -105,6 +105,39 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize liquid glass effect range (default: 100px)
+  const [glassEffectRange, setGlassEffectRange] = useState(() => {
+    try {
+      const savedRange = localStorage.getItem('appGlassEffectRange');
+      return savedRange !== null ? parseInt(savedRange, 10) : 100;
+    } catch (error) {
+      console.error("Error initializing glass effect range:", error);
+      return 100;
+    }
+  });
+
+  // Initialize liquid glass effect max brightness (default: 0.9)
+  const [glassEffectMaxBrightness, setGlassEffectMaxBrightness] = useState(() => {
+    try {
+      const savedMaxBrightness = localStorage.getItem('appGlassEffectMaxBrightness');
+      return savedMaxBrightness !== null ? parseFloat(savedMaxBrightness) : 0.9;
+    } catch (error) {
+      console.error("Error initializing glass effect max brightness:", error);
+      return 0.9;
+    }
+  });
+
+  // Initialize liquid glass effect min brightness (default: 0.1)
+  const [glassEffectMinBrightness, setGlassEffectMinBrightness] = useState(() => {
+    try {
+      const savedMinBrightness = localStorage.getItem('appGlassEffectMinBrightness');
+      return savedMinBrightness !== null ? parseFloat(savedMinBrightness) : 0.1;
+    } catch (error) {
+      console.error("Error initializing glass effect min brightness:", error);
+      return 0.1;
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -336,6 +369,9 @@ export const ThemeProvider = ({ children }) => {
     try {
       // Save to localStorage
       localStorage.setItem('appLiquidGlassEffect', liquidGlassEffect.toString());
+      localStorage.setItem('appGlassEffectRange', glassEffectRange.toString());
+      localStorage.setItem('appGlassEffectMaxBrightness', glassEffectMaxBrightness.toString());
+      localStorage.setItem('appGlassEffectMinBrightness', glassEffectMinBrightness.toString());
 
       // Create or get the liquid glass script element
       let liquidGlassScriptElement = document.getElementById('liquid-glass-script');
@@ -354,11 +390,31 @@ export const ThemeProvider = ({ children }) => {
             // Track mouse position
             let mouseX = 0;
             let mouseY = 0;
+            let isMouseMoving = false;
+            let mouseTimer = null;
+            
+            // Configuration from React state
+            const effectRange = ${glassEffectRange}; // Distance in pixels
+            const maxBrightness = ${glassEffectMaxBrightness}; // Maximum brightness (0-1)
+            const minBrightness = ${glassEffectMinBrightness}; // Minimum brightness (0-1)
             
             // Update mouse position on move
             document.addEventListener('mousemove', function(e) {
               mouseX = e.clientX;
               mouseY = e.clientY;
+              isMouseMoving = true;
+              
+              // Clear any existing timer
+              if (mouseTimer) {
+                clearTimeout(mouseTimer);
+              }
+              
+              // Set a timer to detect when mouse stops moving
+              mouseTimer = setTimeout(function() {
+                isMouseMoving = false;
+                // Remove effects when mouse is stationary for a while
+                resetAllBorders();
+              }, 1000); // 1 second of inactivity
               
               // Apply the effect to glass elements
               applyLiquidGlassBorderEffect();
@@ -366,8 +422,25 @@ export const ThemeProvider = ({ children }) => {
             
             // Apply effect on scroll too
             document.addEventListener('scroll', function() {
-              applyLiquidGlassBorderEffect();
+              if (isMouseMoving) {
+                applyLiquidGlassBorderEffect();
+              }
             });
+            
+            // Function to reset all borders when mouse is inactive
+            function resetAllBorders() {
+              const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
+              
+              glassElements.forEach(element => {
+                element.style.borderImage = '';
+                element.style.borderImageSlice = '';
+                element.style.boxShadow = '';
+                if (getComputedStyle(element).borderWidth === '1px' && 
+                    getComputedStyle(element).borderColor === 'transparent') {
+                  element.style.border = '';
+                }
+              });
+            }
             
             // Function to apply the liquid glass border effect
             function applyLiquidGlassBorderEffect() {
@@ -411,15 +484,18 @@ export const ThemeProvider = ({ children }) => {
                 const distY = mouseY - nearestY;
                 const distance = Math.sqrt(distX * distX + distY * distY);
                 
-                // Calculate max distance for effect
-                const maxDistance = 100; // 100px max distance for effect
+                // Calculate max distance for effect using the configured range
+                const maxDistance = effectRange;
                 
                 // Calculate intensity based on distance (closer = more intense)
                 const normalizedDistance = Math.min(distance, maxDistance) / maxDistance;
                 const intensity = 1 - normalizedDistance; // 0 to 1 range
                 
-                // Only apply effect if the cursor is relatively close
-                if (intensity > 0.1) {
+                // Only apply effect if the cursor is relatively close and moving
+                if (intensity > minBrightness && isMouseMoving) {
+                  // Scale intensity between min and max brightness
+                  const scaledIntensity = minBrightness + (intensity * (maxBrightness - minBrightness));
+                  
                   // Create a gradient that's brightest at the nearest point
                   // Determine which side(s) the nearest point is on
                   const isOnTop = Math.abs(nearestY - rect.top) < 1;
@@ -447,7 +523,7 @@ export const ThemeProvider = ({ children }) => {
                   }
                   
                   // Apply the border effect
-                  element.style.borderImage = \`radial-gradient(circle at \${gradientPosition}, rgba(255,255,255,\${intensity * 0.9}), rgba(255,255,255,0.1) \${Math.min(100, intensity * 200)}%) 1\`;
+                  element.style.borderImage = \`radial-gradient(circle at \${gradientPosition}, rgba(255,255,255,\${scaledIntensity}), rgba(255,255,255,0.1) \${Math.min(100, intensity * 200)}%) 1\`;
                   element.style.borderImageSlice = '1';
                   
                   // Ensure element has a border to show the effect
@@ -480,9 +556,11 @@ export const ThemeProvider = ({ children }) => {
             }
             
             // Initial application
-            applyLiquidGlassBorderEffect();
+            if (isMouseMoving) {
+              applyLiquidGlassBorderEffect();
+            }
             
-            console.log("Liquid glass border effect initialized");
+            console.log("Liquid glass border effect initialized with range:", effectRange, "px, brightness:", minBrightness, "to", maxBrightness);
           })();
         `;
       } else if (!liquidGlassEffect && liquidGlassScriptElement) {
@@ -512,7 +590,7 @@ export const ThemeProvider = ({ children }) => {
     } catch (error) {
       console.error("Error applying liquid glass border effect:", error);
     }
-  }, [liquidGlassEffect]);
+  }, [liquidGlassEffect, glassEffectRange, glassEffectMaxBrightness, glassEffectMinBrightness]);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
