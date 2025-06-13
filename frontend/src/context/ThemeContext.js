@@ -392,13 +392,32 @@ export const ThemeProvider = ({ children }) => {
             let mouseY = 0;
             let isMouseMoving = false;
             let mouseTimer = null;
+            let rafId = null;
+            let lastApplyTime = 0;
             
             // Configuration from React state
             const effectRange = ${glassEffectRange}; // Distance in pixels
             const maxBrightness = ${glassEffectMaxBrightness}; // Maximum brightness (0-1)
             const minBrightness = ${glassEffectMinBrightness}; // Minimum brightness (0-1)
+            const frameThrottle = 25; // Only update every 25ms (40fps max)
             
-            // Update mouse position on move
+            // Throttled function to apply effects using requestAnimationFrame
+            function throttledApplyEffect() {
+              if (rafId) {
+                return; // Don't schedule multiple rAF calls
+              }
+              
+              rafId = requestAnimationFrame(() => {
+                const now = performance.now();
+                if (now - lastApplyTime >= frameThrottle) {
+                  applyLiquidGlassBorderEffect();
+                  lastApplyTime = now;
+                }
+                rafId = null;
+              });
+            }
+            
+            // Update mouse position on move with throttling
             document.addEventListener('mousemove', function(e) {
               mouseX = e.clientX;
               mouseY = e.clientY;
@@ -416,40 +435,69 @@ export const ThemeProvider = ({ children }) => {
                 resetAllBorders();
               }, 1000); // 1 second of inactivity
               
-              // Apply the effect to glass elements
-              applyLiquidGlassBorderEffect();
+              // Apply the effect with throttling
+              throttledApplyEffect();
             });
             
-            // Apply effect on scroll too
+            // Apply effect on scroll with throttling
+            let scrollTimeout = null;
             document.addEventListener('scroll', function() {
-              if (isMouseMoving) {
-                applyLiquidGlassBorderEffect();
+              if (!isMouseMoving) return;
+              
+              // Clear previous timeout
+              if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
               }
+              
+              // Throttle scroll events
+              scrollTimeout = setTimeout(() => {
+                throttledApplyEffect();
+              }, 50); // 50ms throttle for scroll events
             });
+            
+            // Cache DOM selectors to avoid repeated queries
+            const glassElementSelector = '.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)';
+            
+            // Track which elements have effects applied
+            const activeElements = new Set();
             
             // Function to reset all borders when mouse is inactive
             function resetAllBorders() {
-              const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
-              
-              glassElements.forEach(element => {
-                element.style.borderImage = '';
-                element.style.borderImageSlice = '';
-                element.style.boxShadow = '';
-                if (getComputedStyle(element).borderWidth === '1px' && 
-                    getComputedStyle(element).borderColor === 'transparent') {
-                  element.style.border = '';
+              // Only reset elements that have active effects
+              activeElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                  // Reset styles
+                  element.style.boxShadow = '';
+                  
+                  // Remove CSS rules
+                  const styleEl = document.getElementById('liquid-glass-styles');
+                  if (styleEl) {
+                    styleEl.textContent = styleEl.textContent.replace(new RegExp('#' + elementId + '\\s*\\{[^\\}]*\\}', 'g'), '');
+                  }
                 }
               });
+              
+              // Clear the set of active elements
+              activeElements.clear();
             }
             
             // Function to apply the liquid glass border effect
             function applyLiquidGlassBorderEffect() {
-              // Target elements with backdrop-filter
-              const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
+              // Target elements with backdrop-filter - use a more efficient selector when possible
+              // Only query visible elements in the viewport for better performance
+              const glassElements = document.querySelectorAll(glassElementSelector);
               
               glassElements.forEach(element => {
                 // Get element position
                 const rect = element.getBoundingClientRect();
+                
+                // Skip elements that are not visible or outside viewport
+                if (rect.width === 0 || rect.height === 0 || 
+                    rect.bottom < 0 || rect.top > window.innerHeight || 
+                    rect.right < 0 || rect.left > window.innerWidth) {
+                  return;
+                }
                 
                 // Calculate nearest point on border to mouse
                 // First determine which region the mouse is in relative to the element
@@ -479,16 +527,17 @@ export const ThemeProvider = ({ children }) => {
                   nearestY = mouseY;
                 }
                 
-                // Calculate distance from mouse to nearest point on border
+                // Calculate squared distance to avoid expensive square root operation
                 const distX = mouseX - nearestX;
                 const distY = mouseY - nearestY;
-                const distance = Math.sqrt(distX * distX + distY * distY);
+                const distanceSquared = distX * distX + distY * distY;
                 
-                // Calculate max distance for effect using the configured range
-                const maxDistance = effectRange;
+                // Calculate max distance squared for effect using the configured range
+                const maxDistanceSquared = effectRange * effectRange;
                 
                 // Calculate intensity based on distance (closer = more intense)
-                const normalizedDistance = Math.min(distance, maxDistance) / maxDistance;
+                // Use squared distances to avoid square root calculation
+                const normalizedDistance = Math.min(distanceSquared, maxDistanceSquared) / maxDistanceSquared;
                 const intensity = 1 - normalizedDistance; // 0 to 1 range
                 
                 // Only apply effect if the cursor is relatively close and moving
@@ -592,23 +641,21 @@ export const ThemeProvider = ({ children }) => {
                   const bottomBrightness = minBrightness + ((1 - normDistBottom) * (maxBrightness - minBrightness));
                   const leftBrightness = minBrightness + ((1 - normDistLeft) * (maxBrightness - minBrightness));
                   
-                  // Create CSS for the element with individual border colors
-                  const cssRule = \`
-                    #\${element.id} {
-                      border-width: \${borderWidth};
-                      border-style: solid;
-                      border-top-color: rgba(255,255,255,\${topBrightness});
-                      border-right-color: rgba(255,255,255,\${rightBrightness});
-                      border-bottom-color: rgba(255,255,255,\${bottomBrightness});
-                      border-left-color: rgba(255,255,255,\${leftBrightness});
-                      position: relative;
-                    }
-                  \`;
+                  // Add element to the set of active elements
+                  activeElements.add(element.id);
                   
-                  // Add the rule to the style element
-                  // First remove any existing rule for this element
-                  styleEl.textContent = styleEl.textContent.replace(new RegExp('#' + element.id + '\\s*\\{[^\\}]*\\}', 'g'), '');
-                  styleEl.textContent += cssRule;
+                  // Apply styles directly to the element for better performance
+                  element.style.borderWidth = borderWidth;
+                  element.style.borderStyle = 'solid';
+                  element.style.borderTopColor = \`rgba(255,255,255,\${topBrightness})\`;
+                  element.style.borderRightColor = \`rgba(255,255,255,\${rightBrightness})\`;
+                  element.style.borderBottomColor = \`rgba(255,255,255,\${bottomBrightness})\`;
+                  element.style.borderLeftColor = \`rgba(255,255,255,\${leftBrightness})\`;
+                  
+                  // Only set position if needed
+                  if (getComputedStyle(element).position === 'static') {
+                    element.style.position = 'relative';
+                  }
                   
                   // Ensure the element has position relative
                   if (getComputedStyle(element).position === 'static') {
@@ -723,21 +770,19 @@ export const ThemeProvider = ({ children }) => {
           styleEl.remove();
         }
         
-        // Reset any applied styles
-        const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
+        // Reset any applied styles - only for elements that have our attributes
+        const elements = document.querySelectorAll('[data-original-border], [data-original-position]');
         
-        glassElements.forEach(element => {
-          element.style.filter = '';
+        elements.forEach(element => {
+          // Reset all style properties we've modified
           element.style.boxShadow = '';
           element.style.transition = '';
-          
-          // Remove any CSS rules for this element
-          if (element.id) {
-            const styleEl = document.getElementById('liquid-glass-styles');
-            if (styleEl) {
-              styleEl.textContent = styleEl.textContent.replace(new RegExp('#' + element.id + '::before\\s*\\{[^\\}]*\\}', 'g'), '');
-            }
-          }
+          element.style.borderTopColor = '';
+          element.style.borderRightColor = '';
+          element.style.borderBottomColor = '';
+          element.style.borderLeftColor = '';
+          element.style.borderWidth = '';
+          element.style.borderStyle = '';
           
           // Restore original position if we saved it
           const originalPosition = element.getAttribute('data-original-position');

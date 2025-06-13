@@ -510,7 +510,7 @@ const BackgroundCustomizer = () => {
             )}
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            This effect creates a liquid glass appearance with each border segment having different brightness levels based on cursor proximity. The closer your cursor is to a specific side, the brighter that side becomes, creating a dynamic lighting effect that follows your movements.
+            This effect creates a liquid glass appearance with each border segment having different brightness levels based on cursor proximity. The closer your cursor is to a specific side, the brighter that side becomes, creating a dynamic lighting effect that follows your movements with optimized performance.
           </p>
           <div className="mt-2 text-xs text-gray-500">
             <ul className="list-disc pl-5">
