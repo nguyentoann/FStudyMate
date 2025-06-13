@@ -522,29 +522,179 @@ export const ThemeProvider = ({ children }) => {
                     gradientPosition = \`\${percentX}% \${percentY}%\`;
                   }
                   
-                  // Apply the border effect
-                  element.style.borderImage = \`radial-gradient(circle at \${gradientPosition}, rgba(255,255,255,\${scaledIntensity}), rgba(255,255,255,0.1) \${Math.min(100, intensity * 200)}%) 1\`;
-                  element.style.borderImageSlice = '1';
+                  // Apply border effect using border-color instead of borderImage to preserve rounded corners
                   
-                  // Ensure element has a border to show the effect
-                  if (getComputedStyle(element).borderWidth === '0px') {
-                    element.style.border = '1px solid transparent';
+                  // Store the original border style if we haven't already
+                  if (!element.hasAttribute('data-original-border')) {
+                    const originalBorder = getComputedStyle(element).border;
+                    element.setAttribute('data-original-border', originalBorder);
                   }
                   
-                  // Add glow effect around the border
+                  // Store the original position if we haven't already
+                  if (!element.hasAttribute('data-original-position')) {
+                    const originalPosition = getComputedStyle(element).position;
+                    element.setAttribute('data-original-position', originalPosition);
+                  }
+                  
+                  // Get the original border width or set a default
+                  const borderWidth = getComputedStyle(element).borderWidth === '0px' ? '1px' : getComputedStyle(element).borderWidth;
+                  
+                  // Create a precise gradient that follows the cursor position along the border
+                  let gradientBorder;
+                  
+                  // Calculate the position for the radial gradient center
+                  const gradientCenterX = percentX;
+                  const gradientCenterY = percentY;
+                  
+                  // Create a radial gradient that's brightest at the cursor position
+                  if (isOnTop || isOnBottom || isOnLeft || isOnRight) {
+                    // Use a radial gradient with specific position
+                    gradientBorder = \`radial-gradient(circle at \${gradientCenterX}% \${gradientCenterY}%, rgba(255,255,255,\${scaledIntensity}) 0%, rgba(255,255,255,0.05) \${Math.min(100, intensity * 300)}%)\`;
+                  } else {
+                    // Default case, should rarely happen
+                    gradientBorder = \`rgba(255,255,255,\${scaledIntensity * 0.3})\`;
+                  }
+                  
+                  // Create a border with varying brightness based on mouse position
+                  // We'll use 4 separate border segments with different opacity values
+                  
+                  // Generate a unique ID for this element if it doesn't have one
+                  if (!element.id) {
+                    element.id = 'glass-element-' + Math.floor(Math.random() * 1000000);
+                  }
+                  
+                  // Create or get the style element
+                  const styleId = 'liquid-glass-styles';
+                  let styleEl = document.getElementById(styleId);
+                  
+                  if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = styleId;
+                    document.head.appendChild(styleEl);
+                  }
+                  
+                  // Calculate brightness for each border side based on cursor proximity
+                  // The closer the cursor is to a side, the brighter that side will be
+                  const distToTop = Math.abs(mouseY - rect.top);
+                  const distToRight = Math.abs(mouseX - rect.right);
+                  const distToBottom = Math.abs(mouseY - rect.bottom);
+                  const distToLeft = Math.abs(mouseX - rect.left);
+                  
+                  // Normalize distances to the effect range
+                  const normDistTop = Math.min(distToTop / effectRange, 1);
+                  const normDistRight = Math.min(distToRight / effectRange, 1);
+                  const normDistBottom = Math.min(distToBottom / effectRange, 1);
+                  const normDistLeft = Math.min(distToLeft / effectRange, 1);
+                  
+                  // Calculate brightness for each side (inverted - closer = brighter)
+                  const topBrightness = minBrightness + ((1 - normDistTop) * (maxBrightness - minBrightness));
+                  const rightBrightness = minBrightness + ((1 - normDistRight) * (maxBrightness - minBrightness));
+                  const bottomBrightness = minBrightness + ((1 - normDistBottom) * (maxBrightness - minBrightness));
+                  const leftBrightness = minBrightness + ((1 - normDistLeft) * (maxBrightness - minBrightness));
+                  
+                  // Create CSS for the element with individual border colors
+                  const cssRule = \`
+                    #\${element.id} {
+                      border-width: \${borderWidth};
+                      border-style: solid;
+                      border-top-color: rgba(255,255,255,\${topBrightness});
+                      border-right-color: rgba(255,255,255,\${rightBrightness});
+                      border-bottom-color: rgba(255,255,255,\${bottomBrightness});
+                      border-left-color: rgba(255,255,255,\${leftBrightness});
+                      position: relative;
+                    }
+                  \`;
+                  
+                  // Add the rule to the style element
+                  // First remove any existing rule for this element
+                  styleEl.textContent = styleEl.textContent.replace(new RegExp('#' + element.id + '\\s*\\{[^\\}]*\\}', 'g'), '');
+                  styleEl.textContent += cssRule;
+                  
+                  // Ensure the element has position relative
+                  if (getComputedStyle(element).position === 'static') {
+                    element.style.position = 'relative';
+                  }
+                  
+                  // Preserve the original border-radius
+                  const originalBorderRadius = getComputedStyle(element).borderRadius;
+                  if (originalBorderRadius !== '0px') {
+                    element.style.borderRadius = originalBorderRadius;
+                  }
+                  
+                  // Create directional glow effects based on which sides are brightest
                   const glowSize = Math.round(intensity * 10);
-                  const glowOpacity = intensity * 0.8;
-                  element.style.boxShadow = \`0 0 \${glowSize}px rgba(255,255,255,\${glowOpacity})\`;
+                  
+                  // Find the brightest side to determine primary glow direction
+                  const brightnesses = [
+                    { side: 'top', value: topBrightness },
+                    { side: 'right', value: rightBrightness },
+                    { side: 'bottom', value: bottomBrightness },
+                    { side: 'left', value: leftBrightness }
+                  ];
+                  
+                  // Sort by brightness (descending)
+                  brightnesses.sort((a, b) => b.value - a.value);
+                  
+                  // Get the brightest side
+                  const brightestSide = brightnesses[0].side;
+                  
+                  // Calculate shadow offset based on the brightest side
+                  let shadowX = 0;
+                  let shadowY = 0;
+                  
+                  // Determine shadow direction based on which side is brightest
+                  if (brightestSide === 'top') {
+                    shadowY = -glowSize * 0.5;
+                  } else if (brightestSide === 'bottom') {
+                    shadowY = glowSize * 0.5;
+                  }
+                  
+                  if (brightestSide === 'left') {
+                    shadowX = -glowSize * 0.5;
+                  } else if (brightestSide === 'right') {
+                    shadowX = glowSize * 0.5;
+                  }
+                  
+                  // Calculate glow opacity based on the brightest side
+                  const brightestValue = brightnesses[0].value;
+                  const glowOpacity = brightestValue * 0.8;
+                  
+                  // Apply the directional shadow with an additional inset glow
+                  const insetShadowX = -shadowX * 0.3;
+                  const insetShadowY = -shadowY * 0.3;
+                  const insetGlowSize = Math.max(1, Math.round(glowSize * 0.4));
+                  const insetGlowOpacity = glowOpacity * 0.7;
+                  
+                  element.style.boxShadow = \`
+                    \${shadowX}px \${shadowY}px \${glowSize}px rgba(255,255,255,\${glowOpacity}),
+                    inset \${insetShadowX}px \${insetShadowY}px \${insetGlowSize}px rgba(255,255,255,\${insetGlowOpacity})
+                  \`;
                   
                   // Add transition for smoother effect
                   element.style.transition = 'border-image 0.1s ease-out, box-shadow 0.1s ease-out';
                 } else {
                   // Reset styles when cursor is far away
-                  element.style.borderImage = '';
-                  element.style.borderImageSlice = '';
                   element.style.boxShadow = '';
-                  if (getComputedStyle(element).borderWidth === '1px' && 
-                      getComputedStyle(element).borderColor === 'transparent') {
+                  
+                  // Remove any CSS rules for this element
+                  const styleEl = document.getElementById('liquid-glass-styles');
+                  if (styleEl && element.id) {
+                    // Remove only this element's rule by filtering out this element's ID
+                    styleEl.textContent = styleEl.textContent.replace(new RegExp('#' + element.id + '\\s*\\{[^\\}]*\\}', 'g'), '');
+                  }
+                  
+                  // Restore original position if needed
+                  if (element.getAttribute('data-original-position')) {
+                    element.style.position = element.getAttribute('data-original-position');
+                    element.removeAttribute('data-original-position');
+                  }
+                  
+                  // Restore original border style if we saved it
+                  const originalBorderStyle = element.getAttribute('data-original-border');
+                  if (originalBorderStyle) {
+                    element.style.border = originalBorderStyle;
+                  } else {
+                    // Otherwise, just reset the border
                     element.style.border = '';
                   }
                 }
@@ -567,20 +717,41 @@ export const ThemeProvider = ({ children }) => {
         // Remove the script if the effect is disabled
         liquidGlassScriptElement.remove();
         
+        // Also remove the style element if it exists
+        const styleEl = document.getElementById('liquid-glass-styles');
+        if (styleEl) {
+          styleEl.remove();
+        }
+        
         // Reset any applied styles
         const glassElements = document.querySelectorAll('.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)');
         
         glassElements.forEach(element => {
-          element.style.background = '';
           element.style.filter = '';
           element.style.boxShadow = '';
-          element.style.borderColor = '';
-          element.style.borderImage = '';
-          element.style.borderImageSlice = '';
           element.style.transition = '';
-          // Only reset border if it was added by our script
-          if (getComputedStyle(element).borderWidth === '1px' && 
-              getComputedStyle(element).borderColor === 'transparent') {
+          
+          // Remove any CSS rules for this element
+          if (element.id) {
+            const styleEl = document.getElementById('liquid-glass-styles');
+            if (styleEl) {
+              styleEl.textContent = styleEl.textContent.replace(new RegExp('#' + element.id + '::before\\s*\\{[^\\}]*\\}', 'g'), '');
+            }
+          }
+          
+          // Restore original position if we saved it
+          const originalPosition = element.getAttribute('data-original-position');
+          if (originalPosition) {
+            element.style.position = originalPosition;
+            element.removeAttribute('data-original-position');
+          }
+          
+          // Restore original border if we saved it
+          const originalBorder = element.getAttribute('data-original-border');
+          if (originalBorder) {
+            element.style.border = originalBorder;
+            element.removeAttribute('data-original-border');
+          } else {
             element.style.border = '';
           }
         });
@@ -647,6 +818,21 @@ export const ThemeProvider = ({ children }) => {
     setLiquidGlassEffect(enabled);
   };
 
+  // Update glass effect range
+  const updateGlassEffectRange = (range) => {
+    setGlassEffectRange(range);
+  };
+
+  // Update glass effect max brightness
+  const updateGlassEffectMaxBrightness = (brightness) => {
+    setGlassEffectMaxBrightness(brightness);
+  };
+
+  // Update glass effect min brightness
+  const updateGlassEffectMinBrightness = (brightness) => {
+    setGlassEffectMinBrightness(brightness);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -668,7 +854,10 @@ export const ThemeProvider = ({ children }) => {
       updateCustomCursor,
       liquidGlassEffect,
       toggleLiquidGlassEffect,
-      updateLiquidGlassEffect
+      updateLiquidGlassEffect,
+      updateGlassEffectRange,
+      updateGlassEffectMaxBrightness,
+      updateGlassEffectMinBrightness
     }}>
       {children}
     </ThemeContext.Provider>

@@ -10,6 +10,9 @@ const BackgroundCustomizer = () => {
     blurType,
     customCursor,
     liquidGlassEffect,
+    glassEffectRange,
+    glassEffectMaxBrightness,
+    glassEffectMinBrightness,
     updateBackgroundImage, 
     updateBackgroundOpacity,
     updateComponentOpacity,
@@ -18,13 +21,19 @@ const BackgroundCustomizer = () => {
     toggleCustomCursor,
     updateCustomCursor,
     toggleLiquidGlassEffect,
-    updateLiquidGlassEffect
+    updateLiquidGlassEffect,
+    updateGlassEffectRange,
+    updateGlassEffectMaxBrightness,
+    updateGlassEffectMinBrightness
   } = useTheme();
   const [imagePreview, setImagePreview] = useState(backgroundImage || '');
   const [bgOpacity, setBgOpacity] = useState(backgroundOpacity);
   const [compOpacity, setCompOpacity] = useState(componentOpacity);
   const [blur, setBlur] = useState(blurLevel);
   const [selectedBlurType, setSelectedBlurType] = useState(blurType);
+  const [effectRange, setEffectRange] = useState(glassEffectRange);
+  const [maxBrightness, setMaxBrightness] = useState(glassEffectMaxBrightness * 100);
+  const [minBrightness, setMinBrightness] = useState(glassEffectMinBrightness * 100);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
@@ -104,6 +113,27 @@ const BackgroundCustomizer = () => {
     updateBlurType(newBlurType);
   };
 
+  // Handle glass effect range change
+  const handleRangeChange = (e) => {
+    const newRange = parseInt(e.target.value, 10);
+    setEffectRange(newRange);
+    updateGlassEffectRange(newRange);
+  };
+
+  // Handle glass effect max brightness change
+  const handleMaxBrightnessChange = (e) => {
+    const newBrightness = parseInt(e.target.value, 10);
+    setMaxBrightness(newBrightness);
+    updateGlassEffectMaxBrightness(newBrightness / 100);
+  };
+
+  // Handle glass effect min brightness change
+  const handleMinBrightnessChange = (e) => {
+    const newBrightness = parseInt(e.target.value, 10);
+    setMinBrightness(newBrightness);
+    updateGlassEffectMinBrightness(newBrightness / 100);
+  };
+
   // Handle reset background
   const handleResetBackground = () => {
     setImagePreview('');
@@ -111,11 +141,17 @@ const BackgroundCustomizer = () => {
     setCompOpacity(90);
     setBlur(5);
     setSelectedBlurType('blur');
+    setEffectRange(100);
+    setMaxBrightness(90);
+    setMinBrightness(10);
     updateBackgroundImage('');
     updateBackgroundOpacity(50);
     updateComponentOpacity(90);
     updateBlurLevel(5);
     updateBlurType('blur');
+    updateGlassEffectRange(100);
+    updateGlassEffectMaxBrightness(0.9);
+    updateGlassEffectMinBrightness(0.1);
     // Reset custom cursor to default (enabled)
     updateCustomCursor(true);
     // Reset liquid glass effect to default (enabled)
@@ -126,7 +162,7 @@ const BackgroundCustomizer = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden mt-6">
+    <div className="bg-white rounded-2xl shadow-md overflow-hidden mt-6">
       <div className="p-6">
         <h3 className="text-lg font-semibold mb-4">Background & UI Customization</h3>
         
@@ -165,7 +201,7 @@ const BackgroundCustomizer = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Preview
             </label>
-            <div className="border rounded-lg overflow-hidden h-40 relative">
+            <div className="rounded-2xl overflow-hidden h-40 relative">
               <img 
                 src={imagePreview} 
                 alt="Background preview" 
@@ -201,15 +237,15 @@ const BackgroundCustomizer = () => {
           </label>
           <input
             type="range"
-            min="30"
+            min="20"
             max="100"
             value={compOpacity}
             onChange={handleCompOpacityChange}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>30%</span>
-            <span>90%</span>
+            <span>20%</span>
+            <span>60%</span>
             <span>100%</span>
           </div>
           <p className="mt-1 text-sm text-gray-500">
@@ -265,7 +301,7 @@ const BackgroundCustomizer = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Blur Effect Preview
           </label>
-          <div className="relative h-32 border rounded-lg overflow-hidden">
+          <div className="relative h-32 rounded-2xl overflow-hidden">
             {/* Background image */}
             <div 
               className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500" 
@@ -275,7 +311,7 @@ const BackgroundCustomizer = () => {
             {/* Sample content with blur effect */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div 
-                className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg"
+                className="bg-white bg-opacity-70 p-4 rounded-2xl shadow-lg"
                 style={{ 
                   backdropFilter: selectedBlurType === 'blur' ? `blur(${blur}px)` :
                                   selectedBlurType === 'motion' ? `blur(${Math.max(1, blur/2)}px) brightness(1.05)` :
@@ -379,45 +415,119 @@ const BackgroundCustomizer = () => {
               Disable
             </button>
           </div>
-          
-          {/* Liquid glass effect preview */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Liquid Glass Effect Preview
-            </label>
-            <div className="relative h-40 border rounded-lg overflow-hidden bg-gradient-to-r from-blue-400 to-purple-500">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex space-x-4">
-                  <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg w-32 h-32 flex items-center justify-center border-2 border-white">
-                    <p className="text-center text-gray-800">
-                      Move your cursor near a specific part of the border
-                    </p>
-                  </div>
-                  <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-lg w-32 h-32 flex items-center justify-center border-2 border-white">
-                    <p className="text-center text-gray-800">
-                      Only that section will light up brightly
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {!liquidGlassEffect && (
-                <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-                  <p className="text-white font-medium">Effect Disabled</p>
-                </div>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-gray-500">
-              This effect creates a liquid glass appearance by illuminating only the specific part of the border closest to your cursor, creating a dynamic lighting effect.
-            </p>
-          </div>
         </div>
         
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Glass Effect Range: {effectRange}%
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={effectRange}
+            onChange={handleRangeChange}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0%</span>
+            <span>50%</span>
+            <span>100%</span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Adjust the range of the glass effect.
+          </p>
+        </div>
+        
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Glass Effect Max Brightness: {maxBrightness}%
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={maxBrightness}
+            onChange={handleMaxBrightnessChange}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0%</span>
+            <span>50%</span>
+            <span>100%</span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Adjust the maximum brightness of the glass effect.
+          </p>
+        </div>
+        
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Glass Effect Min Brightness: {minBrightness}%
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={minBrightness}
+            onChange={handleMinBrightnessChange}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0%</span>
+            <span>50%</span>
+            <span>100%</span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Adjust the minimum brightness of the glass effect.
+          </p>
+        </div>
+
+        {/* Liquid glass effect preview */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Liquid Glass Effect Preview
+          </label>
+          <div className="relative h-40 rounded-2xl overflow-hidden bg-gradient-to-r from-blue-400 to-purple-500">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex space-x-4">
+                <div className="bg-white bg-opacity-70 p-4 rounded-2xl shadow-lg w-32 h-32 flex items-center justify-center overflow-hidden">
+                  <p className="text-center text-gray-800">
+                    Move your cursor near a specific part of the border
+                  </p>
+                </div>
+                <div className="bg-white bg-opacity-70 p-4 rounded-2xl shadow-lg w-32 h-32 flex items-center justify-center overflow-hidden">
+                  <p className="text-center text-gray-800">
+                    Only that section will light up brightly
+                  </p>
+                </div>
+              </div>
+            </div>
+            {!liquidGlassEffect && (
+              <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+                <p className="text-white font-medium">Effect Disabled</p>
+              </div>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            This effect creates a liquid glass appearance with each border segment having different brightness levels based on cursor proximity. The closer your cursor is to a specific side, the brighter that side becomes, creating a dynamic lighting effect that follows your movements.
+          </p>
+          <div className="mt-2 text-xs text-gray-500">
+            <ul className="list-disc pl-5">
+              <li>Range: Controls how far from the component the effect activates</li>
+              <li>Max Brightness: Controls how bright the border becomes when cursor is very close</li>
+              <li>Min Brightness: Controls the minimum brightness threshold for the effect to show</li>
+              <li>Shadow Direction: The shadow light now follows your cursor position around the borders</li>
+            </ul>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <button
             onClick={handleResetBackground}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 mr-2"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
-            Reset to Default
+            Reset
           </button>
         </div>
       </div>
