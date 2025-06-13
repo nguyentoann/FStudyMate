@@ -8,11 +8,14 @@ const BackgroundCustomizer = () => {
     componentOpacity,
     blurLevel,
     blurType,
+    customCursor,
     updateBackgroundImage, 
     updateBackgroundOpacity,
     updateComponentOpacity,
     updateBlurLevel,
-    updateBlurType
+    updateBlurType,
+    toggleCustomCursor,
+    updateCustomCursor
   } = useTheme();
   const [imagePreview, setImagePreview] = useState(backgroundImage || '');
   const [bgOpacity, setBgOpacity] = useState(backgroundOpacity);
@@ -110,6 +113,8 @@ const BackgroundCustomizer = () => {
     updateComponentOpacity(90);
     updateBlurLevel(5);
     updateBlurType('blur');
+    // Reset custom cursor to default (enabled)
+    updateCustomCursor(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -277,6 +282,53 @@ const BackgroundCustomizer = () => {
                 <p className="text-gray-600 text-sm">This shows how the blur effect will look</p>
               </div>
             </div>
+          </div>
+        </div>
+        
+        <h4 className="font-medium text-gray-800 mb-3">Additional UI Settings</h4>
+        
+        {/* Custom cursor toggle */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <label htmlFor="customCursor" className="text-sm font-medium text-gray-700 cursor-pointer">
+              Custom Mouse Cursor
+            </label>
+            <button 
+              onClick={() => updateCustomCursor(!customCursor)}
+              className="relative inline-flex items-center h-6 rounded-full w-12 focus:outline-none"
+              aria-pressed={customCursor}
+              role="switch"
+            >
+              <span className="sr-only">Toggle custom cursor</span>
+              <span 
+                className={`${
+                  customCursor ? 'bg-indigo-600' : 'bg-gray-300'
+                } absolute h-6 w-12 mx-auto rounded-full transition-colors duration-200 ease-in-out`}
+              ></span>
+              <span
+                className={`${
+                  customCursor ? 'translate-x-6' : 'translate-x-0'
+                } absolute left-0.5 top-0.5 inline-block h-5 w-5 rounded-full bg-white transform transition-transform duration-200 ease-in-out`}
+              ></span>
+            </button>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Enable or disable the custom mouse cursor. When enabled, your cursor will have a stylized appearance.
+          </p>
+          {/* Add direct buttons for easier testing */}
+          <div className="mt-2 flex space-x-2">
+            <button 
+              onClick={() => updateCustomCursor(true)}
+              className={`px-2 py-1 text-xs rounded ${customCursor ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Enable
+            </button>
+            <button 
+              onClick={() => updateCustomCursor(false)}
+              className={`px-2 py-1 text-xs rounded ${!customCursor ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+            >
+              Disable
+            </button>
           </div>
         </div>
         

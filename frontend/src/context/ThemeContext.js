@@ -83,6 +83,17 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize custom cursor state (default: true - enabled)
+  const [customCursor, setCustomCursor] = useState(() => {
+    try {
+      const savedCustomCursor = localStorage.getItem('appCustomCursor');
+      return savedCustomCursor !== null ? savedCustomCursor === 'true' : true;
+    } catch (error) {
+      console.error("Error initializing custom cursor:", error);
+      return true;
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -266,6 +277,49 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [componentOpacity, blurLevel, blurType]);
 
+  // Apply custom cursor
+  useEffect(() => {
+    try {
+      // Save to localStorage
+      localStorage.setItem('appCustomCursor', customCursor.toString());
+
+      // Create or get the custom cursor style element
+      let cursorStyleElement = document.getElementById('custom-cursor-style');
+      if (!cursorStyleElement) {
+        cursorStyleElement = document.createElement('style');
+        cursorStyleElement.id = 'custom-cursor-style';
+        document.head.appendChild(cursorStyleElement);
+      }
+
+      // Apply custom cursor styles if enabled
+      if (customCursor) {
+        cursorStyleElement.textContent = `
+          /* Base cursor for all elements */
+          html, body, div, span, a, p, h1, h2, h3, h4, h5, h6, button, input, select, textarea {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="rgba(79, 70, 229, 0.5)" stroke="white" stroke-width="1.5"/></svg>') 8 8, auto !important;
+          }
+          
+          /* Pointer cursor for interactive elements */
+          a, button, [role="button"], [type="button"], [type="submit"], [type="reset"], label[for], select, summary, .cursor-pointer {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="rgba(79, 70, 229, 0.6)" stroke="white" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="white"/></svg>') 12 12, pointer !important;
+          }
+          
+          /* Text cursor for text inputs */
+          input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="tel"], input[type="url"], input[type="number"], textarea {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="24" viewBox="0 0 16 24"><path d="M8,4 L8,20" stroke="white" stroke-width="2"/><path d="M8,4 L8,20" stroke="rgba(79, 70, 229, 0.7)" stroke-width="1"/></svg>') 8 12, text !important;
+          }
+        `;
+      } else {
+        // Remove custom cursor styles
+        cursorStyleElement.textContent = '';
+      }
+
+      console.log("Custom cursor updated successfully:", customCursor ? "enabled" : "disabled");
+    } catch (error) {
+      console.error("Error applying custom cursor:", error);
+    }
+  }, [customCursor]);
+
   // Toggle dark mode
   const toggleDarkMode = () => {
     console.log("Toggle function called");
@@ -301,6 +355,16 @@ export const ThemeProvider = ({ children }) => {
     setBlurType(type);
   };
 
+  // Toggle custom cursor
+  const toggleCustomCursor = () => {
+    setCustomCursor(prev => !prev);
+  };
+
+  // Direct update for custom cursor
+  const updateCustomCursor = (enabled) => {
+    setCustomCursor(enabled);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -316,7 +380,10 @@ export const ThemeProvider = ({ children }) => {
       blurLevel,
       updateBlurLevel,
       blurType,
-      updateBlurType
+      updateBlurType,
+      customCursor,
+      toggleCustomCursor,
+      updateCustomCursor
     }}>
       {children}
     </ThemeContext.Provider>
