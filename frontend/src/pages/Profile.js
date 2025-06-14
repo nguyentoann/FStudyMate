@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import DashboardLayout from '../components/DashboardLayout';
+import ProfileCard from '../components/ProfileCard';
 import { API_URL } from '../services/config';
 
 const Profile = () => {
@@ -110,10 +111,38 @@ const Profile = () => {
     }
   };
 
+  const handleContactClick = () => {
+    // You can implement contact functionality here
+    console.log('Contact button clicked');
+  };
+
+  // Get user role in a formatted way
+  const getUserTitle = () => {
+    if (!user?.role) return "User";
+    
+    // Convert role to a more readable format
+    switch (user.role) {
+      case 'lecturer':
+        return 'Lecturer';
+      case 'student':
+        return 'Student';
+      case 'outsrc_student':
+        return 'External Student';
+      default:
+        return user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    }
+  };
+
+  // Get user handle from email
+  const getUserHandle = () => {
+    if (!user?.email) return "user";
+    return user.email.split('@')[0];
+  };
+
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">User Profile</h1>
+      <div className="max-w-6xl mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8 text-center">User Profile</h1>
 
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
@@ -127,40 +156,29 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="md:flex">
-            {/* Profile Image Section */}
-            <div className="md:w-1/3 bg-indigo-50 p-8 flex flex-col items-center justify-center">
-              <img
-                src={profileData.profileImageUrl || 'https://via.placeholder.com/150'}
-                alt="Profile"
-                className="h-48 w-48 rounded-full object-cover border-4 border-white shadow-md"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Profile Card Section */}
+          <div className="flex justify-center mb-8 lg:mb-0">
+            <div className="w-full max-w-[380px]">
+              <ProfileCard
+                name={user?.fullName || "User Name"}
+                title={getUserTitle()}
+                handle={getUserHandle()}
+                status={user?.isActive ? "Active" : "Offline"}
+                contactText="Message"
+                avatarUrl={user?.profileImageUrl}
+                showUserInfo={true}
+                enableTilt={true}
+                onContactClick={handleContactClick}
               />
-              
-              {editing && (
-                <div className="mt-4 w-full">
-                  <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
-                  <input
-                    type="text"
-                    name="profileImageUrl"
-                    value={profileData.profileImageUrl}
-                    onChange={handleInputChange}
-                    className="mt-1 p-2 w-full border rounded-md"
-                    placeholder="Image URL"
-                  />
-                </div>
-              )}
-              
-              <div className="mt-4 text-center">
-                <h2 className="text-xl font-semibold">{user?.fullName}</h2>
-                <p className="text-gray-600 capitalize">{user?.role}</p>
-              </div>
             </div>
+          </div>
 
-            {/* Profile Details Section */}
-            <div className="md:w-2/3 p-8">
+          {/* Profile Details Section */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold">Profile Information</h3>
+                <h3 className="text-xl font-semibold">Profile Information</h3>
                 <div>
                   {!editing ? (
                     <div className="space-x-2">
@@ -228,6 +246,21 @@ const Profile = () => {
                       <p className="mt-1">{profileData.phoneNumber || 'Not provided'}</p>
                     )}
                   </div>
+
+                  {/* Profile Image URL */}
+                  {editing && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
+                      <input
+                        type="text"
+                        name="profileImageUrl"
+                        value={profileData.profileImageUrl}
+                        onChange={handleInputChange}
+                        className="mt-1 p-2 w-full border rounded-md"
+                        placeholder="Image URL"
+                      />
+                    </div>
+                  )}
 
                   {/* Role */}
                   <div>
