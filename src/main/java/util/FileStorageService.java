@@ -46,6 +46,7 @@ public class FileStorageService {
     private static final String LESSON_FILES_DIR = "LessonFiles";
     private static final String BACKUP_DIR = "Backups";
     private static final String QUIZ_IMAGES_DIR = "QuizImages";
+    private static final String STUDENT_IMAGES_DIR = "StudentImages";
     
     /**
      * Creates the CIFSContext with authentication
@@ -691,6 +692,82 @@ public class FileStorageService {
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error uploading group image: " + e.getMessage(), e);
             throw new IOException("Failed to upload group image: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Retrieves a student image from the Samba server
+     * 
+     * @param studentId student ID (e.g., DE180045)
+     * @return File containing the image data
+     * @throws IOException if retrieval fails
+     */
+    public static File getStudentImage(String studentId) throws IOException {
+        logger.info("Retrieving student image for ID: " + studentId);
+        
+        try {
+            // Sanitize the student ID
+            studentId = sanitizeFileName(studentId);
+            
+            // Connect to SMB
+            CIFSContext context = createContext();
+            
+            // Define extensions to try
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
+            SmbFile imageFile = null;
+            String foundFileName = null;
+            
+            // First try with .png extension (the expected format)
+            SmbFile pngFile = new SmbFile(SMB_BASE_PATH + STUDENT_IMAGES_DIR + "/" + studentId + ".png", context);
+            if (pngFile.exists()) {
+                imageFile = pngFile;
+                foundFileName = studentId + ".png";
+                logger.info("Found student image with .png extension");
+            } else {
+                // Try with other extensions
+                for (String ext : extensions) {
+                    if (ext.equals(".png")) continue; // Already tried
+                    
+                    SmbFile file = new SmbFile(SMB_BASE_PATH + STUDENT_IMAGES_DIR + "/" + studentId + ext, context);
+                    if (file.exists()) {
+                        imageFile = file;
+                        foundFileName = studentId + ext;
+                        logger.info("Found student image with extension: " + ext);
+                        break;
+                    }
+                }
+            }
+            
+            if (imageFile == null || !imageFile.exists()) {
+                logger.warning("Student image not found for ID: " + studentId);
+                throw new IOException("Student image not found");
+            }
+            
+            // Create a temporary file
+            String extension = foundFileName.substring(foundFileName.lastIndexOf('.'));
+            File tempFile = File.createTempFile("student_image_", extension);
+            tempFile.deleteOnExit();
+            
+            // Copy content to temporary file
+            try (SmbFileInputStream in = new SmbFileInputStream(imageFile);
+                 FileOutputStream out = new FileOutputStream(tempFile)) {
+                
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                long totalBytes = 0;
+                
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                    totalBytes += bytesRead;
+                }
+                
+                logger.info("Downloaded student image: " + foundFileName + ", size: " + totalBytes + " bytes");
+            }
+            
+            return tempFile;
+        } catch (Exception e) {
+            logger.warning("Error retrieving student image from SMB: " + e.getMessage());
+            throw new IOException("Student image not found: " + e.getMessage());
         }
     }
 } 

@@ -85,6 +85,12 @@ public class WebConfig implements WebMvcConfigurer {
                                      "file:src/main/webapp/SourceImg/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
+        // Add mapping for student images
+        // This is a fallback for direct file access, but the controller should handle most requests
+        registry.addResourceHandler("/public/StudentImages/**")
+                .addResourceLocations("file:W:/StudentImages/")
+                .setCachePeriod(3600); // Cache for 1 hour
+                
         // You can add more mappings if needed for different directories
         // For example, if images are in a specific location on your system:
         // registry.addResourceHandler("/question-images/**")

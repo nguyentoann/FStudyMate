@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 
 import util.FileStorageService;
 
@@ -21,6 +22,7 @@ import util.FileStorageService;
 @CrossOrigin(origins = "*", allowedHeaders = "*", allowCredentials = "false")
 public class ImageController {
 
+    private static final Logger logger = Logger.getLogger(ImageController.class.getName());
     private static final List<String> IMAGE_EXTENSIONS = Arrays.asList(".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico");
 
     /**
@@ -191,6 +193,90 @@ public class ImageController {
             }
             
             return ResponseEntity.ok(result.toString());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Endpoint to serve student images from the Samba server
+     */
+    @RequestMapping("/public/StudentImages/{studentId}.png")
+    public ResponseEntity<?> serveStudentImage(@PathVariable String studentId) {
+        logger.info("Student image request for ID: " + studentId);
+        
+        try {
+            // Try to retrieve the student image from Samba
+            File imageFile = FileStorageService.getStudentImage(studentId);
+            
+            if (imageFile == null || !imageFile.exists()) {
+                logger.warning("Student image not found for ID: " + studentId);
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Determine media type based on file extension
+            MediaType mediaType;
+            String fileNameLower = imageFile.getName().toLowerCase();
+            if (fileNameLower.endsWith(".png")) {
+                mediaType = MediaType.IMAGE_PNG;
+            } else if (fileNameLower.endsWith(".jpg") || fileNameLower.endsWith(".jpeg")) {
+                mediaType = MediaType.IMAGE_JPEG;
+            } else if (fileNameLower.endsWith(".gif")) {
+                mediaType = MediaType.IMAGE_GIF;
+            } else {
+                mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            }
+            
+            // Read the file content
+            byte[] imageBytes = Files.readAllBytes(imageFile.toPath());
+            logger.info("Successfully read " + imageBytes.length + " bytes for student image: " + studentId);
+            
+            // Return the image with appropriate content type
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .body(imageBytes);
+            
+        } catch (IOException e) {
+            logger.warning("Error serving student image: " + e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Debug endpoint to test if student images can be accessed
+     */
+    @RequestMapping("/api/debug/student-image/{studentId}")
+    public ResponseEntity<?> debugStudentImage(@PathVariable String studentId) {
+        logger.info("Debug student image request for ID: " + studentId);
+        
+        try {
+            // Try to check if the file exists in the Samba share
+            boolean fileExists = false;
+            File imageFile = null;
+            
+            try {
+                imageFile = FileStorageService.getStudentImage(studentId);
+                fileExists = (imageFile != null && imageFile.exists());
+            } catch (Exception e) {
+                logger.warning("Error checking student image: " + e.getMessage());
+            }
+            
+            // Build a response with debugging information
+            StringBuilder response = new StringBuilder();
+            response.append("Student Image Debug for ID: ").append(studentId).append("\n\n");
+            response.append("Image exists in Samba: ").append(fileExists).append("\n");
+            
+            if (fileExists && imageFile != null) {
+                response.append("Temp file path: ").append(imageFile.getAbsolutePath()).append("\n");
+                response.append("File size: ").append(imageFile.length()).append(" bytes\n");
+                response.append("File readable: ").append(imageFile.canRead()).append("\n");
+            }
+            
+            response.append("\nAccess URLs:\n");
+            response.append("- Controller URL: /public/StudentImages/").append(studentId).append(".png\n");
+            response.append("- Resource URL: /public/StudentImages/").append(studentId).append(".png\n");
+            
+            return ResponseEntity.ok(response.toString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }

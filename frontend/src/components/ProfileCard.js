@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import "./ProfileCard.css";
 
 const DEFAULT_BEHIND_GRADIENT =
@@ -33,8 +33,9 @@ const easeInOutCubic = (x) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
 const ProfileCardComponent = ({
-  avatarUrl = "/images/default-avatar.png",
-  iconUrl = "<Placeholder for icon URL>",
+  avatarUrl = "/images/default-avatar.svg",
+  originalUrl = "",
+  iconUrl = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxIj48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0xMCAyMGw0LTE2bTQgNGw0IDQtNCA0TTYgMTZsLTQtNCA0LTQiIC8+PC9zdmc+",
   grainUrl = "<Placeholder for grain URL>",
   behindGradient,
   innerGradient,
@@ -52,6 +53,19 @@ const ProfileCardComponent = ({
 }) => {
   const wrapRef = useRef(null);
   const cardRef = useRef(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("/images/default-avatar.svg");
+  const [originalUrlTried, setOriginalUrlTried] = useState(false);
+
+  // Reset state when avatarUrl changes
+  useEffect(() => {
+    // Ensure avatarUrl is a string
+    const safeAvatarUrl = typeof avatarUrl === 'string' ? avatarUrl : "/images/default-avatar.svg";
+    setCurrentAvatarUrl(safeAvatarUrl);
+    setOriginalUrlTried(false);
+    
+    console.log('ProfileCard received avatarUrl:', safeAvatarUrl);
+    console.log('ProfileCard received originalUrl:', originalUrl);
+  }, [avatarUrl, originalUrl]);
 
   const animationHandlers = useMemo(() => {
     if (!enableTilt) return null;
@@ -239,6 +253,31 @@ const ProfileCardComponent = ({
     onContactClick?.();
   }, [onContactClick]);
 
+  // Function to handle image loading errors
+  const handleImageError = (e) => {
+    console.log('Image failed to load:', e.target.src);
+    e.target.onerror = null; // Prevent infinite loop
+    
+    try {
+      // If the current URL is from StudentImages but failed to load
+      if (e.target.src.includes('/StudentImages/') && !originalUrlTried && originalUrl && typeof originalUrl === 'string') {
+        console.log('Falling back to original URL:', originalUrl);
+        setCurrentAvatarUrl(originalUrl);
+        setOriginalUrlTried(true);
+        return;
+      }
+      
+      // If we're already using the original URL but it failed
+      if (originalUrlTried || !originalUrl || typeof originalUrl !== 'string') {
+        console.log('Using default avatar as fallback');
+        e.target.src = "/images/default-avatar.svg";
+      }
+    } catch (err) {
+      console.error('Error in image error handler:', err);
+      e.target.src = "/images/default-avatar.svg";
+    }
+  };
+
   return (
     <div
       ref={wrapRef}
@@ -252,27 +291,20 @@ const ProfileCardComponent = ({
           <div className="pc-content pc-avatar-content">
             <img
               className="avatar"
-              src={avatarUrl}
+              src={currentAvatarUrl}
               alt={`${name || "User"} avatar`}
               loading="lazy"
-              onError={(e) => {
-                const target = e.target;
-                target.style.display = "none";
-              }}
+              onError={handleImageError}
             />
             {showUserInfo && (
               <div className="pc-user-info">
                 <div className="pc-user-details">
                   <div className="pc-mini-avatar">
                     <img
-                      src={miniAvatarUrl || avatarUrl}
+                      src={miniAvatarUrl || currentAvatarUrl}
                       alt={`${name || "User"} mini avatar`}
                       loading="lazy"
-                      onError={(e) => {
-                        const target = e.target;
-                        target.style.opacity = "0.5";
-                        target.src = avatarUrl;
-                      }}
+                      onError={handleImageError}
                     />
                   </div>
                   <div className="pc-user-text">

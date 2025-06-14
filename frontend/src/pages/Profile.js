@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import DashboardLayout from '../components/DashboardLayout';
 import ProfileCard from '../components/ProfileCard';
-import { API_URL } from '../services/config';
+import { API_URL, PUBLIC_URL } from '../services/config';
 
 const Profile = () => {
   const { user, setUser } = useAuth();
@@ -25,6 +25,61 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [studentImageUrl, setStudentImageUrl] = useState('');
+  const [originalImageUrl, setOriginalImageUrl] = useState('');
+
+  // Code icon SVG for software engineers/students
+  const codeIconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  `;
+  const codeIconUrl = `data:image/svg+xml;base64,${btoa(codeIconSvg)}`;
+
+  // Get the student image URL based on student ID
+  useEffect(() => {
+    try {
+      if (user) {
+        console.log('User object:', user);
+        
+        let newStudentImageUrl = '';
+        let originalUrl = '';
+        
+        // Safely get the original URL
+        if (user.profileImageUrl && typeof user.profileImageUrl === 'string') {
+          originalUrl = user.profileImageUrl;
+          console.log('Original profile image URL:', originalUrl);
+          
+          // Extract student ID from the original URL
+          if (originalUrl.includes('/profile/image/')) {
+            try {
+              const parts = originalUrl.split('/');
+              const fileName = parts[parts.length - 1]; // This will be like "DE180045.jpg"
+              console.log('Extracted filename:', fileName);
+              
+              const studentId = fileName.split('.')[0]; // Extract DE180045 from DE180045.jpg
+              console.log('Extracted student ID:', studentId);
+              
+              if (studentId) {
+                newStudentImageUrl = `${PUBLIC_URL}/StudentImages/${studentId}.png`;
+                console.log('New student image URL:', newStudentImageUrl);
+              }
+            } catch (err) {
+              console.error('Error extracting student ID from URL:', err);
+            }
+          }
+        }
+        
+        setStudentImageUrl(newStudentImageUrl || originalUrl || "/images/default-avatar.svg");
+        setOriginalImageUrl(originalUrl);
+      }
+    } catch (err) {
+      console.error('Error in student image URL processing:', err);
+      // Set default values in case of error
+      setStudentImageUrl("/images/default-avatar.svg");
+      setOriginalImageUrl("");
+    }
+  }, [user, PUBLIC_URL]);
 
   // Load user data into form
   useEffect(() => {
@@ -118,7 +173,7 @@ const Profile = () => {
 
   // Get user role in a formatted way
   const getUserTitle = () => {
-    if (!user?.role) return "User";
+    if (!user || !user.role) return "User";
     
     // Convert role to a more readable format
     switch (user.role) {
@@ -135,7 +190,7 @@ const Profile = () => {
 
   // Get user handle from email
   const getUserHandle = () => {
-    if (!user?.email) return "user";
+    if (!user || !user.email) return "user";
     return user.email.split('@')[0];
   };
 
@@ -156,252 +211,260 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Profile Card Section */}
-          <div className="flex justify-center mb-8 lg:mb-0">
-            <div className="w-full max-w-[380px]">
-              <ProfileCard
-                name={user?.fullName || "User Name"}
-                title={getUserTitle()}
-                handle={getUserHandle()}
-                status={user?.isActive ? "Active" : "Offline"}
-                contactText="Message"
-                avatarUrl={user?.profileImageUrl}
-                showUserInfo={true}
-                enableTilt={true}
-                onContactClick={handleContactClick}
-              />
-            </div>
+        {!user ? (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+            <p>Loading user data...</p>
           </div>
-
-          {/* Profile Details Section */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold">Profile Information</h3>
-                <div>
-                  {!editing ? (
-                    <div className="space-x-2">
-                      <button
-                        onClick={() => setEditing(true)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                      >
-                        Edit Profile
-                      </button>
-                      <a
-                        href="/change-password"
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 inline-block"
-                      >
-                        Change Password
-                      </a>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setEditing(false)}
-                      className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Profile Card Section - Take 40% width on large screens */}
+            <div className="lg:w-5/12 flex justify-center mb-8 lg:mb-0">
+              <div className="w-full max-w-[350px]">
+                <ProfileCard
+                  name={user?.fullName || "User Name"}
+                  title={getUserTitle()}
+                  handle={getUserHandle()}
+                  status={user?.isActive ? "Active" : "Offline"}
+                  contactText="Message"
+                  avatarUrl={studentImageUrl}
+                  originalUrl={originalImageUrl}
+                  iconUrl={codeIconUrl}
+                  showUserInfo={true}
+                  enableTilt={true}
+                  onContactClick={handleContactClick}
+                />
               </div>
+            </div>
 
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Full Name */}
+            {/* Profile Details Section - Take 60% width on large screens */}
+            <div className="lg:w-7/12 bg-white/80 backdrop-blur-md rounded-[30px] shadow-md overflow-hidden">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold">Profile Information</h3>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                    {editing ? (
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={profileData.fullName}
-                        onChange={handleInputChange}
-                        className="mt-1 p-2 w-full border rounded-md"
-                        required
-                      />
+                    {!editing ? (
+                      <div className="space-x-2">
+                        <button
+                          onClick={() => setEditing(true)}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                        >
+                          Edit Profile
+                        </button>
+                        <a
+                          href="/change-password"
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 inline-block"
+                        >
+                          Change Password
+                        </a>
+                      </div>
                     ) : (
-                      <p className="mt-1">{profileData.fullName}</p>
+                      <button
+                        onClick={() => setEditing(false)}
+                        className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                      >
+                        Cancel
+                      </button>
                     )}
                   </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <p className="mt-1">{profileData.email}</p>
-                  </div>
-
-                  {/* Phone Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                    {editing ? (
-                      <input
-                        type="text"
-                        name="phoneNumber"
-                        value={profileData.phoneNumber}
-                        onChange={handleInputChange}
-                        className="mt-1 p-2 w-full border rounded-md"
-                      />
-                    ) : (
-                      <p className="mt-1">{profileData.phoneNumber || 'Not provided'}</p>
-                    )}
-                  </div>
-
-                  {/* Profile Image URL */}
-                  {editing && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
-                      <input
-                        type="text"
-                        name="profileImageUrl"
-                        value={profileData.profileImageUrl}
-                        onChange={handleInputChange}
-                        className="mt-1 p-2 w-full border rounded-md"
-                        placeholder="Image URL"
-                      />
-                    </div>
-                  )}
-
-                  {/* Role */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Role</label>
-                    <p className="mt-1 capitalize">{user?.role}</p>
-                  </div>
-
-                  {/* Conditional Fields based on Role */}
-                  {user?.role === 'lecturer' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Department</label>
-                        {editing ? (
-                          <input
-                            type="text"
-                            name="department"
-                            value={profileData.department}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1">{profileData.department || 'Not provided'}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Specializations</label>
-                        {editing ? (
-                          <input
-                            type="text"
-                            name="specializations"
-                            value={profileData.specializations}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1">{profileData.specializations || 'Not provided'}</p>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {user?.role === 'student' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Academic Major</label>
-                        {editing ? (
-                          <input
-                            type="text"
-                            name="academicMajor"
-                            value={profileData.academicMajor}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1">{profileData.academicMajor || 'Not provided'}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Gender</label>
-                        {editing ? (
-                          <select
-                            name="gender"
-                            value={profileData.gender}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          >
-                            <option value="">Select Gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        ) : (
-                          <p className="mt-1">{profileData.gender || 'Not provided'}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                        {editing ? (
-                          <input
-                            type="date"
-                            name="dateOfBirth"
-                            value={profileData.dateOfBirth}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1">{profileData.dateOfBirth || 'Not provided'}</p>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {user?.role === 'outsrc_student' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Organization</label>
-                        {editing ? (
-                          <input
-                            type="text"
-                            name="organization"
-                            value={profileData.organization}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1">{profileData.organization || 'Not provided'}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                        {editing ? (
-                          <input
-                            type="date"
-                            name="dateOfBirth"
-                            value={profileData.dateOfBirth}
-                            onChange={handleInputChange}
-                            className="mt-1 p-2 w-full border rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1">{profileData.dateOfBirth || 'Not provided'}</p>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </div>
 
-                {editing && (
-                  <div className="mt-6">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
-                    >
-                      {loading ? 'Saving...' : 'Save Changes'}
-                    </button>
+                <form onSubmit={handleSubmit}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                      {editing ? (
+                        <input
+                          type="text"
+                          name="fullName"
+                          value={profileData.fullName}
+                          onChange={handleInputChange}
+                          className="mt-1 p-2 w-full border rounded-md"
+                          required
+                        />
+                      ) : (
+                        <p className="mt-1">{profileData.fullName}</p>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <p className="mt-1">{profileData.email}</p>
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                      {editing ? (
+                        <input
+                          type="text"
+                          name="phoneNumber"
+                          value={profileData.phoneNumber}
+                          onChange={handleInputChange}
+                          className="mt-1 p-2 w-full border rounded-md"
+                        />
+                      ) : (
+                        <p className="mt-1">{profileData.phoneNumber || 'Not provided'}</p>
+                      )}
+                    </div>
+
+                      {/* Profile Image URL */}
+                      {editing && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
+                          <input
+                            type="text"
+                            name="profileImageUrl"
+                            value={profileData.profileImageUrl}
+                            onChange={handleInputChange}
+                            className="mt-1 p-2 w-full border rounded-md"
+                            placeholder="Image URL"
+                          />
+                        </div>
+                      )}
+
+                    {/* Role */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Role</label>
+                      <p className="mt-1 capitalize">{user?.role}</p>
+                    </div>
+
+                    {/* Conditional Fields based on Role */}
+                    {user?.role === 'lecturer' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Department</label>
+                          {editing ? (
+                            <input
+                              type="text"
+                              name="department"
+                              value={profileData.department}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1">{profileData.department || 'Not provided'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Specializations</label>
+                          {editing ? (
+                            <input
+                              type="text"
+                              name="specializations"
+                              value={profileData.specializations}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1">{profileData.specializations || 'Not provided'}</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {user?.role === 'student' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Academic Major</label>
+                          {editing ? (
+                            <input
+                              type="text"
+                              name="academicMajor"
+                              value={profileData.academicMajor}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1">{profileData.academicMajor || 'Not provided'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Gender</label>
+                          {editing ? (
+                            <select
+                              name="gender"
+                              value={profileData.gender}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            >
+                              <option value="">Select Gender</option>
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          ) : (
+                            <p className="mt-1">{profileData.gender || 'Not provided'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                          {editing ? (
+                            <input
+                              type="date"
+                              name="dateOfBirth"
+                              value={profileData.dateOfBirth}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1">{profileData.dateOfBirth || 'Not provided'}</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {user?.role === 'outsrc_student' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Organization</label>
+                          {editing ? (
+                            <input
+                              type="text"
+                              name="organization"
+                              value={profileData.organization}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1">{profileData.organization || 'Not provided'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                          {editing ? (
+                            <input
+                              type="date"
+                              name="dateOfBirth"
+                              value={profileData.dateOfBirth}
+                              onChange={handleInputChange}
+                              className="mt-1 p-2 w-full border rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1">{profileData.dateOfBirth || 'Not provided'}</p>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-              </form>
+
+                  {editing && (
+                    <div className="mt-6">
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
+                      >
+                        {loading ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );
