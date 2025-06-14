@@ -703,36 +703,37 @@ public class FileStorageService {
      * @throws IOException if retrieval fails
      */
     public static File getStudentImage(String studentId) throws IOException {
-        logger.info("Retrieving student image for ID: " + studentId);
+        logger.info("Retrieving student file for ID: " + studentId);
         
         try {
             // Sanitize the student ID
             studentId = sanitizeFileName(studentId);
             
-            // First try to find the image in local filesystem (fallback for Docker environments)
-            File localImage = findLocalStudentImage(studentId);
-            if (localImage != null) {
-                logger.info("Found student image in local filesystem: " + localImage.getAbsolutePath());
-                return localImage;
+            // First try to find the file in local filesystem (fallback for Docker environments)
+            File localFile = findLocalStudentImage(studentId);
+            if (localFile != null) {
+                logger.info("Found student file in local filesystem: " + localFile.getAbsolutePath());
+                return localFile;
             }
             
             // If not found locally, try Samba
-            logger.info("Trying to find student image on Samba server");
+            logger.info("Trying to find student file on Samba server");
             
             // Connect to SMB
             CIFSContext context = createContext();
             
             // Define extensions to try
-            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
-            SmbFile imageFile = null;
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", 
+                                        ".glb", ".gltf", ".obj", ".pdf", ".doc", ".docx", ".xls", ".xlsx"};
+            SmbFile fileFound = null;
             String foundFileName = null;
             
             // First try with .png extension (the expected format)
             SmbFile pngFile = new SmbFile(SMB_BASE_PATH + STUDENT_IMAGES_DIR + "/" + studentId + ".png", context);
             if (pngFile.exists()) {
-                imageFile = pngFile;
+                fileFound = pngFile;
                 foundFileName = studentId + ".png";
-                logger.info("Found student image with .png extension");
+                logger.info("Found student file with .png extension");
             } else {
                 // Try with other extensions
                 for (String ext : extensions) {
@@ -740,26 +741,26 @@ public class FileStorageService {
                     
                     SmbFile file = new SmbFile(SMB_BASE_PATH + STUDENT_IMAGES_DIR + "/" + studentId + ext, context);
                     if (file.exists()) {
-                        imageFile = file;
+                        fileFound = file;
                         foundFileName = studentId + ext;
-                        logger.info("Found student image with extension: " + ext);
+                        logger.info("Found student file with extension: " + ext);
                         break;
                     }
                 }
             }
             
-            if (imageFile == null || !imageFile.exists()) {
-                logger.warning("Student image not found for ID: " + studentId);
-                throw new IOException("Student image not found");
+            if (fileFound == null || !fileFound.exists()) {
+                logger.warning("Student file not found for ID: " + studentId);
+                throw new IOException("Student file not found");
             }
             
             // Create a temporary file
             String extension = foundFileName.substring(foundFileName.lastIndexOf('.'));
-            File tempFile = File.createTempFile("student_image_", extension);
+            File tempFile = File.createTempFile("student_file_", extension);
             tempFile.deleteOnExit();
             
             // Copy content to temporary file
-            try (SmbFileInputStream in = new SmbFileInputStream(imageFile);
+            try (SmbFileInputStream in = new SmbFileInputStream(fileFound);
                  FileOutputStream out = new FileOutputStream(tempFile)) {
                 
                 byte[] buffer = new byte[8192];
@@ -771,25 +772,25 @@ public class FileStorageService {
                     totalBytes += bytesRead;
                 }
                 
-                logger.info("Downloaded student image: " + foundFileName + ", size: " + totalBytes + " bytes");
+                logger.info("Downloaded student file: " + foundFileName + ", size: " + totalBytes + " bytes");
             }
             
             return tempFile;
         } catch (Exception e) {
-            logger.warning("Error retrieving student image from SMB: " + e.getMessage());
+            logger.warning("Error retrieving student file from SMB: " + e.getMessage());
             
             // Final fallback - try local filesystem again with more relaxed error handling
             try {
-                File localImage = findLocalStudentImage(studentId);
-                if (localImage != null) {
-                    logger.info("Found student image in local filesystem as fallback: " + localImage.getAbsolutePath());
-                    return localImage;
+                File localFile = findLocalStudentImage(studentId);
+                if (localFile != null) {
+                    logger.info("Found student file in local filesystem as fallback: " + localFile.getAbsolutePath());
+                    return localFile;
                 }
             } catch (Exception ex) {
                 logger.warning("Final fallback also failed: " + ex.getMessage());
             }
             
-            throw new IOException("Student image not found: " + e.getMessage());
+            throw new IOException("Student file not found: " + e.getMessage());
         }
     }
     
@@ -800,21 +801,30 @@ public class FileStorageService {
      * @return File if found, null otherwise
      */
     private static File findLocalStudentImage(String studentId) {
-        logger.info("Looking for student image in local filesystem for ID: " + studentId);
+        logger.info("Looking for student file in local filesystem for ID: " + studentId);
         
         try {
-            // Check common locations for student images
+            // Check common locations for student files
             String[] possiblePaths = {
                 "/app/student-images",           // Docker container path
                 "/var/lib/student-images",       // Linux server path
                 System.getProperty("user.home") + "/student-images", // User home directory
                 "src/main/resources/static/StudentImages", // Resources folder
                 "src/main/webapp/StudentImages", // Webapp folder
-                "public/StudentImages"           // Public folder
+                "public/StudentImages",           // Public folder
+                
+                // Additional paths for other file types
+                "/app/student-files",           // Docker container path
+                "/var/lib/student-files",       // Linux server path
+                System.getProperty("user.home") + "/student-files", // User home directory
+                "src/main/resources/static/StudentFiles", // Resources folder
+                "src/main/webapp/StudentFiles", // Webapp folder
+                "public/StudentFiles"           // Public folder
             };
             
             // Define extensions to try
-            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", 
+                                        ".glb", ".gltf", ".obj", ".pdf", ".doc", ".docx", ".xls", ".xlsx"};
             
             // Try each possible location
             for (String basePath : possiblePaths) {
@@ -825,18 +835,18 @@ public class FileStorageService {
                 
                 // Try each extension
                 for (String ext : extensions) {
-                    File imageFile = new File(baseDir, studentId + ext);
-                    if (imageFile.exists() && imageFile.isFile() && imageFile.canRead()) {
-                        logger.info("Found student image at: " + imageFile.getAbsolutePath());
-                        return imageFile;
+                    File file = new File(baseDir, studentId + ext);
+                    if (file.exists() && file.isFile() && file.canRead()) {
+                        logger.info("Found student file at: " + file.getAbsolutePath());
+                        return file;
                     }
                 }
             }
             
-            logger.info("No student image found in local filesystem");
+            logger.info("No student file found in local filesystem");
             return null;
         } catch (Exception e) {
-            logger.warning("Error searching for local student image: " + e.getMessage());
+            logger.warning("Error searching for local student file: " + e.getMessage());
             return null;
         }
     }

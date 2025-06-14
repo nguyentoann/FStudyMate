@@ -91,9 +91,9 @@ public class WebConfig implements WebMvcConfigurer {
                                      "file:src/main/webapp/SourceImg/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
-        // Add mapping for student images
+        // Add mapping for student files (images, 3D models, etc.)
         // This is a fallback for direct file access, but the controller should handle most requests
-        logger.info("Configuring student images resource handler");
+        logger.info("Configuring student files resource handler");
         registry.addResourceHandler("/public/StudentImages/**")
                 .addResourceLocations("classpath:/META-INF/resources/StudentImages/",
                                      "classpath:/resources/StudentImages/",
@@ -103,10 +103,16 @@ public class WebConfig implements WebMvcConfigurer {
                                      "file:/app/student-images/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
-        // You can add more mappings if needed for different directories
-        // For example, if images are in a specific location on your system:
-        // registry.addResourceHandler("/question-images/**")
-        //         .addResourceLocations("file:/path/to/your/images/");
+        // Add mapping for student files in other locations
+        logger.info("Configuring additional student files resource handler");
+        registry.addResourceHandler("/public/StudentFiles/**")
+                .addResourceLocations("classpath:/META-INF/resources/StudentFiles/",
+                                     "classpath:/resources/StudentFiles/",
+                                     "classpath:/static/StudentFiles/", 
+                                     "classpath:/public/StudentFiles/",
+                                     "file:src/main/webapp/StudentFiles/",
+                                     "file:/app/student-files/")
+                .setCachePeriod(3600); // Cache for 1 hour
         
         logger.info("Resource handlers configured successfully");
     }

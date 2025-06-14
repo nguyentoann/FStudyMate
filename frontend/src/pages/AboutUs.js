@@ -17,7 +17,7 @@ const AboutUs = () => {
           {/* 3D Model Viewer */}
           <div className="lg:w-1/2 flex justify-center">
             <ModelViewer
-              url={`${backendBaseUrl}/public/StudentImages/model.glb`}
+              url={`${backendBaseUrl}/api/StudentImages/model.glb`}
               width={400}
               height={400}
               autoRotate={true}
