@@ -61,7 +61,8 @@ const Profile = () => {
               console.log('Extracted student ID:', studentId);
               
               if (studentId) {
-                newStudentImageUrl = `${PUBLIC_URL}/StudentImages/${studentId}.png`;
+                // Use the exact same format as the working endpoint
+                newStudentImageUrl = `${API_URL.replace(/\/api$/, '')}/api/StudentImages/${studentId}.png`;
                 console.log('New student image URL:', newStudentImageUrl);
               }
             } catch (err) {
@@ -79,7 +80,7 @@ const Profile = () => {
       setStudentImageUrl("/images/default-avatar.svg");
       setOriginalImageUrl("");
     }
-  }, [user, PUBLIC_URL]);
+  }, [user, API_URL]);
 
   // Load user data into form
   useEffect(() => {

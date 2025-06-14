@@ -80,6 +80,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        logger.info("Configuring resource handlers");
+        
         // Map the URL path /images/** to look in the webapp SourceImg directory
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("classpath:/META-INF/resources/SourceImg/", 
@@ -89,16 +91,23 @@ public class WebConfig implements WebMvcConfigurer {
                                      "file:src/main/webapp/SourceImg/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
-        // Add mapping for student images using a configurable path
-        // This allows for different environments (local dev, Docker, etc.)
-        logger.info("Configuring student images path: " + studentImagesPath);
+        // Add mapping for student images
+        // This is a fallback for direct file access, but the controller should handle most requests
+        logger.info("Configuring student images resource handler");
         registry.addResourceHandler("/public/StudentImages/**")
-                .addResourceLocations("file:" + studentImagesPath + "/")
+                .addResourceLocations("classpath:/META-INF/resources/StudentImages/",
+                                     "classpath:/resources/StudentImages/",
+                                     "classpath:/static/StudentImages/", 
+                                     "classpath:/public/StudentImages/",
+                                     "file:src/main/webapp/StudentImages/",
+                                     "file:/app/student-images/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
         // You can add more mappings if needed for different directories
         // For example, if images are in a specific location on your system:
         // registry.addResourceHandler("/question-images/**")
         //         .addResourceLocations("file:/path/to/your/images/");
+        
+        logger.info("Resource handlers configured successfully");
     }
 } 

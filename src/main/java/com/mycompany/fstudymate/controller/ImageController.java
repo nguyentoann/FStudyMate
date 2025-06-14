@@ -243,6 +243,15 @@ public class ImageController {
     }
 
     /**
+     * Copy of the working endpoint, but at the /api path
+     */
+    @RequestMapping("/api/StudentImages/{studentId}.png")
+    public ResponseEntity<?> serveStudentImageApi(@PathVariable String studentId) {
+        logger.info("API Student image request for ID: " + studentId);
+        return serveStudentImage(studentId);
+    }
+
+    /**
      * Debug endpoint to test if student images can be accessed
      */
     @RequestMapping("/api/debug/student-image/{studentId}")
@@ -279,6 +288,98 @@ public class ImageController {
             return ResponseEntity.ok(response.toString());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * New endpoint to serve student images with any extension
+     */
+    @GetMapping("/api/student-image/{studentId}")
+    public ResponseEntity<?> serveStudentImageAnyExtension(@PathVariable String studentId) {
+        logger.info("Student image request (any extension) for ID: " + studentId);
+        
+        try {
+            // Try to retrieve the student image using the FileStorageService
+            File imageFile = FileStorageService.getStudentImage(studentId);
+            
+            if (imageFile == null || !imageFile.exists()) {
+                logger.warning("Student image not found for ID: " + studentId);
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Determine media type based on file extension
+            MediaType mediaType;
+            String fileNameLower = imageFile.getName().toLowerCase();
+            if (fileNameLower.endsWith(".png")) {
+                mediaType = MediaType.IMAGE_PNG;
+            } else if (fileNameLower.endsWith(".jpg") || fileNameLower.endsWith(".jpeg")) {
+                mediaType = MediaType.IMAGE_JPEG;
+            } else if (fileNameLower.endsWith(".gif")) {
+                mediaType = MediaType.IMAGE_GIF;
+            } else {
+                mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            }
+            
+            // Read the file content
+            byte[] imageBytes = Files.readAllBytes(imageFile.toPath());
+            logger.info("Successfully read " + imageBytes.length + " bytes for student image: " + studentId);
+            
+            // Return the image with appropriate content type
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .body(imageBytes);
+            
+        } catch (IOException e) {
+            logger.warning("Error serving student image: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
+     * Endpoint to serve student images with explicit file extension
+     */
+    @GetMapping("/api/student-image/{studentId}.{extension}")
+    public ResponseEntity<?> serveStudentImageWithExtension(
+            @PathVariable String studentId, 
+            @PathVariable String extension) {
+        logger.info("Student image request for ID: " + studentId + " with extension: " + extension);
+        
+        try {
+            // Try to retrieve the student image using the FileStorageService
+            File imageFile = FileStorageService.getStudentImage(studentId);
+            
+            if (imageFile == null || !imageFile.exists()) {
+                logger.warning("Student image not found for ID: " + studentId);
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Determine media type based on requested extension
+            MediaType mediaType;
+            String requestedExtension = extension.toLowerCase();
+            if (requestedExtension.equals("png")) {
+                mediaType = MediaType.IMAGE_PNG;
+            } else if (requestedExtension.equals("jpg") || requestedExtension.equals("jpeg")) {
+                mediaType = MediaType.IMAGE_JPEG;
+            } else if (requestedExtension.equals("gif")) {
+                mediaType = MediaType.IMAGE_GIF;
+            } else {
+                mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            }
+            
+            // Read the file content
+            byte[] imageBytes = Files.readAllBytes(imageFile.toPath());
+            logger.info("Successfully read " + imageBytes.length + " bytes for student image: " + studentId);
+            
+            // Return the image with appropriate content type
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .body(imageBytes);
+            
+        } catch (IOException e) {
+            logger.warning("Error serving student image: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
         }
     }
 } 

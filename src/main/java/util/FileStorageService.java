@@ -808,7 +808,6 @@ public class FileStorageService {
                 "/app/student-images",           // Docker container path
                 "/var/lib/student-images",       // Linux server path
                 System.getProperty("user.home") + "/student-images", // User home directory
-                "W:/StudentImages",              // Windows mapped drive
                 "src/main/resources/static/StudentImages", // Resources folder
                 "src/main/webapp/StudentImages", // Webapp folder
                 "public/StudentImages"           // Public folder
