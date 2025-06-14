@@ -32,6 +32,7 @@ import DeveloperTools from './components/DeveloperTools';
 import QuizManager from './pages/lecturer/QuizManager';
 import CreateQuiz from './pages/lecturer/CreateQuiz';
 import BlueCursor from './components/BlueCursor';
+import AppTheme from './pages/AppTheme';
 import './styles/globals.css';
 
 // Show developer tools only in development environment
@@ -96,6 +97,11 @@ function App() {
                   <Route path="/change-password" element={
                     <ProtectedRoute>
                       <PasswordChange />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/theme" element={
+                    <ProtectedRoute>
+                      <AppTheme />
                     </ProtectedRoute>
                   } />
                   <Route path="/dashboard" element={
