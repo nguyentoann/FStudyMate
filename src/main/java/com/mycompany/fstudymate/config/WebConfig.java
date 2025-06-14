@@ -1,6 +1,7 @@
 package com.mycompany.fstudymate.config;
 
 import java.util.logging.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -13,6 +14,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
     private static final Logger logger = Logger.getLogger(WebConfig.class.getName());
+
+    @Value("${student.images.path:/app/student-images}")
+    private String studentImagesPath;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -85,10 +89,11 @@ public class WebConfig implements WebMvcConfigurer {
                                      "file:src/main/webapp/SourceImg/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
-        // Add mapping for student images
-        // This is a fallback for direct file access, but the controller should handle most requests
+        // Add mapping for student images using a configurable path
+        // This allows for different environments (local dev, Docker, etc.)
+        logger.info("Configuring student images path: " + studentImagesPath);
         registry.addResourceHandler("/public/StudentImages/**")
-                .addResourceLocations("file:W:/StudentImages/")
+                .addResourceLocations("file:" + studentImagesPath + "/")
                 .setCachePeriod(3600); // Cache for 1 hour
                 
         // You can add more mappings if needed for different directories

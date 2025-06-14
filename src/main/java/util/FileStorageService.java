@@ -709,6 +709,16 @@ public class FileStorageService {
             // Sanitize the student ID
             studentId = sanitizeFileName(studentId);
             
+            // First try to find the image in local filesystem (fallback for Docker environments)
+            File localImage = findLocalStudentImage(studentId);
+            if (localImage != null) {
+                logger.info("Found student image in local filesystem: " + localImage.getAbsolutePath());
+                return localImage;
+            }
+            
+            // If not found locally, try Samba
+            logger.info("Trying to find student image on Samba server");
+            
             // Connect to SMB
             CIFSContext context = createContext();
             
@@ -767,7 +777,68 @@ public class FileStorageService {
             return tempFile;
         } catch (Exception e) {
             logger.warning("Error retrieving student image from SMB: " + e.getMessage());
+            
+            // Final fallback - try local filesystem again with more relaxed error handling
+            try {
+                File localImage = findLocalStudentImage(studentId);
+                if (localImage != null) {
+                    logger.info("Found student image in local filesystem as fallback: " + localImage.getAbsolutePath());
+                    return localImage;
+                }
+            } catch (Exception ex) {
+                logger.warning("Final fallback also failed: " + ex.getMessage());
+            }
+            
             throw new IOException("Student image not found: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Tries to find a student image in the local filesystem
+     * 
+     * @param studentId student ID (e.g., DE180045)
+     * @return File if found, null otherwise
+     */
+    private static File findLocalStudentImage(String studentId) {
+        logger.info("Looking for student image in local filesystem for ID: " + studentId);
+        
+        try {
+            // Check common locations for student images
+            String[] possiblePaths = {
+                "/app/student-images",           // Docker container path
+                "/var/lib/student-images",       // Linux server path
+                System.getProperty("user.home") + "/student-images", // User home directory
+                "W:/StudentImages",              // Windows mapped drive
+                "src/main/resources/static/StudentImages", // Resources folder
+                "src/main/webapp/StudentImages", // Webapp folder
+                "public/StudentImages"           // Public folder
+            };
+            
+            // Define extensions to try
+            final String[] extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"};
+            
+            // Try each possible location
+            for (String basePath : possiblePaths) {
+                File baseDir = new File(basePath);
+                if (!baseDir.exists() || !baseDir.isDirectory()) {
+                    continue;
+                }
+                
+                // Try each extension
+                for (String ext : extensions) {
+                    File imageFile = new File(baseDir, studentId + ext);
+                    if (imageFile.exists() && imageFile.isFile() && imageFile.canRead()) {
+                        logger.info("Found student image at: " + imageFile.getAbsolutePath());
+                        return imageFile;
+                    }
+                }
+            }
+            
+            logger.info("No student image found in local filesystem");
+            return null;
+        } catch (Exception e) {
+            logger.warning("Error searching for local student image: " + e.getMessage());
+            return null;
         }
     }
 } 
