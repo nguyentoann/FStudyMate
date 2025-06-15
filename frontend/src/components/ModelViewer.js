@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useEffect,
   useMemo,
+  useState,
 } from "react";
 import {
   Canvas,
@@ -20,6 +21,10 @@ import {
   Html,
   Environment,
   ContactShadows,
+  Sphere,
+  MeshDistortMaterial,
+  useTexture,
+  PerspectiveCamera,
 } from "@react-three/drei";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
 import * as THREE from "three";
@@ -68,6 +73,152 @@ const DesktopControls = ({ pivot, min, max, zoomEnabled }) => {
       minDistance={min}
       maxDistance={max}
     />
+  );
+};
+
+// Light bulb component that can be toggled and moved
+const LightBulb = ({ position, onChange, isOn = true }) => {
+  const meshRef = useRef();
+  const [dragging, setDragging] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [lightPos, setLightPos] = useState(position);
+  const { camera } = useThree();
+  
+  // Plane for dragging calculations
+  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const planeNormal = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const planeIntersectPoint = useMemo(() => new THREE.Vector3(), []);
+  
+  // Raycaster for drag operations
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const mouse = useMemo(() => new THREE.Vector2(), []);
+  
+  // Handle click to toggle light
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (!dragging) {
+      onChange?.({ isOn: !isOn, position: lightPos });
+    }
+  };
+  
+  // Handle drag to change light position
+  const handlePointerDown = (e) => {
+    e.stopPropagation();
+    setDragging(true);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+  };
+  
+  const handlePointerMove = (e) => {
+    if (!dragging) return;
+    
+    // Calculate mouse position in normalized device coordinates
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    
+    // Update the picking ray with the camera and mouse position
+    raycaster.setFromCamera(mouse, camera);
+    
+    // Calculate the point of intersection with the plane
+    if (raycaster.ray.intersectPlane(plane, planeIntersectPoint)) {
+      // Update light position, but keep y position fixed
+      const newPos = [
+        planeIntersectPoint.x,
+        lightPos[1],
+        planeIntersectPoint.z
+      ];
+      setLightPos(newPos);
+      onChange?.({ isOn, position: newPos });
+    }
+  };
+  
+  const handlePointerUp = () => {
+    setDragging(false);
+    document.removeEventListener('pointermove', handlePointerMove);
+    document.removeEventListener('pointerup', handlePointerUp);
+  };
+  
+  // Clean up event listeners
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, []);
+  
+  // Update position from props
+  useEffect(() => {
+    setLightPos(position);
+  }, [position]);
+  
+  return (
+    <group position={lightPos}>
+      {/* Light bulb base */}
+      <mesh 
+        ref={meshRef}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        scale={hovered ? 1.1 : 1}
+      >
+        <cylinderGeometry args={[0.2, 0.3, 0.5, 16]} />
+        <meshStandardMaterial color="#444" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Light bulb glass */}
+      <mesh position={[0, 0.5, 0]}>
+        <sphereGeometry args={[0.3, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6]} />
+        <meshPhysicalMaterial 
+          color={isOn ? "#FFFFE0" : "#CCCCCC"} 
+          transparent={true} 
+          opacity={0.9} 
+          roughness={0.1} 
+          transmission={0.9}
+          thickness={0.5}
+        />
+      </mesh>
+      
+      {/* Light source */}
+      {isOn && (
+        <pointLight 
+          position={[0, 0.5, 0]} 
+          intensity={1.5} 
+          distance={10} 
+          decay={2} 
+          color="#FFFACD"
+        />
+      )}
+      
+      {/* Glow effect when light is on */}
+      {isOn && (
+        <Sphere args={[0.35, 16, 16]} position={[0, 0.5, 0]}>
+          <MeshDistortMaterial
+            color="#FFFFA0"
+            emissive="#FFFFA0"
+            emissiveIntensity={2}
+            transparent
+            opacity={0.4}
+            distort={0.3}
+            speed={2}
+          />
+        </Sphere>
+      )}
+      
+      {/* Helper text */}
+      <Html position={[0, 1.2, 0]} center>
+        <div style={{ 
+          color: 'white', 
+          fontSize: '10px', 
+          padding: '2px 5px', 
+          backgroundColor: 'rgba(0,0,0,0.5)', 
+          borderRadius: '3px',
+          whiteSpace: 'nowrap'
+        }}>
+          {dragging ? "Drag to move" : (hovered ? (isOn ? "Click to turn off" : "Click to turn on") : "")}
+        </div>
+      </Html>
+    </group>
   );
 };
 
@@ -380,6 +531,7 @@ const ModelViewer = ({
   autoFrame = false,
   placeholderSrc,
   showScreenshotButton = true,
+  showLightBulb = false,
   fadeIn = false,
   autoRotate = false,
   autoRotateSpeed = 0.35,
@@ -391,6 +543,20 @@ const ModelViewer = ({
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
+  
+  // State for light bulb
+  const [lightBulbState, setLightBulbState] = useState({
+    isOn: true,
+    position: [3, 2, 3]
+  });
+  
+  // State for light settings
+  const [lightSettings, setLightSettings] = useState({
+    ambient: ambientIntensity,
+    key: keyLightIntensity,
+    fill: fillLightIntensity,
+    rim: rimLightIntensity
+  });
 
   const initYaw = deg2rad(defaultRotationX);
   const initPitch = deg2rad(defaultRotationY);
@@ -423,6 +589,28 @@ const ModelViewer = ({
     tmp.forEach(({ l, cast }) => (l.castShadow = cast));
     if (contactRef.current) contactRef.current.visible = true;
   };
+  
+  // Handle light bulb changes
+  const handleLightBulbChange = (newState) => {
+    setLightBulbState(newState);
+    
+    // Adjust light settings based on light bulb state
+    if (!newState.isOn) {
+      setLightSettings({
+        ...lightSettings,
+        key: 0.2,
+        fill: 0.1,
+        rim: 0.1
+      });
+    } else {
+      setLightSettings({
+        ...lightSettings,
+        key: keyLightIntensity,
+        fill: fillLightIntensity,
+        rim: rimLightIntensity
+      });
+    }
+  };
 
   return (
     <div
@@ -445,6 +633,8 @@ const ModelViewer = ({
             cursor: "pointer",
             padding: "8px 16px",
             borderRadius: 10,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            color: "#fff",
           }}
         >
           Take Screenshot
@@ -468,17 +658,26 @@ const ModelViewer = ({
           <Environment preset={environmentPreset} background={false} />
         )}
 
-        <ambientLight intensity={ambientIntensity} />
-        <directionalLight
-          position={[5, 5, 5]}
-          intensity={keyLightIntensity}
-          castShadow
-        />
-        <directionalLight
-          position={[-5, 2, 5]}
-          intensity={fillLightIntensity}
-        />
-        <directionalLight position={[0, 4, -5]} intensity={rimLightIntensity} />
+        <ambientLight intensity={lightSettings.ambient} />
+        
+        {/* Main directional lights */}
+        {!showLightBulb && (
+          <>
+            <directionalLight
+              position={[5, 5, 5]}
+              intensity={lightSettings.key}
+              castShadow
+            />
+            <directionalLight
+              position={[-5, 2, 5]}
+              intensity={lightSettings.fill}
+            />
+            <directionalLight 
+              position={[0, 4, -5]} 
+              intensity={lightSettings.rim} 
+            />
+          </>
+        )}
 
         <ContactShadows
           ref={contactRef}
@@ -508,16 +707,23 @@ const ModelViewer = ({
             autoRotateSpeed={autoRotateSpeed}
             onLoaded={onModelLoaded}
           />
+          
+          {/* Interactive light bulb */}
+          {showLightBulb && (
+            <LightBulb 
+              position={lightBulbState.position}
+              isOn={lightBulbState.isOn}
+              onChange={handleLightBulbChange}
+            />
+          )}
         </Suspense>
 
-        {!isTouch && (
-          <DesktopControls
-            pivot={pivot}
-            min={minZoomDistance}
-            max={maxZoomDistance}
-            zoomEnabled={enableManualZoom}
-          />
-        )}
+        <DesktopControls
+          pivot={pivot}
+          min={minZoomDistance}
+          max={maxZoomDistance}
+          zoomEnabled={enableManualZoom}
+        />
       </Canvas>
     </div>
   );

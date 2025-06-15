@@ -1,29 +1,109 @@
 import React from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import ModelViewer from '../components/ModelViewer';
+import Lanyard from '../components/Lanyard';
+import ChromaGrid from '../components/ChromaGrid';
 
 const AboutUs = () => {
   // Get the backend base URL from environment or use a default
   const backendBaseUrl = process.env.REACT_APP_API_URL || window.location.origin.replace(/:\d+$/, ':8080');
   
+  // Team members data
+  const teamMembers = [
+    {
+      image: `${backendBaseUrl}/api/StudentImages/member1.png`,
+      title: "Trần Anh Quốc",
+      subtitle: "Frontend Developer",
+      handle: "@squocta-uranus",
+      borderColor: "#3B82F6",
+      gradient: "linear-gradient(145deg, #3B82F6, #000)",
+      url: "https://www.facebook.com/anh.quoc196"
+    },
+    {
+      image: `${backendBaseUrl}/api/StudentImages/member2.png`,
+      title: "Nguyễn Cửu Toàn",
+      subtitle: "Fullstack Engineer",
+      handle: "@nguyentoann",
+      borderColor: "#10B981",
+      gradient: "linear-gradient(180deg, #10B981, #000)",
+      url: "https://www.facebook.com/9toanvlog/"
+    },
+    {
+      image: `${backendBaseUrl}/api/StudentImages/member3.png`,
+      title: "Ngô Lê Minh Quân",
+      subtitle: "UI/UX Designer",
+      handle: "@chuuni",
+      borderColor: "#F59E0B",
+      gradient: "linear-gradient(165deg, #F59E0B, #000)",
+      url: "https://dribbble.com/"
+    },
+    {
+      image: `${backendBaseUrl}/api/StudentImages/member4.png`,
+      title: "Trương Tiến Đạt",
+      subtitle: "Data Scientist",
+      handle: "@TienDat5604",
+      borderColor: "#EF4444",
+      gradient: "linear-gradient(195deg, #EF4444, #000)",
+      url: "https://www.facebook.com/profile.php?id=100075498905015"
+    },
+    {
+      image: `${backendBaseUrl}/api/StudentImages/member5.png`,
+      title: "Phạm Tuấn Dũng",
+      subtitle: "Mobile Developer",
+      handle: "@Dung-min",
+      borderColor: "#8B5CF6",
+      gradient: "linear-gradient(225deg, #8B5CF6, #000)",
+      url: "https://www.facebook.com/profile.php?id=100050493109532"
+    },
+    {
+      image: `${backendBaseUrl}/api/StudentImages/member6.png`,
+      title: "OpenAI",
+      subtitle: "Fullstack Engineer",
+      handle: "@chatgpt",
+      borderColor: "#06B6D4",
+      gradient: "linear-gradient(135deg, #06B6D4, #000)",
+      url: "https://chatgpt.com/"
+    }
+  ];
+  
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 relative">
         <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
           About FStudyMate
         </h1>
 
-        <div className="flex flex-col lg:flex-row gap-8 items-center">
-          {/* 3D Model Viewer */}
-          <div className="lg:w-1/2 flex justify-center">
-            <ModelViewer
-              url={`${backendBaseUrl}/api/StudentImages/model.glb`}
-              width={400}
-              height={400}
-              autoRotate={true}
-              autoRotateSpeed={0.5}
-              environmentPreset="sunset"
-            />
+        <div className="flex flex-col lg:flex-row gap-8 items-center relative">
+          {/* 3D Model Display Section - Higher z-index to ensure it catches clicks */}
+          <div className="lg:w-1/2 flex justify-center relative" style={{ position: 'relative', zIndex: 30 }}>
+            {/* Main 3D Model */}
+            <div className="w-full">
+              <ModelViewer
+                url={`${backendBaseUrl}/api/StudentImages/model.glb`}
+                width={450}
+                height={450}
+                autoRotate={true}
+                defaultZoom={1.2}
+                autoRotateSpeed={0.5}
+                environmentPreset="sunset"
+                showLightBulb={true}
+                enableMouseParallax={true}
+                enableManualRotation={true}
+                enableManualZoom={true}
+                enableHoverRotation={true}
+                ambientIntensity={0.4}
+                keyLightIntensity={1.2}
+                fillLightIntensity={0.6}
+                rimLightIntensity={0.8}
+              />
+            </div>
+          </div>
+          
+          {/* Absolute positioned Lanyard that extends outside the container */}
+          <div className="absolute left-12 top-0 bottom-0 w-1/3" style={{ height: '100%', maxHeight: 'none', overflow: 'visible', zIndex: 10, pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', left: 0, top: '-100px', height: '800px', width: '100%', pointerEvents: 'auto' }}>
+              <Lanyard position={[0, 5, 30]} gravity={[0, -30, 0]} />
+            </div>
           </div>
 
           {/* About Content */}
@@ -44,12 +124,6 @@ const AboutUs = () => {
                 communication tools.
               </p>
 
-              <h2 className="text-2xl font-semibold mb-4 text-indigo-700">Our Team</h2>
-              <p className="text-gray-700">
-                Our diverse team of educators, developers, and designers is passionate about education technology. 
-                We work tirelessly to ensure that FStudyMate remains at the forefront of educational innovation, 
-                constantly improving and adapting to meet the needs of our users.
-              </p>
             </div>
           </div>
         </div>
@@ -68,7 +142,7 @@ const AboutUs = () => {
               <h3 className="text-xl font-semibold mb-2 text-indigo-700">Interactive Learning</h3>
               <p className="text-gray-600">
                 Engage with course materials in new and exciting ways. Our platform supports various content types, 
-                from text and images to interactive quizzes and 3D models.
+                from text and images to interactive quizzes and 3D models with intuitive lighting controls and perspectives.
               </p>
             </div>
 
@@ -98,6 +172,24 @@ const AboutUs = () => {
                 Track your progress with our robust assessment tools. Take quizzes, submit assignments, 
                 and receive feedback all in one place.
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Team Members Section */}
+        <div className="mt-16 mb-24">
+          <h2 className="text-2xl font-bold mb-8 text-center">Our Team</h2>
+          <div className="bg-white/5 backdrop-blur-sm p-4 rounded-2xl">
+            <div style={{ height: 'auto', minHeight: '500px', position: 'relative' }}>
+              <ChromaGrid 
+                items={teamMembers}
+                radius={300}
+                columns={3}
+                rows={2}
+                damping={0.45}
+                fadeOut={0.6}
+                ease="power3.out"
+              />
             </div>
           </div>
         </div>

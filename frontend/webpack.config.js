@@ -7,5 +7,13 @@ module.exports = {
       // Alias process/browser to our custom implementation
       'process/browser': path.resolve(__dirname, 'src/processBrowserPolyfill.js')
     }
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(glb|gltf)$/,
+        type: 'asset/resource',
+      }
+    ]
   }
 }; 

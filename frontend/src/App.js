@@ -28,7 +28,7 @@ import OutsrcStudentDashboard from './pages/dashboards/OutsrcStudentDashboard';
 import LandingPage from './pages/LandingPage';
 import QuizGamePage from './pages/QuizGamePage';
 import VerifyOtp from './pages/VerifyOtp';
-import DeveloperTools from './components/DeveloperTools';
+// import DeveloperTools from './components/DeveloperTools';
 import QuizManager from './pages/lecturer/QuizManager';
 import CreateQuiz from './pages/lecturer/CreateQuiz';
 import BlueCursor from './components/BlueCursor';
@@ -37,9 +37,9 @@ import AboutUs from './pages/AboutUs';
 import './styles/globals.css';
 
 // Show developer tools only in development environment
-const isDevelopment = process.env.NODE_ENV === 'development' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
+// const isDevelopment = process.env.NODE_ENV === 'development' || 
+//                      window.location.hostname === 'localhost' || 
+//                      window.location.hostname === '127.0.0.1';
 
 function App() {
   return (
@@ -180,7 +180,7 @@ function App() {
                 <ThemeToggle />
                 <VideoCall />
                 <IncomingCallNotification />
-                {isDevelopment && <DeveloperTools />}
+                {/* {isDevelopment && <DeveloperTools />} */}
               </Router>
               
               {/* Global CSS for dark mode */}

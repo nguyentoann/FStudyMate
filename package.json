@@ -4,11 +4,16 @@
   },
   "dependencies": {
     "@ant-design/plots": "^1.2.5",
+    "@react-three/drei": "^10.2.0",
+    "@react-three/fiber": "^9.1.2",
+    "@react-three/rapier": "^2.1.0",
     "antd": "^4.24.0",
     "axios": "^0.24.0",
+    "meshline": "^3.3.1",
     "mysql2": "^3.14.1",
     "qrcode.react": "^4.2.0",
     "react-toastify": "^11.0.5",
+    "three": "^0.177.0",
     "uuid": "^8.3.2"
   }
 }
