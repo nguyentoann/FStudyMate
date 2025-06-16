@@ -36,7 +36,8 @@ public class FeedbackServlet extends HttpServlet {
         response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Max-Age", "3600");
         
         response.setContentType("application/json");
         String pathInfo = request.getPathInfo();
@@ -102,7 +103,8 @@ public class FeedbackServlet extends HttpServlet {
         response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Max-Age", "3600");
         
         response.setContentType("application/json");
         String pathInfo = request.getPathInfo();
@@ -194,7 +196,8 @@ public class FeedbackServlet extends HttpServlet {
         response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Max-Age", "3600");
         
         response.setContentType("application/json");
         String pathInfo = request.getPathInfo();
@@ -266,19 +269,101 @@ public class FeedbackServlet extends HttpServlet {
     }
     
     /**
+     * Handle PUT requests for feedback operations
+     */
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        // Add CORS headers
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Max-Age", "3600");
+        
+        response.setContentType("application/json");
+        String pathInfo = request.getPathInfo();
+        PrintWriter out = response.getWriter();
+        
+        try {
+            // Check if user is logged in
+            HttpSession session = request.getSession(false);
+            User currentUser = null;
+            
+            if (session != null) {
+                currentUser = (User) session.getAttribute("user");
+            }
+            
+            if (currentUser == null) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                out.print(gson.toJson(createResponse("error", "Authentication required")));
+                return;
+            }
+            
+            // Get request data
+            String requestBody = request.getReader().lines().collect(Collectors.joining());
+            Map<String, Object> requestData = gson.fromJson(requestBody, Map.class);
+            
+            if (pathInfo == null || pathInfo.equals("/")) {
+                // Update feedback
+                if (requestData.containsKey("feedbackId") && requestData.containsKey("rating") && requestData.containsKey("comment")) {
+                    int feedbackId = ((Double) requestData.get("feedbackId")).intValue();
+                    int rating = ((Double) requestData.get("rating")).intValue();
+                    String comment = (String) requestData.get("comment");
+                    
+                    if (rating < 1 || rating > 5) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        out.print(gson.toJson(createResponse("error", "Rating must be between 1 and 5")));
+                        return;
+                    }
+                    
+                    // Check if this feedback belongs to the current user
+                    List<Feedback> userFeedback = feedbackDAO.getUserFeedback(currentUser.getId());
+                    boolean isUsersFeedback = userFeedback.stream().anyMatch(f -> f.getId() == feedbackId);
+                    
+                    if (!isUsersFeedback && !currentUser.isAdmin()) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.print(gson.toJson(createResponse("error", "You can only edit your own feedback")));
+                        return;
+                    }
+                    
+                    boolean success = feedbackDAO.updateFeedback(feedbackId, rating, comment);
+                    
+                    if (success) {
+                        out.print(gson.toJson(createResponse("success", "Feedback updated successfully")));
+                    } else {
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        out.print(gson.toJson(createResponse("error", "Failed to update feedback")));
+                    }
+                } else {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    out.print(gson.toJson(createResponse("error", "feedbackId, rating, and comment are required")));
+                }
+            } else {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                out.print(gson.toJson(createResponse("error", "Endpoint not found")));
+            }
+            
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print(gson.toJson(createResponse("error", e.getMessage())));
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Handle OPTIONS requests for CORS preflight
      */
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        // Add CORS headers for preflight requests
+        // Add CORS headers for preflight request
         response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
         response.setHeader("Access-Control-Allow-Credentials", "true");
-        response.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        
-        // Preflight requests need a 200 response
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Max-Age", "3600");
         response.setStatus(HttpServletResponse.SC_OK);
     }
 

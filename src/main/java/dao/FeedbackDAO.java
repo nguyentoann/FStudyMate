@@ -198,6 +198,33 @@ public class FeedbackDAO {
     }
 
     /**
+     * Update an existing feedback entry
+     *
+     * @param feedbackId The feedback ID
+     * @param rating New rating value (1-5)
+     * @param comment New comment text
+     * @return true if successful, false otherwise
+     */
+    public boolean updateFeedback(int feedbackId, int rating, String comment) {
+        String sql = "UPDATE feedback SET rating = ?, comment = ? WHERE id = ?";
+        
+        try (Connection conn = ConnectDB.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, rating);
+            pstmt.setString(2, comment);
+            pstmt.setInt(3, feedbackId);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * Extract feedback object from result set
      */
     private Feedback extractFeedbackFromResultSet(ResultSet rs) throws SQLException {

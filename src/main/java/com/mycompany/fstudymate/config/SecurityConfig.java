@@ -17,22 +17,24 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    private static final Logger logger = Logger.getLogger(SecurityConfig.class.getName());
     
     @Bean
     @Order(1)
     public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring admin security filter chain with CORS enabled");
         // For development purposes, allow all access to admin endpoints
         return http
                 .securityMatcher("/api/admin/**")
-                .cors().and()
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()) // Allow any requests to admin endpoints
+                .cors().configurationSource(corsConfigurationSource()).and() // Enable CORS
                 .csrf().disable()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -43,11 +45,12 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring public security filter chain with CORS enabled");
         return http
                 .securityMatcher("/api/user-activity")
-                .cors().and()
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll())
+                .cors().configurationSource(corsConfigurationSource()).and() // Enable CORS
                 .csrf().disable()
                 .build();
     }
@@ -55,27 +58,30 @@ public class SecurityConfig {
     @Bean 
     @Order(3)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring default security filter chain with CORS enabled");
         // Allow all other endpoints to be accessed freely for development
         return http
-                .cors().and()
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()) // Changed from authenticated to permitAll
+                .cors().configurationSource(corsConfigurationSource()).and() // Enable CORS
                 .csrf().disable()
                 .build();
     }
     
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        logger.info("Creating CORS configuration source for Spring Security");
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
+        logger.info("CORS configuration source created with allowCredentials=true");
         return source;
     }
     

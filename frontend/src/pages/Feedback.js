@@ -15,6 +15,7 @@ const Feedback = () => {
   const [userFeedback, setUserFeedback] = useState([]);
   const [formValues, setFormValues] = useState({ rating: 5, comment: '' });
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
+  const [editingFeedback, setEditingFeedback] = useState(null);
 
   // Fetch feedback data on component mount
   useEffect(() => {
@@ -55,6 +56,21 @@ const Feedback = () => {
     });
   };
 
+  // Handle edit button click
+  const handleEditClick = (feedback) => {
+    setEditingFeedback(feedback);
+    setFormValues({
+      rating: feedback.rating,
+      comment: feedback.comment
+    });
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingFeedback(null);
+    setFormValues({ rating: 5, comment: '' });
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,17 +87,30 @@ const Feedback = () => {
     try {
       setLoading(true);
       
-      // Submit feedback
-      const response = await axios.post(`${API_URL}/feedback/`, formValues, {
-        withCredentials: true
-      });
+      let response;
+      if (editingFeedback) {
+        // Update existing feedback
+        response = await axios.put(`${API_URL}/feedback/`, {
+          feedbackId: editingFeedback.id,
+          rating: formValues.rating,
+          comment: formValues.comment
+        }, {
+          withCredentials: true
+        });
+      } else {
+        // Submit new feedback
+        response = await axios.post(`${API_URL}/feedback/`, formValues, {
+          withCredentials: true
+        });
+      }
       
       if (response.data.status === 'success') {
         // Clear form and show success message
         setFormValues({ rating: 5, comment: '' });
+        setEditingFeedback(null);
         setSubmitStatus({
           type: 'success',
-          message: 'Your feedback has been submitted successfully!'
+          message: editingFeedback ? 'Feedback updated successfully!' : 'Your feedback has been submitted successfully!'
         });
         
         // Refresh feedback data
@@ -231,10 +260,10 @@ const Feedback = () => {
             {/* Feedback Form */}
             <div className={`p-6 rounded-lg shadow-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
               <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Submit Your Feedback
+                {editingFeedback ? 'Edit Your Feedback' : 'Submit Your Feedback'}
               </h2>
               
-              {userFeedback.length > 0 ? (
+              {userFeedback.length > 0 && !editingFeedback ? (
                 <div>
                   <p className="mb-4">
                     You have already submitted feedback. You can edit or delete your existing feedback.
@@ -243,18 +272,25 @@ const Feedback = () => {
                     <div key={feedback.id} className={`p-4 rounded-md mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                       <div className="flex items-center justify-between mb-2">
                         <StarRating rating={feedback.rating} />
-                        <button
-                          onClick={() => handleDeleteFeedback(feedback.id)}
-                          className={`text-sm ${darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-500'}`}
-                          disabled={loading}
-                        >
-                          Delete
-                        </button>
+                        <div className="space-x-2">
+                          <button
+                            onClick={() => handleEditClick(feedback)}
+                            className={`text-sm ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}
+                            disabled={loading}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFeedback(feedback.id)}
+                            className={`text-sm ${darkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-500'}`}
+                            disabled={loading}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <p className={`mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{feedback.comment}</p>
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Submitted on {formatDate(feedback.createdAt)}
-                      </p>
+                      <p className="text-sm mb-2">{feedback.comment}</p>
+                      <p className="text-xs text-gray-500">{formatDate(feedback.createdAt)}</p>
                     </div>
                   ))}
                 </div>
@@ -268,39 +304,38 @@ const Feedback = () => {
                   </div>
                   
                   <div className="mb-4">
-                    <label
-                      htmlFor="comment"
-                      className={`block mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}
-                    >
+                    <label className={`block mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       Comment
                     </label>
                     <textarea
-                      id="comment"
                       name="comment"
                       value={formValues.comment}
                       onChange={handleInputChange}
+                      className={`w-full p-2 rounded-md ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'} border`}
                       rows="4"
-                      className={`w-full px-3 py-2 rounded-md ${
-                        darkMode
-                          ? 'bg-gray-700 border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      placeholder="Share your experience with FStudyMate..."
                       required
-                    ></textarea>
+                    />
                   </div>
                   
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full py-2 px-4 rounded-md ${
-                      darkMode 
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                        : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    } transition duration-200 disabled:opacity-50`}
-                  >
-                    {loading ? 'Submitting...' : 'Submit Feedback'}
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      type="submit"
+                      className={`px-4 py-2 rounded-md ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                      disabled={loading}
+                    >
+                      {loading ? 'Submitting...' : (editingFeedback ? 'Update Feedback' : 'Submit Feedback')}
+                    </button>
+                    {editingFeedback && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className={`px-4 py-2 rounded-md ${darkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-600'} text-white`}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
               )}
             </div>

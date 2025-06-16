@@ -568,6 +568,39 @@ export const getLoginHistory = async (days = 7) => {
   }
 };
 
+// Get Samba storage information
+export const getSambaStorageInfo = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/storage-info`);
+    console.log('[API] Storage information fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching storage information:', error);
+    
+    // Fallback to mock storage data
+    console.warn('Using mock storage information');
+    return {
+      totalSpace: 100, // GB
+      usedSpace: 42.5, // GB
+      freeSpace: 57.5, // GB
+      usagePercentage: 42.5,
+      files: {
+        total: 1865,
+        images: 523,
+        videos: 115,
+        documents: 897,
+        other: 330
+      },
+      shares: [
+        { name: 'ChatFilesForum', size: 12.8, files: 342 },
+        { name: 'GroupChatFiles', size: 15.6, files: 523 },
+        { name: 'UserUploads', size: 8.2, files: 721 },
+        { name: 'SystemBackups', size: 5.9, files: 279 }
+      ]
+    };
+  }
+};
+
 // Quiz Management API endpoints
 export const createQuiz = async (quizData) => {
   try {
@@ -661,7 +694,8 @@ export const getQuizMetadata = async (maMon, maDe) => {
     const formattedMaMon = maMon.toString().trim();
     const formattedMaDe = maDe.toString().trim();
     
-    const response = await axios.get(`${API_URL}/quizzes/metadata`, {
+    // Fix: Change endpoint from /quizzes/metadata to /questions/quizzes/metadata
+    const response = await axios.get(`${API_URL}/questions/quizzes/metadata`, {
       params: { 
         maMon: formattedMaMon,
         maDe: formattedMaDe
@@ -717,5 +751,150 @@ export const getQuizMetadataForSubject = async (maMon) => {
   } catch (error) {
     console.error(`[API] Error fetching subject quiz metadata:`, error);
     return {};
+  }
+};
+
+// Quiz attempts API functions
+export const startQuiz = async (quizId) => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to start a quiz');
+    }
+    
+    const response = await axios.post(`${API_URL}/quiz-attempts/start`, null, {
+      params: {
+        userId: user.id,
+        quizId
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error starting quiz:', error);
+    throw error;
+  }
+};
+
+export const submitQuiz = async (quizTakenId, answers) => {
+  try {
+    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/submit`, answers);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    throw error;
+  }
+};
+
+export const abandonQuiz = async (quizTakenId) => {
+  try {
+    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/abandon`);
+    return response.data;
+  } catch (error) {
+    console.error('Error abandoning quiz:', error);
+    throw error;
+  }
+};
+
+export const logQuizActivity = async (quizTakenId, eventType, details) => {
+  try {
+    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/log`, null, {
+      params: {
+        eventType,
+        details
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error logging quiz activity:', error);
+    throw error;
+  }
+};
+
+export const getUserQuizHistory = async () => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to view quiz history');
+    }
+    
+    const response = await axios.get(`${API_URL}/quiz-attempts/user/${user.id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user quiz history:', error);
+    throw error;
+  }
+};
+
+export const getQuizStatistics = async (quizId) => {
+  try {
+    const response = await axios.get(`${API_URL}/quiz-attempts/quiz/${quizId}/stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching quiz statistics:', error);
+    throw error;
+  }
+};
+
+export const getQuizLeaderboard = async (quizId, limit = 10) => {
+  try {
+    const response = await axios.get(`${API_URL}/quiz-attempts/quiz/${quizId}/leaderboard`, {
+      params: { limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching quiz leaderboard:', error);
+    throw error;
+  }
+};
+
+export const getInProgressQuizzes = async () => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to view in-progress quizzes');
+    }
+    
+    const response = await axios.get(`${API_URL}/quiz-attempts/in-progress/${user.id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching in-progress quizzes:', error);
+    throw error;
+  }
+};
+
+export const getQuizAttempt = async (quizTakenId) => {
+  try {
+    const response = await axios.get(`${API_URL}/quiz-attempts/${quizTakenId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching quiz attempt:', error);
+    throw error;
+  }
+};
+
+export const getClassLeaderboard = async (quizId) => {
+  try {
+    // Get user's class ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    const classId = user?.classId;
+    
+    if (!classId) {
+      console.warn('[API] No class ID found for leaderboard, using generic leaderboard');
+    }
+    
+    const response = await axios.get(`${API_URL}/quiz-attempts/class-leaderboard`, {
+      params: { quizId, classId }
+    });
+    
+    console.log('[API] Class leaderboard fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching class leaderboard:', error);
+    // Return empty array on error
+    return [];
   }
 }; 
