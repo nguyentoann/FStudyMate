@@ -567,7 +567,7 @@ const DashboardLayout = ({ children }) => {
             </div>
           )}
           
-          <main className="flex-1 relative overflow-y-auto focus:outline-none p-4 mt-16">
+          <main className={`flex-1 relative overflow-y-auto focus:outline-none p-4 mt-16 ${menuType === 'floating' ? 'pl-24 md:pl-28' : ''}`}>
             {children}
           </main>
         </div>
