@@ -1,99 +1,249 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject } from '../services/api';
+import { getQuestions, getAllMaMon, getMaDeByMaMon, getQuizMetadata, getQuizMetadataForSubject, startQuiz, submitQuiz, getClassLeaderboard } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../services/config';
 import DashboardLayout from '../components/DashboardLayout';
-import ReactMarkdown from 'react-markdown';
+import { toast } from 'react-toastify';
 import { QRCodeSVG } from 'qrcode.react';
+import ReactMarkdown from 'react-markdown';
+
+// Add custom animation keyframes
+const animations = `
+@keyframes bounce-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse-highlight {
+  0% { background-color: rgba(191, 219, 254, 0.5); }
+  50% { background-color: rgba(147, 197, 253, 0.7); }
+  100% { background-color: rgba(191, 219, 254, 0.5); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes reveal-text {
+  0% { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes water-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes water-wave {
+  0% { transform: translateX(-100%) translateY(5%) scaleY(0.3); }
+  50% { transform: translateX(0%) translateY(-5%) scaleY(0.3); }
+  100% { transform: translateX(100%) translateY(5%) scaleY(0.3); }
+}
+
+@keyframes question-change-next {
+  0% { transform: translateX(10%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes question-change-prev {
+  0% { transform: translateX(-10%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.4s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.4s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-pulse-highlight {
+  animation: pulse-highlight 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-reveal-text {
+  animation: reveal-text 0.5s forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.water-animation {
+  animation: water-flow 3s ease-in-out infinite;
+}
+
+.water-wave {
+  background: linear-gradient(to bottom, 
+    rgba(255,255,255,0.4) 0%, 
+    rgba(255,255,255,0.1) 50%, 
+    rgba(255,255,255,0.2) 100%
+  );
+  height: 100%;
+  width: 200%;
+  animation: water-wave 3s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+  border-radius: 30%;
+}
+
+.animate-question-next {
+  animation: question-change-next 0.4s ease-out forwards;
+}
+
+.animate-question-prev {
+  animation: question-change-prev 0.4s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+`;
+
+// Create a style element to inject animations
+const styleElement = document.createElement('style');
+styleElement.type = 'text/css';
+styleElement.appendChild(document.createTextNode(animations));
+document.head.appendChild(styleElement);
 
 // Teacher Avatar Component
 const TeacherAvatar = () => {
-  const [headRotation, setHeadRotation] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const teacherContainerRef = useRef(null);
-  const animationRef = useRef(null);
+  const containerRef = useRef(null);
+  const headRef = useRef(null);
+  const eyesRef = useRef(null);
   
+  // Track head rotation
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [isBlinking, setIsBlinking] = useState(false);
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current || !headRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const centerX = containerRect.left + containerRect.width / 2;
+    const centerY = containerRect.top + containerRect.height / 2;
+    
+    // Calculate mouse position relative to the center of the avatar
+    const mouseX = e.clientX - centerX;
+    const mouseY = e.clientY - centerY;
+    
+    // Calculate rotation angles (limit the range)
+    const rotationY = Math.min(10, Math.max(-10, mouseX / 20));
+    const rotationX = Math.min(10, Math.max(-10, mouseY / 20));
+    
+    setRotation({ x: rotationX, y: rotationY });
+  };
+  
+  const updateHeadRotation = () => {
+    if (headRef.current) {
+      headRef.current.style.transform = `perspective(500px) rotateX(${-rotation.x}deg) rotateY(${rotation.y}deg)`;
+    }
+  };
+  
+  // Random blinking
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      // Store mouse position for smoother animation
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
+    const blinkInterval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 200);
+    }, Math.random() * 3000 + 2000); // Random interval between 2-5 seconds
     
-    document.addEventListener('mousemove', handleMouseMove);
-    
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
+    return () => clearInterval(blinkInterval);
   }, []);
   
-  // Set up a continuous animation loop
+  // Update head rotation when state changes
   useEffect(() => {
-    const updateHeadRotation = () => {
-      if (teacherContainerRef.current) {
-        // Get teacher container position
-        const teacherRect = teacherContainerRef.current.getBoundingClientRect();
-        const teacherCenterX = teacherRect.left + (teacherRect.width / 2);
-        const teacherCenterY = teacherRect.top + 90; // Better position of the neck
-        
-        // Calculate angle between mouse and teacher
-        const deltaX = mousePosition.x - teacherCenterX;
-        const deltaY = mousePosition.y - teacherCenterY;
-        const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-        
-        // Limit rotation angle to a reasonable range
-        const clampedAngle = Math.max(-35, Math.min(35, angle));
-        
-        // Apply smoothing
-        setHeadRotation(prevRotation => {
-          // Smooth transition (ease towards target)
-          const smoothFactor = 0.15;
-          return prevRotation + (clampedAngle - prevRotation) * smoothFactor;
-        });
-      }
-      
-      // Continue the animation loop
-      animationRef.current = requestAnimationFrame(updateHeadRotation);
-    };
-    
-    // Start the animation loop
-    animationRef.current = requestAnimationFrame(updateHeadRotation);
-    
-    // Clean up animation frame on unmount
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [mousePosition]);
+    updateHeadRotation();
+  }, [rotation]);
+  
+  // Add event listener for mouse movement
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
   
   return (
     <div 
-      ref={teacherContainerRef}
-      className="fixed bottom-0 right-10 z-50 w-40 h-48 pointer-events-none"
+      ref={containerRef} 
+      className="fixed bottom-0 right-0 mb-8 mr-8 z-40 animate-float"
+      style={{ perspective: '500px' }}
     >
-      {/* Teacher body (static image) */}
-      <div className="absolute bottom-0 right-0 w-40">
-        <img 
-          src="https://toandz.ddns.net/fstudy/img/teacher_body.png" 
-          alt="Teacher Body" 
-          className="w-full"
-        />
-      </div>
-      
-      {/* Teacher head (rotating based on mouse position) */}
       <div 
-        className="absolute bottom-16 right-0 w-24 origin-center"
+        ref={headRef} 
+        className="bg-amber-100 w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform duration-200"
         style={{ 
-          transform: `rotate(${headRotation}deg)`,
-          transformOrigin: 'center bottom'
+          transformOrigin: 'center center',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
+          transition: 'transform 0.3s ease-out'
         }}
       >
-        <img 
-          src="https://toandz.ddns.net/fstudy/img/teacher_head.png" 
-          alt="Teacher Head" 
-          className="w-full"
-        />
+        {/* Face features */}
+        <div className="relative w-full h-full">
+          {/* Eyes */}
+          <div 
+            ref={eyesRef} 
+            className="absolute top-1/3 w-full flex justify-center space-x-5"
+          >
+            <div className="relative w-3 h-3">
+              <div className={`absolute w-full h-full bg-gray-800 rounded-full ${isBlinking ? 'scale-y-[0.1]' : ''}`} style={{ transition: 'transform 0.1s' }}></div>
+            </div>
+            <div className="relative w-3 h-3">
+              <div className={`absolute w-full h-full bg-gray-800 rounded-full ${isBlinking ? 'scale-y-[0.1]' : ''}`} style={{ transition: 'transform 0.1s' }}></div>
+            </div>
+          </div>
+          
+          {/* Mouth */}
+          <div className="absolute bottom-1/4 left-1/2 transform -translate-x-1/2 w-8 h-2 bg-gray-800 rounded-lg"></div>
+          
+          {/* Glasses */}
+          <div className="absolute top-[calc(33%-3px)] w-full flex justify-center">
+            <div className="w-16 h-5 border-2 border-gray-700 rounded-lg opacity-70"></div>
+          </div>
+        </div>
+      </div>
+      {/* Speech bubble that appears occasionally with animation */}
+      <div className="absolute -top-16 -right-2 bg-white text-sm text-gray-800 p-2 rounded-lg shadow-md transform origin-bottom-right animate-bounce-in hidden group-hover:block">
+        <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-4 h-4 bg-white"></div>
+        <p>Need help?</p>
       </div>
     </div>
   );
@@ -130,6 +280,9 @@ const QuizComponent = ({ maMon, maDe }) => {
   const [completedQuestions, setCompletedQuestions] = useState(new Set());
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   
+  // Memoized current question to prevent repeated access
+  const currentQuestion = useMemo(() => questions[currentIndex] || {}, [questions, currentIndex]);
+  
   // Add state for quiz metadata
   const [quizMetadata, setQuizMetadata] = useState({
     title: `${maMon} - ${maDe}`,
@@ -138,8 +291,12 @@ const QuizComponent = ({ maMon, maDe }) => {
     isAIGenerated: false,
     createdAt: null,
     timeLimit: null,
-    userId: null
+    userId: null,
+    id: null
   });
+  
+  // State for leaderboard data
+  const [leaderboardData, setLeaderboardData] = useState([]);
   
   // Mouse tracking state
   const [outOfBounds, setOutOfBounds] = useState(false);
@@ -198,6 +355,24 @@ const QuizComponent = ({ maMon, maDe }) => {
         // If the quiz has a time limit, use it instead of the default
         if (metadata.timeLimit) {
           setTimeRemaining(metadata.timeLimit * 60); // Convert minutes to seconds
+        }
+        
+        // Initialize quiz session if quiz ID is available
+        if (metadata.id) {
+          // Check if we already have a session ID stored
+          const existingSessionId = localStorage.getItem(`quiz_session_${maMon}_${maDe}`);
+          if (!existingSessionId) {
+            try {
+              // Start a new quiz session
+              const startResponse = await startQuiz(metadata.id);
+              if (startResponse.success) {
+                localStorage.setItem(`quiz_session_${maMon}_${maDe}`, startResponse.quizTakenId);
+              }
+            } catch (error) {
+              console.error("Failed to start quiz session:", error);
+              // Continue anyway, we'll try again when submitting
+            }
+          }
         }
         
         // Fetch questions
@@ -521,17 +696,51 @@ const QuizComponent = ({ maMon, maDe }) => {
   };
   
   const handleAnswerSelect = (questionId, answer) => {
+    const currentQuestion = questions[currentIndex];
+    // Check if question is multiple choice by seeing if correct answer is an array
+    const isMultipleChoice = 
+      Array.isArray(currentQuestion?.correct) || 
+      (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+    
     setSelectedAnswers(prev => {
-      const newAnswers = {
-        ...prev,
-        [questionId]: answer
-      };
-      return newAnswers;
+      if (isMultipleChoice) {
+        // For multiple choice questions, toggle selection in array
+        const prevSelected = prev[questionId] || [];
+        const newSelected = Array.isArray(prevSelected) ? [...prevSelected] : [prevSelected];
+        
+        // If already selected, remove it; otherwise add it
+        const answerIndex = newSelected.indexOf(answer);
+        if (answerIndex >= 0) {
+          newSelected.splice(answerIndex, 1);
+        } else {
+          newSelected.push(answer);
+        }
+        
+        return {
+          ...prev,
+          [questionId]: newSelected
+        };
+      } else {
+        // For single choice, just replace the answer
+        return {
+          ...prev,
+          [questionId]: answer
+        };
+      }
     });
   };
   
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
+      // Add animation class before changing question
+      const contentEl = document.querySelector('.p-6.md\\:p-8');
+      if (contentEl) {
+        contentEl.classList.remove('animate-question-next', 'animate-question-prev');
+        // Force reflow to restart animation
+        void contentEl.offsetWidth;
+        contentEl.classList.add('animate-question-next');
+      }
+      
       setCurrentIndex(currentIndex + 1);
       setIsChecked(false);
       setCheckResult(null);
@@ -542,24 +751,86 @@ const QuizComponent = ({ maMon, maDe }) => {
   
   const handlePrevious = () => {
     if (currentIndex > 0) {
+      // Add animation class before changing question
+      const contentEl = document.querySelector('.p-6.md\\:p-8');
+      if (contentEl) {
+        contentEl.classList.remove('animate-question-next', 'animate-question-prev');
+        // Force reflow to restart animation
+        void contentEl.offsetWidth;
+        contentEl.classList.add('animate-question-prev');
+      }
+      
       setCurrentIndex(currentIndex - 1);
     }
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const incompleteCount = questions.length - completedQuestions.size;
     if (incompleteCount > 0) {
       setShowSubmitConfirm(true);
     } else {
-      setShowResults(true);
-      localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+      await submitQuizToServer();
     }
   };
   
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     setShowSubmitConfirm(false);
+    await submitQuizToServer();
+  };
+  
+  const submitQuizToServer = async () => {
+    try {
+      setLoading(true);
+      
+      // Initialize quiz session if not already done
+      let quizTakenId = localStorage.getItem(`quiz_session_${maMon}_${maDe}`);
+      let usedQuizId = quizMetadata?.id;
+      
+      if (!quizTakenId) {
+        // Get quiz ID (assuming it's available in quiz metadata)
+        if (!usedQuizId) {
+          throw new Error("Quiz ID not found. Cannot save results.");
+        }
+        
+        // Start a new quiz session
+        const startResponse = await startQuiz(usedQuizId);
+        if (!startResponse.success) {
+          throw new Error("Failed to start quiz session: " + startResponse.message);
+        }
+        
+        quizTakenId = startResponse.quizTakenId;
+        localStorage.setItem(`quiz_session_${maMon}_${maDe}`, quizTakenId);
+      }
+      
+      // Submit answers
+      await submitQuiz(quizTakenId, selectedAnswers);
+      
+      // Fetch leaderboard data after submitting
+      if (usedQuizId) {
+        try {
+          const leaderboard = await getClassLeaderboard(usedQuizId);
+          setLeaderboardData(leaderboard);
+        } catch (leaderboardError) {
+          console.error("Failed to fetch leaderboard:", leaderboardError);
+          // Continue with the results display even if leaderboard fails
+        }
+      }
+      
+      // Show results
     setShowResults(true);
+      
+      // Clean up local storage
     localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+      localStorage.removeItem(`quiz_session_${maMon}_${maDe}`);
+    } catch (error) {
+      console.error("Failed to submit quiz:", error);
+      toast.error("Failed to save your quiz results: " + error.message);
+      
+      // Still show results even if saving failed
+      setShowResults(true);
+    } finally {
+      setLoading(false);
+    }
   };
   
   const handleCancelSubmit = () => {
@@ -567,16 +838,64 @@ const QuizComponent = ({ maMon, maDe }) => {
   };
   
   const calculateScore = () => {
-    let correctCount = 0;
+    let totalScore = 0;
+    let totalPoints = 0;
     let totalValidQuestions = 0;
     
     questions.forEach((question) => {
       // Only count questions that have a valid correct answer defined
-      if (question && question.correct) {
+      if (question && (question.correct || question.correctAnswer)) {
         totalValidQuestions++;
         
-        if (selectedAnswers[question.id] === question.correct) {
-          correctCount++;
+        // Get question points (default to 10 if not specified)
+        const questionPoints = question.points || 10;
+        totalPoints += questionPoints;
+        
+        const selected = selectedAnswers[question.id];
+        let correct = question.correct || question.correctAnswer;
+        
+        // Convert string format with delimiters to array
+        if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
+          correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
+        }
+        
+        // Convert selected to array if it's not already (for consistency in calculations)
+        const selectedArray = Array.isArray(selected) ? selected : [selected];
+        const correctArray = Array.isArray(correct) ? correct : [correct];
+        
+        // For multiple choice questions (more than one correct answer)
+        if (correctArray.length > 1) {
+          let correctCount = 0;
+          let incorrectCount = 0;
+          
+          // Count correct selections
+          selectedArray.forEach(answer => {
+            if (correctArray.includes(answer)) {
+              correctCount++;
+            } else {
+              incorrectCount++;
+            }
+          });
+          
+          // Calculate partial score - correctCount/total correct answers
+          // But penalize for incorrect selections
+          const maxPossibleScore = correctArray.length;
+          const rawScore = correctCount / maxPossibleScore;
+          
+          // Optional: Penalize for incorrect answers (can be adjusted or removed)
+          // This ensures selecting all options doesn't give partial credit
+          const penaltyPerIncorrect = 1 / maxPossibleScore; // Penalty per incorrect answer
+          const penaltyScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+          
+          // Apply the question's point value to the score
+          totalScore += penaltyScore * questionPoints;
+        } 
+        // For single choice questions
+        else {
+          // Simple exact match for single answer questions
+          if (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) {
+            totalScore += questionPoints;
+          }
         }
       }
     });
@@ -585,9 +904,10 @@ const QuizComponent = ({ maMon, maDe }) => {
     const totalQuestions = totalValidQuestions || 1;
     
     return {
-      score: correctCount,
-      total: totalQuestions,
-      percentage: Math.round((correctCount / totalQuestions) * 100)
+      score: Math.round(totalScore),
+      total: totalPoints, // Changed from totalQuestions to totalPoints
+      percentage: Math.round((totalScore / totalPoints) * 100), // Use totalPoints for percentage calculation
+      partialScore: totalScore // Add the raw partial score for detailed reporting
     };
   };
   
@@ -597,78 +917,189 @@ const QuizComponent = ({ maMon, maDe }) => {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
   
-  const toggleZoom = (imagePath) => {
-    if (zoomedImage === imagePath) {
-      setZoomedImage(null);
-    } else {
-      setZoomedImage(imagePath);
-    }
-  };
+  // Toggle zoom effect for images
+  const toggleZoom = React.useCallback((imagePath) => {
+    setZoomedImage(prevZoomedImage => prevZoomedImage ? null : imagePath);
+  }, []);
   
-  const handleCheckAnswer = () => {
-    const currentQuestion = questions[currentIndex];
+  // Handle checking answer - optimized with useMemo
+  const handleCheckAnswer = React.useCallback(() => {
+    const question = questions[currentIndex];
+    if (!question) return;
     
-    // Add safety check to prevent accessing properties of undefined
-    if (!currentQuestion || !currentQuestion.correct) {
-      // Don't proceed if we don't have a question or correct answer
+    const selected = selectedAnswers[question.id];
+    if (!selected || (Array.isArray(selected) && selected.length === 0)) {
+      toast.warning('Bạn cần chọn ít nhất một đáp án', {
+        position: "top-center",
+        autoClose: 2000
+      });
       return;
     }
+      
+    // Get the correct answer(s)
+    let correct = question.correct || question.correctAnswer;
     
-    const selectedAnswer = selectedAnswers[currentQuestion.id];
-    const isCorrect = selectedAnswer === currentQuestion.correct;
+    // Convert string format with delimiters to array
+    if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
+      correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
+    }
+    
+    // Convert to arrays for consistent handling
+    const selectedArray = Array.isArray(selected) ? selected : [selected];
+    const correctArray = Array.isArray(correct) ? correct : [correct];
+    
+    // For multiple choice questions
+    let isCorrect;
+    let partialScore = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    
+    // Count correct and incorrect selections
+    selectedArray.forEach(answer => {
+      if (correctArray.includes(answer)) {
+        correctCount++;
+      } else {
+        incorrectCount++;
+      }
+    });
+    
+    if (correctArray.length > 1) {
+      // For multiple choice, calculate partial score
+      const maxPossibleScore = correctArray.length;
+      const rawScore = correctCount / maxPossibleScore;
+      
+      // Apply penalty for incorrect answers
+      const penaltyPerIncorrect = 1 / maxPossibleScore; 
+      partialScore = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+      
+      // Mark as fully correct only if all answers are correct and no incorrect ones
+      isCorrect = (correctCount === correctArray.length) && (incorrectCount === 0);
+    } else {
+      // For single choice, direct comparison
+      isCorrect = selectedArray.length === 1 && correctArray.includes(selectedArray[0]);
+      partialScore = isCorrect ? 1 : 0;
+    }
     
     setCheckResult({
       isCorrect,
-      correctAnswer: currentQuestion.correct
+      correctAnswer: correct,
+      correctCount,
+      totalCorrect: correctArray.length,
+      partialScore,
+      selectedAnswers: selectedArray,
+      isMultipleChoice: correctArray.length > 1
     });
     setIsChecked(true);
     
-    // Add question to completed set
-    setCompletedQuestions(prev => new Set([...prev, currentQuestion.id]));
-  };
+    // Add to completed questions
+    setCompletedQuestions(prev => new Set(prev).add(question.id));
+    
+    // Show next button automatically after a delay
+    setTimeout(() => {
+      document.getElementById('nextBtn')?.focus();
+    }, 500);
+  }, [questions, currentIndex, selectedAnswers]);
   
   // Enhanced Image Component with Zoom Toggle
-  const ZoomableImage = ({ src, alt, className, questionId, questionImg, currentQuestion }) => {
-    // If there's no image, return null
-    if (!questionImg || questionImg.trim() === '') {
-      return null;
-    }
+  const ZoomableImage = React.memo(({ src, alt, className, questionId, questionImg, currentQuestion }) => {
+    // Early null check to handle empty questionImg
+    const hasImage = questionImg && questionImg.trim() !== '';
     
     // Get quiz_id from the question if available (for images linked to quizzes)
     const quiz_id = currentQuestion?.quiz_id || null;
     
+    // Track if this image has been loaded before to prevent duplicate network requests
+    const [hasLoaded, setHasLoaded] = React.useState(false);
+    const imageRef = React.useRef(null);
+    
+    // Ensure the image name has a file extension (.png if none provided)
+    const ensureExtension = (filename) => {
+      // If the filename already has an extension, return it as is
+      if (filename && filename.includes('.')) return filename;
+      
+      // Try to detect if the server will know what extension to use (auto-detection)
+      // For quiz images, we'll let the server try multiple file extensions
+      return filename || '';
+    };
+    
     // Construction of image path depends on where the image is stored
-    let imagePath;
-    if (quiz_id) {
-      // For questions belonging to a quiz, use the quiz-based path
-      imagePath = `${API_URL}/images/direct?path=quiz/${quiz_id}/${questionImg}`;
-    } else {
-      // For traditional questions use the maMon/maDe based path
-      imagePath = `${API_URL}/images/direct?path=${maMon}/${maDe}/${questionImg}`;
+    // useMemo is always called, but may return empty string for no image
+    const imagePath = React.useMemo(() => {
+      if (!hasImage) return '';
+      
+      // Get the filename with extension
+      const filename = ensureExtension(questionImg);
+      
+      // Build the path based on where the image should be stored
+      let path = quiz_id
+        ? `${API_URL}/images/direct?path=quiz/${quiz_id}/${filename}`
+        : `${API_URL}/images/direct?path=${maMon}/${maDe}/${filename}`;
+      
+      // Don't log every image load - commented out to reduce console spam
+      // console.log('Loading image from:', path);
+      return path;
+    }, [quiz_id, questionImg, maMon, maDe, hasImage]);
+    
+    // Early return if no image
+    if (!hasImage) {
+      return null;
     }
     
     return (
       <img 
+        ref={imageRef}
         src={imagePath}
         alt={alt} 
         className={`${className} transition-transform duration-200 cursor-zoom-in hover:scale-105`}
         onClick={() => toggleZoom(imagePath)}
+        // Add loading="lazy" to prevent eager loading
+        loading="lazy"
+        // Use onLoad to track when this image has been loaded
+        onLoad={() => {
+          if (!hasLoaded) {
+            setHasLoaded(true);
+          }
+        }}
         onError={(e) => {
-          console.log(`Failed to load image with path ${imagePath}. Trying alternative path...`);
-          // If loading fails, try the alternative path as fallback
+          // Only log errors if this is the first attempt
+          if (!hasLoaded) {
+            console.log(`Failed to load image with path ${imagePath}. Trying alternative path...`);
+          }
+          
+          // Try different fallback paths in order:
+          // 1. If we tried subject/exam path, try quiz-based path
           if (e.target.src.includes(`${maMon}/${maDe}/`)) {
-            e.target.src = `${API_URL}/images/direct?path=quiz/${quiz_id || 'default'}/${questionImg}`;
-          } else if (quiz_id && e.target.src.includes(`quiz/${quiz_id}/`)) {
-            e.target.src = `${API_URL}/images/direct?path=${maMon}/${maDe}/${questionImg}`;
-          } else {
-            // If both paths fail, show default image
+            const filename = ensureExtension(questionImg);
+            e.target.src = `${API_URL}/images/direct?path=quiz/${quiz_id || 'default'}/${filename}`;
+            if (!hasLoaded) {
+              console.log('Trying fallback #1:', e.target.src);
+            }
+          } 
+          // 2. If we tried quiz-based path, try subject/exam path
+          else if (quiz_id && e.target.src.includes(`quiz/${quiz_id}/`)) {
+            const filename = ensureExtension(questionImg);
+            e.target.src = `${API_URL}/images/direct?path=${maMon}/${maDe}/${filename}`;
+            if (!hasLoaded) {
+              console.log('Trying fallback #2:', e.target.src);
+            }
+          }
+          // 3. If all else fails, use placeholder
+          else {
+            if (!hasLoaded) {
+              console.log('All image paths failed, using placeholder image');
+            }
             e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22400%22%20height%3D%22300%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22150%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%3EImage%20Not%20Available%3C%2Ftext%3E%3C%2Fsvg%3E';
           }
+          
           e.target.onerror = null; // Prevent infinite loop
         }}
       />
     );
-  };
+  }, (prevProps, nextProps) => {
+    // Only re-render if the question image changes
+    return prevProps.questionImg === nextProps.questionImg && 
+           prevProps.currentQuestion?.id === nextProps.currentQuestion?.id;
+  });
   
   // Fullscreen Image Modal with Animation
   const FullscreenModal = ({ src, onClose }) => {
@@ -792,99 +1223,204 @@ const QuizComponent = ({ maMon, maDe }) => {
   }
   
   if (showResults) {
-    const { score, total, percentage } = calculateScore();
+    const { score, total, percentage, partialScore } = calculateScore();
+    
+    // Detailed results for all questions
+    const questionResults = questions.map(question => {
+      const selected = selectedAnswers[question.id];
+      let correct = question.correct || question.correctAnswer;
+      
+      // Get question points (default to 10 if not specified)
+      const questionPoints = question.points || 10;
+      
+      // Convert string format with delimiters to array
+      if (typeof correct === 'string' && (correct.includes(',') || correct.includes(';'))) {
+        correct = correct.split(/[,;]\s*/).map(ans => ans.trim());
+      }
+      
+      const selectedArray = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+      const correctArray = Array.isArray(correct) ? correct : [correct];
+      
+      // Calculate correct answers selected and score for this question
+      let correctCount = 0;
+      let incorrectCount = 0;
+      selectedArray.forEach(answer => {
+        if (correctArray.includes(answer)) {
+          correctCount++;
+        } else {
+          incorrectCount++;
+        }
+      });
+      
+      // Calculate score for this question (as a percentage/ratio)
+      let questionScoreRatio = 0;
+      if (correctArray.length > 1) {
+        // For multiple choice questions
+        const maxPossibleScore = correctArray.length;
+        const rawScore = correctCount / maxPossibleScore;
+        const penaltyPerIncorrect = 1 / maxPossibleScore;
+        questionScoreRatio = Math.min(rawScore, Math.max(0, rawScore - (incorrectCount * penaltyPerIncorrect)));
+      } else {
+        // For single choice questions
+        questionScoreRatio = (selectedArray.length === 1 && correctArray.includes(selectedArray[0])) ? 1 : 0;
+      }
+      
+      // Calculate actual points earned for this question
+      const earnedPoints = questionScoreRatio * questionPoints;
+      
+      return {
+        ...question,
+        selected: selectedArray,
+        correct: correctArray,
+        correctCount,
+        totalCorrect: correctArray.length,
+        isMultipleChoice: correctArray.length > 1,
+        questionScoreRatio,
+        questionPoints,
+        earnedPoints,
+        fullScore: questionScoreRatio >= 0.99 // Rounded to account for floating point errors
+      };
+    });
+    
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>
+      <div className="min-h-screen flex flex-col bg-gray-900">
         {/* Only show the TeacherAvatar when showTeacher is true */}
         {showTeacher && <TeacherAvatar />}
         
-        <div className="max-w-4xl mx-auto my-8 px-4">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg overflow-hidden`}>
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-4 text-white">
-              <h2 className="text-xl font-bold">Kết Quả Kiểm Tra</h2>
+        <div className="flex flex-col md:flex-row flex-grow">
+          {/* Left panel - Summary and Leaderboard */}
+          <div className="w-full md:w-2/5 p-4">
+            <div className="bg-blue-600 text-white p-4 rounded-t-lg shadow-md">
+              <h1 className="text-xl font-bold flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Kết Quả Kiểm Tra
+              </h1>
+          </div>
+          
+            <div className="bg-gray-800 text-white p-6 rounded-b-lg mb-6 shadow-md">
+              {/* Big score percentage */}
+              <div className="text-center mb-6">
+                <div className="text-7xl font-bold text-blue-500">{percentage}%</div>
+                <p className="text-lg mt-2 text-gray-300">
+                  / {total} điểm
+                </p>
+                <p className="text-sm mt-1 text-gray-400">
+                  Bạn đã đạt được {score} trên tổng số {total} điểm
+                </p>
             </div>
             
-            <div className={`p-6 md:p-8 ${darkMode ? 'text-gray-100' : ''}`}>
-              <div className="text-center mb-6">
-                <div className="text-4xl font-bold text-indigo-600 mb-2">{percentage}%</div>
-                <div className="text-lg">Bạn đã trả lời đúng {score}/{total} câu hỏi</div>
+              {/* Leaderboard */}
+              <div className="mt-8">
+                <LeaderboardComponent 
+                  leaderboardData={leaderboardData} 
+                  score={score} 
+                  darkMode={darkMode}
+                />
               </div>
               
-              <div className="space-y-4">
-                {questions.map((question, index) => (
-                  <div key={index} className={`p-4 rounded-lg ${
-                    selectedAnswers[question.id] === question.correct 
-                      ? (darkMode ? 'bg-green-900 border border-green-700' : 'bg-green-50 border border-green-200') 
-                      : (darkMode ? 'bg-red-900 border border-red-700' : 'bg-red-50 border border-red-200')
-                  }`}>
-                    <div className="flex items-start">
-                      <div className="font-medium">Câu {index + 1}:</div>
-                      <div className="ml-2 flex-grow">
-                        {/* Question Text with Markdown */}
-                        {question?.questionText && (
-                          <div className="mb-2 bg-opacity-80 rounded-lg">
-                            <ReactMarkdown>
-                              {question.questionText}
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                        
-                        {/* Question Image */}
-                        {question?.questionImg && (
-                        <ZoomableImage
-                          alt={`Question ${index + 1}`} 
-                          className="max-w-full h-auto"
-                          questionId={question.id}
-                          questionImg={question.questionImg}
-                          currentQuestion={question}
-                        />
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <div className="font-medium">Đáp án của bạn: 
-                        <span className={selectedAnswers[question.id] === question.correct 
-                          ? (darkMode ? 'text-green-300 ml-1' : 'text-green-600 ml-1') 
-                          : (darkMode ? 'text-red-300 ml-1' : 'text-red-600 ml-1')
-                        }>
-                          {selectedAnswers[question.id] || 'Không chọn'}
-                        </span>
-                      </div>
-                      
-                      {selectedAnswers[question.id] !== question.correct && (
-                        <div className={darkMode ? 'text-green-300 font-medium' : 'text-green-600 font-medium'}>
-                          Đáp án đúng: {question.correct || 'Không có đáp án'}
-                        </div>
-                      )}
-                      
-                      {question?.explanation && (
-                        <div className={`mt-2 p-2 rounded ${
-                          darkMode ? 'bg-gray-700' : 'bg-gray-50'
-                        }`}>
-                          <div className="font-medium">Giải thích:</div>
-                          <div>{question.explanation}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 flex justify-center">
-                <button 
-                  onClick={() => navigate('/')} 
-                  className="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              <div className="mt-10">
+                <button
+                  onClick={() => navigate('/quiz')}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors shadow-sm"
                 >
-                  Quay Lại Trang Chủ
+                  Làm bài kiểm tra khác
                 </button>
               </div>
             </div>
           </div>
+          
+          {/* Right panel - Question details */}
+          <div className="w-full md:w-3/5 p-4 overflow-y-auto max-h-screen">
+            {questionResults.map((result, index) => {
+              // Determine background color based on correctness
+              const bgColorClass = result.fullScore ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+              const textColorClass = result.fullScore ? 'text-green-800' : 'text-red-800';
+              
+              return (
+                <div key={`result-${result.id || index}`} className={`mb-4 rounded-lg overflow-hidden border shadow-sm`}>
+                  <div className={`p-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : bgColorClass}`}>
+                    {/* Question number and points */}
+                    <div className="flex justify-between items-center mb-2">
+                      <div className={`text-xl font-bold ${darkMode ? (result.fullScore ? 'text-green-400' : 'text-red-400') : textColorClass}`}>
+                        Câu {index + 1}:
+                      </div>
+                      <div className={`text-xs font-medium py-1 px-2 rounded-full ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
+                        {Math.round(result.earnedPoints)} / {result.questionPoints} points
+                      </div>
+                    </div>
+                    
+                    {/* Question text */}
+                    <div className={`${darkMode ? 'text-gray-200' : 'text-gray-800'} mb-3`}>
+                      <ReactMarkdown
+                        components={{
+                          code: ({node, inline, className, children, ...props}) => {
+                            return (
+                              <code className={`${inline 
+                                ? darkMode ? 'bg-gray-700 text-blue-300 px-1 rounded' : 'bg-gray-100 text-blue-600 px-1 rounded' 
+                                : darkMode ? 'block bg-gray-700 p-2 rounded border border-gray-600' : 'block bg-gray-50 p-2 rounded border border-gray-200'} ${className || ''}`} {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+                        }}
+                      >
+                  {result.questionText || result.question}
+                      </ReactMarkdown>
+                </div>
+                
+                    {/* Multiple choice info */}
+                {result.isMultipleChoice && (
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                    Multiple Choice: {result.correctCount}/{result.totalCorrect} correct answers selected
+                    {result.correctCount > 0 && result.correctCount < result.totalCorrect && (
+                          <span> = {(result.questionScoreRatio * 100).toFixed()}% partial credit</span>
+                    )}
+                  </div>
+                )}
+                
+                    {/* User answer */}
+                    <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                      <span className={`${darkMode ? 'text-red-400' : 'text-red-600'} font-medium`}>Đáp án của bạn: </span>
+                  {result.selected.length > 0 ? result.selected.join(', ') : 'Không chọn đáp án'}
+                </div>
+                
+                    {/* Correct answer */}
+                    <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <span className={`${darkMode ? 'text-green-400' : 'text-green-600'} font-medium`}>Đáp án đúng: </span>
+                  {result.correct.join(', ')}
+                </div>
+                
+                    {/* Explanation */}
+                {result.explanation && (
+                      <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <div className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Giải thích:</div>
+                        <div className={`mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          <ReactMarkdown
+                            components={{
+                              code: ({node, inline, className, children, ...props}) => {
+                                return (
+                                  <code className={`${inline 
+                                    ? darkMode ? 'bg-gray-700 text-blue-300 px-1 rounded' : 'bg-gray-100 text-blue-600 px-1 rounded' 
+                                    : darkMode ? 'block bg-gray-700 p-2 rounded border border-gray-600' : 'block bg-gray-50 p-2 rounded border border-gray-200'} ${className || ''}`} {...props}>
+                                    {children}
+                                  </code>
+                                )
+                              }
+                            }}
+                          >
+                            {result.explanation}
+                          </ReactMarkdown>
+                        </div>
+                  </div>
+                )}
+              </div>
+            </div>
+              );
+            })}
+          </div>
         </div>
-        
-        {/* Fullscreen Image Modal */}
-        {zoomedImage && <FullscreenModal src={zoomedImage} onClose={() => setZoomedImage(null)} />}
       </div>
     );
   }
@@ -904,8 +1440,6 @@ const QuizComponent = ({ maMon, maDe }) => {
     );
   }
   
-  const currentQuestion = questions[currentIndex];
-  
   // Add safety check to ensure currentQuestion exists and has answers
   const hasValidAnswers = currentQuestion && Array.isArray(currentQuestion.answers) && currentQuestion.answers.length > 0;
   
@@ -917,112 +1451,205 @@ const QuizComponent = ({ maMon, maDe }) => {
         
         <div className="max-w-6xl mx-auto px-4">
           {/* Quiz Metadata Panel */}
+          <div className="animate-fade-in-up">
           <QuizInfoPanel metadata={quizMetadata} darkMode={darkMode} />
+          </div>
           
           {/* Quiz Content */}
           <div ref={quizContainerRef} className="border-2 border-red-500 red-zone rounded-xl overflow-hidden">
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg overflow-hidden`}>
-              <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-4 text-white flex justify-between items-center">
-                <h2 className="text-xl font-semibold">
+                              <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-4 text-white flex justify-between items-center animate-fade-in-up">
+                <h2 className="text-xl font-semibold animate-slide-in-left">
                   Question {currentIndex + 1} of {questions.length}
                 </h2>
                 
                 {timed && (
-                  <div className={`${timeRemaining < 60 ? 'text-red-500 animate-pulse' : ''} font-mono text-xl`}>
+                  <div className={`${timeRemaining < 60 ? 'text-red-500 animate-pulse' : ''} font-mono text-xl animate-slide-in-right`}>
                     {formatTime(timeRemaining)}
                   </div>
                 )}
               </div>
               
-              <div className="p-6 md:p-8">
+                              <div className="p-6 md:p-8 animate-fade-in-up">
                 {/* Progress bar */}
-                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2.5 mb-4`}>
+                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-300'} rounded-full h-3 mb-4 overflow-hidden shadow-inner`}>
                   <div 
-                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
-                    style={{ width: `${(Object.keys(selectedAnswers).length / questions.length) * 100}%` }}
-                  ></div>
+                    className="bg-blue-500 h-3 rounded-full transition-all duration-500 relative water-animation" 
+                    style={{ 
+                      width: `${(Object.keys(selectedAnswers).length / questions.length) * 100}%`,
+                      background: 'linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6)',
+                      backgroundSize: '200% 100%'
+                    }}
+                  >
+                    <div className="absolute inset-0 water-wave"></div>
+                  </div>
                 </div>
                 
-                <div className="flex justify-between text-sm text-gray-600 mb-6">
+                <div className="flex justify-between text-sm text-gray-600 mb-6 animate-fade-in-up">
                   <div className={darkMode ? 'text-gray-400' : ''}>Câu {currentIndex + 1} / {questions.length}</div>
                   <div className={darkMode ? 'text-gray-400' : ''}>
                     {Object.keys(selectedAnswers).length} / {questions.length} câu đã trả lời
                   </div>
                 </div>
                 
-                {/* Question */}
-                <div className="mb-8">
-                  <div className="text-lg font-medium mb-4">Câu hỏi {currentIndex + 1}:</div>
-                  
-                  {/* Question Text with Markdown */}
-                  {currentQuestion?.questionText && (
-                    <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
-                      <ReactMarkdown>
-                        {currentQuestion.questionText}
-                      </ReactMarkdown>
+                {/* Question content - made responsive */}
+                <div className="flex flex-col lg:flex-row lg:space-x-8 space-y-6 lg:space-y-0">
+                  {currentQuestion?.questionImg && (
+                    <div className="lg:flex-1 rounded-lg border overflow-hidden animate-bounce-in">
+                      <ZoomableImage 
+                        className="w-full h-auto object-contain max-h-[60vh] bg-gray-100 transition-transform hover:scale-[1.02]"
+                        alt={`Question ${currentIndex + 1} Image`}
+                        questionId={currentIndex + 1}
+                        questionImg={currentQuestion.questionImg}
+                        currentQuestion={currentQuestion}
+                      />
                     </div>
                   )}
                   
-                  {/* Question Image */}
-                  {currentQuestion?.questionImg && (
-                  <div className="mb-4">
-                    <ZoomableImage
-                      alt={`Question ${currentIndex + 1}`}
-                      className={`max-w-full h-auto ${darkMode ? 'border-gray-700' : 'border-gray-200'} border rounded`}
-                      questionId={currentQuestion.id}
-                      questionImg={currentQuestion.questionImg}
-                      currentQuestion={currentQuestion}
-                    />
-                  </div>
-                  )}
-                  
-                  {/* Answer options */}
-                  <div className="space-y-3 mt-6">
-                    {hasValidAnswers ? (
-                      currentQuestion.answers.map((answer, answerIndex) => (
-                        <div
-                          key={answerIndex}
-                          className={`
-                            border rounded-lg p-3 cursor-pointer flex items-center hover:bg-opacity-10 transition-colors
-                            ${selectedAnswers[currentQuestion.id] === answer 
-                              ? 'bg-indigo-600 text-white border-indigo-600' 
-                              : darkMode 
-                                ? 'border-gray-700 hover:bg-indigo-600' 
-                                : 'border-gray-300 hover:bg-gray-50'
-                            }
-                            ${isChecked && checkResult && answer === checkResult.correctAnswer 
-                              ? 'bg-green-600 text-white border-green-600' 
-                              : ''
-                            }
-                          `}
-                          onClick={() => handleAnswerSelect(currentQuestion.id, answer)}
-                        >
-                          <div className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center ${
-                            selectedAnswers[currentQuestion.id] === answer 
-                              ? 'bg-white text-indigo-600' 
-                              : darkMode ? 'bg-gray-700' : 'bg-gray-200'
-                          }`}>
-                            {answer}
-                          </div>
-                          <div>Option {answer}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className={`p-4 rounded-lg text-center ${darkMode ? 'bg-yellow-800 text-yellow-100' : 'bg-yellow-100 text-yellow-800'}`}>
-                        No answer options available for this question.
+                  <div className="lg:flex-1">
+                    {/* Question header with number and type information */}
+                    <div className="mb-4 flex justify-between items-center animate-slide-in-left">
+                      <div className="font-bold text-xl flex items-center">
+                        <span className={`${darkMode ? 'text-blue-400' : 'text-blue-600'} mr-2 animate-reveal-text`}>
+                          Question {currentIndex + 1}/{questions.length}
+                        </span>
+                        
+                      {(() => {
+                        // Check if question is multiple choice
+                        const isMultipleChoice = 
+                          Array.isArray(currentQuestion?.correct) || 
+                          (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+                        
+                        if (isMultipleChoice) {
+                          // Get number of correct answers
+                          let correctCount = 0;
+                          if (Array.isArray(currentQuestion?.correct)) {
+                            correctCount = currentQuestion.correct.length;
+                          } else if (typeof currentQuestion?.correct === 'string') {
+                            correctCount = currentQuestion.correct.split(/[,;]/).length;
+                          }
+                          
+                          return (
+                            <span className="text-green-500 font-normal ml-2">
+                              Multiple Choice, choose {correctCount} correct answer{correctCount > 1 ? 's' : ''}!
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                      </div>
+                      
+                      {/* Display points */}
+                      <div className="text-sm font-medium px-3 py-1 bg-blue-100 text-blue-800 rounded-full animate-float">
+                        {currentQuestion?.points || 10} points
+                      </div>
+                    </div>
+                    
+                    {/* Display question text if available */}
+                    {currentQuestion?.questionText && (
+                      <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border animate-fade-in-up delay-100">
+                        <ReactMarkdown>
+                          {currentQuestion.questionText}
+                        </ReactMarkdown>
                       </div>
                     )}
+                    
+                    {/* Answer options - optimized to prevent re-renders */}
+                    <div className="space-y-3 mt-6">
+                      {hasValidAnswers ? (
+                        currentQuestion.answers.map((answer, answerIndex) => {
+                          // Extract values to avoid re-computation 
+                          const questionId = currentQuestion.id;
+                          
+                          // Check if question is multiple choice
+                          const isMultipleChoice = 
+                            Array.isArray(currentQuestion?.correct) || 
+                            (typeof currentQuestion?.correct === 'string' && (currentQuestion?.correct.includes(',') || currentQuestion?.correct.includes(';')));
+                          
+                          // Check if this answer is selected
+                          const selectedAnswer = selectedAnswers[questionId];
+                          const isSelected = isMultipleChoice 
+                            ? Array.isArray(selectedAnswer) && selectedAnswer.includes(answer)
+                            : selectedAnswer === answer;
+                            
+                          const isCorrectAnswer = isChecked && checkResult && answer === checkResult.correctAnswer;
+                          
+                          return (
+                            <div
+                              key={`answer-${questionId}-${answerIndex}`}
+                              className={`
+                                border rounded-lg p-3 cursor-pointer flex items-center hover:bg-opacity-10 transition-all duration-300 hover:shadow-md
+                                animate-fade-in-up delay-${100 + answerIndex * 100}
+                                ${isSelected 
+                                  ? 'bg-blue-100 text-blue-800 border-blue-300 animate-pulse-highlight shadow-sm' 
+                                  : darkMode 
+                                    ? 'border-gray-700 hover:bg-blue-50 hover:scale-[1.02] transition-transform duration-200' 
+                                    : 'border-gray-300 hover:bg-gray-50 hover:scale-[1.02] transition-transform duration-200'
+                                }
+                                ${isCorrectAnswer
+                                  ? 'bg-green-600 text-white border-green-600' 
+                                  : ''
+                                }
+                              `}
+                              onClick={() => handleAnswerSelect(questionId, answer)}
+                            >
+                              <div className={`w-8 h-8 rounded-full mr-3 flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+                                isSelected 
+                                  ? 'bg-white text-blue-600 shadow-sm' 
+                                  : darkMode ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}>
+                                {answer}
+                              </div>
+                              <div>Option {answer}</div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className={`p-4 rounded-lg text-center ${darkMode ? 'bg-yellow-800 text-yellow-100' : 'bg-yellow-100 text-yellow-800'}`}>
+                          No answer options available for this question.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
                 {/* Check Result Display */}
                 {isChecked && checkResult && (
-                  <div className={`mt-4 p-4 rounded-lg text-center ${
+                  <div className={`mt-4 p-4 rounded-lg animate-bounce-in ${
                     checkResult.isCorrect 
                       ? (darkMode ? 'bg-green-900 text-green-100' : 'bg-green-100 text-green-700')
                       : (darkMode ? 'bg-red-900 text-red-100' : 'bg-red-100 text-red-700')
                   }`}>
-                    {checkResult.isCorrect ? 'Correct!' : 'Incorrect!'}
+                    <div className="text-center font-bold text-lg mb-2">
+                      {checkResult.isCorrect ? 'Correct!' : (
+                        checkResult.isMultipleChoice && checkResult.correctCount > 0 
+                          ? 'Partially Correct!' 
+                          : 'Incorrect!'
+                      )}
+                      
+                      {checkResult.isMultipleChoice && (
+                        <div className="text-sm font-normal mt-1">
+                          {checkResult.correctCount}/{checkResult.totalCorrect} correct answers selected
+                          {checkResult.partialScore > 0 && checkResult.partialScore < 1 && (
+                            <span className="ml-2">
+                              ({(checkResult.partialScore * 100).toFixed(0)}% score)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {(!checkResult.isCorrect) && (
+                      <div className="mt-2">
+                        <div className="font-medium">Correct answer{Array.isArray(checkResult.correctAnswer) && checkResult.correctAnswer.length > 1 ? 's' : ''}:</div>
+                        <div className="mt-1">
+                          {Array.isArray(checkResult.correctAnswer) 
+                            ? checkResult.correctAnswer.join(', ')
+                            : checkResult.correctAnswer
+                          }
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -1031,10 +1658,10 @@ const QuizComponent = ({ maMon, maDe }) => {
                   <button
                     onClick={handlePrevious}
                     disabled={currentIndex === 0}
-                    className={`px-4 py-2 rounded flex items-center ${
+                    className={`px-4 py-2 rounded flex items-center transition-all duration-300 hover:scale-105 ${
                       currentIndex === 0 
                         ? (darkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-500 cursor-not-allowed') 
-                        : (darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300')
+                        : (darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 animate-slide-in-left' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 animate-slide-in-left')
                     }`}
                   >
                     <i className="fas fa-arrow-left mr-2"></i> Câu trước
@@ -1043,9 +1670,9 @@ const QuizComponent = ({ maMon, maDe }) => {
                   <div className="flex gap-4">
                     <button
                       onClick={handleCheckAnswer}
-                      disabled={!selectedAnswers[currentQuestion.id] || isChecked}
+                      disabled={!selectedAnswers[currentQuestion?.id] || isChecked}
                       className={`px-4 py-2 rounded flex items-center ${
-                        !selectedAnswers[currentQuestion.id] || isChecked
+                        !selectedAnswers[currentQuestion?.id] || isChecked
                           ? (darkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-500 cursor-not-allowed')
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
@@ -1055,7 +1682,7 @@ const QuizComponent = ({ maMon, maDe }) => {
 
                     <button
                       onClick={handleNext}
-                      className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 flex items-center"
+                      className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 flex items-center transition-all duration-300 hover:scale-105 animate-slide-in-right"
                     >
                       Câu tiếp theo <i className="fas fa-arrow-right ml-2"></i>
                     </button>
@@ -1063,7 +1690,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                     {currentIndex === questions.length - 1 && (
                       <button
                         onClick={handleSubmit}
-                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center"
+                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center transition-all duration-300 hover:scale-105 animate-pulse-highlight"
                       >
                         Nộp bài <i className="fas fa-check ml-2"></i>
                       </button>
@@ -1125,7 +1752,7 @@ const QuizComponent = ({ maMon, maDe }) => {
         {/* Out of bounds warning modal */}
         {outOfBounds && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fadeIn">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4 animate-zoomIn">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4 animate-bounce-in">
               <div className="flex items-center mb-4 text-red-600">
                 <i className="fas fa-exclamation-triangle text-2xl mr-2"></i>
                 <h3 className="text-xl font-bold">Cảnh báo!</h3>
@@ -1569,6 +2196,259 @@ const QuizSelection = () => {
         </div>
       </div>
     </DashboardLayout>
+  );
+};
+
+// Leaderboard component for better organization
+const LeaderboardComponent = ({ leaderboardData, score, darkMode }) => {
+  // Process leaderboard data
+  const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+  const currentUserId = currentUser.id;
+  const currentUsername = currentUser.username || localStorage.getItem('username') || 'You';
+  
+  // Sort by score (highest first)
+  const sortedLeaderboard = [...leaderboardData]
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+      isCurrentUser: entry.userId === currentUserId
+    }));
+  
+  // Find the current user in the leaderboard
+  const currentUserEntry = sortedLeaderboard.find(entry => entry.isCurrentUser);
+  const userRank = currentUserEntry?.rank || 'N/A';
+  
+  // Get top 3 users
+  const topUsers = sortedLeaderboard.slice(0, 3);
+  
+  // Get a few users before and after the current user
+  let nearbyUsers = [];
+  if (currentUserEntry && userRank > 6) {
+    const startIdx = Math.max(0, sortedLeaderboard.findIndex(entry => entry.isCurrentUser) - 1);
+    nearbyUsers = sortedLeaderboard.slice(startIdx, startIdx + 4);
+  }
+  
+  // Regular users (positions 4-6)
+  const regularUsers = sortedLeaderboard.slice(3, 6);
+  
+  // Add current user score to the leaderboard if not already present
+  if (!currentUserEntry && score > 0) {
+    // Create an entry for the current user
+    // Calculate an estimated rank for the current user
+    const estimatedRank = sortedLeaderboard.findIndex(entry => (entry.score || 0) < score) + 1;
+    
+    // If couldn't find a position (user's score is lowest)
+    const finalRank = estimatedRank > 0 ? estimatedRank : sortedLeaderboard.length + 1;
+    
+    const userEntry = {
+      userId: currentUserId,
+      username: currentUsername,
+      name: currentUser.name || currentUsername,
+      score: Math.round(score),
+      rank: finalRank,
+      isCurrentUser: true,
+      avatar: "https://randomuser.me/api/portraits/lego/1.jpg"
+    };
+    
+    // Add to nearby section
+    nearbyUsers = [userEntry];
+  }
+  
+  // Default image for users without avatars
+  const getDefaultAvatar = (userId, username) => {
+    if (!userId) return "https://randomuser.me/api/portraits/lego/1.jpg";
+    return `https://randomuser.me/api/portraits/${userId % 2 === 0 ? 'men' : 'women'}/${userId % 70}.jpg`;
+  };
+  
+  // Render placeholder for empty position
+  const renderEmptyPlace = (position) => {
+    const styles = {
+      1: {
+        containerClass: "px-3 text-center -mt-4",
+        imageClass: "w-20 h-20", 
+        borderClass: "border-yellow-500",
+        badgeClass: "bg-yellow-500",
+        badgeSize: "w-7 h-7",
+        textClass: "text-yellow-400"
+      },
+      2: {
+        containerClass: "px-3 text-center",
+        imageClass: "w-16 h-16", 
+        borderClass: "border-indigo-500",
+        badgeClass: "bg-indigo-600",
+        badgeSize: "w-6 h-6",
+        textClass: "text-blue-400"
+      },
+      3: {
+        containerClass: "px-3 text-center",
+        imageClass: "w-16 h-16", 
+        borderClass: "border-green-500",
+        badgeClass: "bg-green-600",
+        badgeSize: "w-6 h-6",
+        textClass: "text-green-400"
+      }
+    };
+    
+    const style = styles[position];
+    
+    return (
+      <div className={style.containerClass}>
+        <div className="relative inline-block">
+          <div className={`${style.imageClass} rounded-full overflow-hidden border-2 ${style.borderClass} bg-gray-700 flex items-center justify-center`}>
+            <span className="text-2xl text-gray-500">?</span>
+          </div>
+          <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 ${style.badgeClass} rounded-full ${style.badgeSize} flex items-center justify-center text-sm font-bold`}>{position}</div>
+        </div>
+        <p className="mt-2 font-medium">No data</p>
+        <p className={`font-bold ${style.textClass}`}>--</p>
+        <p className="text-xs text-gray-400">@username</p>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg text-white">
+      {/* Top 3 users */}
+      <div className="flex justify-center items-end pt-6 pb-4 px-4 bg-gray-800 relative">
+        {/* Crown icon for first place */}
+        {topUsers.length > 0 && (
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
+            <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M10 2a1 1 0 01.894.553l2.991 5.982a1 1 0 01.068.756l-1.07 3.756a1 1 0 01-.962.753H8.079a1 1 0 01-.962-.753l-1.07-3.756a1 1 0 01.068-.756l2.991-5.982A1 1 0 0110 2zm0-2a3 3 0 00-2.683 1.658L4.336 7.256a3 3 0 00-.204 2.268l1.071 3.755A3 3 0 008.08 16h3.84a3 3 0 002.878-2.721l1.07-3.755a3 3 0 00-.204-2.268L12.683 1.658A3 3 0 0010 0z"></path>
+            </svg>
+          </div>
+        )}
+        
+        {/* Second Place */}
+        {topUsers.length >= 2 ? (
+          <div className="px-3 text-center">
+            <div className="relative inline-block">
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-indigo-500">
+                <img 
+                  src={topUsers[1].avatar || getDefaultAvatar(topUsers[1].userId, topUsers[1].username)} 
+                  alt="2nd place" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-indigo-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+            </div>
+            <p className="mt-2 font-medium">{topUsers[1].name || topUsers[1].username}</p>
+            <p className="text-blue-400 font-bold">{topUsers[1].score || '--'}</p>
+            <p className="text-xs text-gray-400">@{topUsers[1].username}</p>
+          </div>
+        ) : renderEmptyPlace(2)}
+        
+        {/* First Place */}
+        {topUsers.length >= 1 ? (
+          <div className="px-3 text-center -mt-4">
+            <div className="relative inline-block">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-yellow-500 z-10">
+                <img 
+                  src={topUsers[0].avatar || getDefaultAvatar(topUsers[0].userId, topUsers[0].username)} 
+                  alt="1st place" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-yellow-500 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">1</div>
+            </div>
+            <p className="mt-2 font-medium">{topUsers[0].name || topUsers[0].username}</p>
+            <p className="text-yellow-400 font-bold">{topUsers[0].score || '--'}</p>
+            <p className="text-xs text-gray-400">@{topUsers[0].username}</p>
+          </div>
+        ) : renderEmptyPlace(1)}
+        
+        {/* Third Place */}
+        {topUsers.length >= 3 ? (
+          <div className="px-3 text-center">
+            <div className="relative inline-block">
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-green-500">
+                <img 
+                  src={topUsers[2].avatar || getDefaultAvatar(topUsers[2].userId, topUsers[2].username)}
+                  alt="3rd place" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
+            </div>
+            <p className="mt-2 font-medium">{topUsers[2].name || topUsers[2].username}</p>
+            <p className="text-green-400 font-bold">{topUsers[2].score || '--'}</p>
+            <p className="text-xs text-gray-400">@{topUsers[2].username}</p>
+          </div>
+        ) : renderEmptyPlace(3)}
+      </div>
+      
+      {/* Other rankings */}
+      <div className="divide-y divide-gray-800">
+        {/* Regular ranking rows (positions 4-6) */}
+        {regularUsers.length > 0 ? (
+          regularUsers.map((entry) => (
+            <div key={`rank-${entry.rank}`} className="flex items-center px-4 py-2">
+              <div className="w-8 text-right mr-3 text-gray-500">{entry.rank}</div>
+              <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                <img 
+                  src={entry.avatar || getDefaultAvatar(entry.userId, entry.username)} 
+                  alt={entry.name || entry.username} 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="flex-grow">
+                <p className="font-medium">{entry.name || entry.username}</p>
+                <p className="text-xs text-gray-400">@{entry.username}</p>
+              </div>
+              <div className="font-bold text-gray-300">{entry.score || '--'}</div>
+            </div>
+          ))
+        ) : sortedLeaderboard.length > 3 ? (
+          <div className="px-4 py-6 text-center text-gray-500">
+            <p>More students will show here</p>
+            <p className="text-sm">when they take the quiz</p>
+          </div>
+        ) : null}
+        
+        {/* Ellipsis to show there are more entries */}
+        {sortedLeaderboard.length > 6 && nearbyUsers.length > 0 && (
+          <div className="px-4 py-3 text-center text-gray-500">
+            <div className="flex justify-center space-x-1">
+              <div className="w-1 h-1 rounded-full bg-gray-500"></div>
+              <div className="w-1 h-1 rounded-full bg-gray-500"></div>
+              <div className="w-1 h-1 rounded-full bg-gray-500"></div>
+            </div>
+          </div>
+        )}
+        
+        {/* Current user section */}
+        {nearbyUsers.length > 0 && 
+          nearbyUsers.map((entry) => (
+            <div 
+              key={`rank-${entry.rank}-${entry.userId}`} 
+              className={`flex items-center px-4 py-2 ${entry.isCurrentUser ? 'bg-green-900 bg-opacity-30 border-l-4 border-green-500' : ''}`}
+            >
+              <div className="w-8 text-right mr-3 text-gray-500">{entry.rank}</div>
+              <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                <img 
+                  src={entry.avatar || getDefaultAvatar(entry.userId, entry.username)} 
+                  alt={entry.name || entry.username} 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="flex-grow">
+                <p className="font-medium">{entry.name || entry.username}</p>
+                <p className="text-xs text-gray-400">@{entry.username}</p>
+              </div>
+              <div className="font-bold text-gray-300">{entry.score || '--'}</div>
+              {entry.isCurrentUser && (
+                <div className="ml-2 text-green-400">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </div>
   );
 };
 

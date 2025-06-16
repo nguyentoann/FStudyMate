@@ -1,0 +1,56 @@
+.lanyard-wrapper {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 105%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: scale(1);
+  transform-origin: center;
+  margin-left: 80%;
+}
+
+.lanyard-placeholder {
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  font-size: 0.8rem;
+}
+
+.placeholder-content {
+  max-width: 90%;
+}
+
+.placeholder-content h3 {
+  margin-top: 0;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.placeholder-content ol {
+  text-align: left;
+  margin-left: 1rem;
+  padding-left: 1rem;
+}
+
+.placeholder-content li {
+  margin-bottom: 0.25rem;
+}
+
+.placeholder-content code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+} 

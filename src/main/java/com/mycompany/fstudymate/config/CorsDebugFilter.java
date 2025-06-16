@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Enumeration;
 
-@Component
+// Comment out the Component annotation to disable this filter
+// @Component
 @Order(Ordered.HIGHEST_PRECEDENCE - 1)
 public class CorsDebugFilter implements Filter {
 
@@ -20,7 +21,9 @@ public class CorsDebugFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
         
-        // Debug log for all requests
+        // Debug logging is disabled
+        // Uncomment below if you need to debug CORS issues
+        /*
         System.out.println("==== CORS DEBUG ====");
         System.out.println("Request method: " + request.getMethod());
         System.out.println("Request URI: " + request.getRequestURI());
@@ -33,11 +36,13 @@ public class CorsDebugFilter implements Filter {
             String headerName = headerNames.nextElement();
             System.out.println("  " + headerName + ": " + request.getHeader(headerName));
         }
+        */
         
         // Continue filter chain
         chain.doFilter(req, res);
         
-        // Debug log for response
+        // Debug response logging is disabled
+        /*
         System.out.println("Response status: " + response.getStatus());
         System.out.println("Response CORS headers:");
         response.getHeaderNames().forEach(headerName -> {
@@ -46,5 +51,6 @@ public class CorsDebugFilter implements Filter {
             }
         });
         System.out.println("==== END CORS DEBUG ====");
+        */
     }
 } 

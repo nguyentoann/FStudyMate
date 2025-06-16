@@ -10,25 +10,28 @@ import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.logging.Logger;
 
 /**
  * Global CORS configuration for all endpoints
- * This replaces all other CORS configurations to avoid conflicts
+ * This provides a fallback for CORS in case the Spring MVC configuration doesn't work
  */
 @Configuration
 public class GlobalCorsConfig {
+    private static final Logger logger = Logger.getLogger(GlobalCorsConfig.class.getName());
 
     @Bean
     public FilterRegistrationBean<CorsFilter> globalCorsFilter() {
-        System.out.println("Registering Global CORS Filter with proper credentials support");
+        logger.info("Registering Global CORS Filter with full access support");
         
         CorsConfiguration config = new CorsConfiguration();
         
-        // When using wildcard origins, allowCredentials must be false
+        // IMPORTANT: When using setAllowCredentials(true), you cannot use '*' for allowedOrigins
+        // Instead, we use allowedOriginPatterns
         config.setAllowedOriginPatterns(Collections.singletonList("*"));
         
-        // Set allowCredentials to false when using wildcard origins
-        config.setAllowCredentials(false);
+        // Critical for cookies/auth to work
+        config.setAllowCredentials(true);
         
         // Allow all common headers
         config.setAllowedHeaders(Arrays.asList(
@@ -54,17 +57,16 @@ public class GlobalCorsConfig {
             "Access-Control-Allow-Credentials"
         ));
         
-        // Cache preflight requests for 1 hour
+        // Set max age for preflight requests
         config.setMaxAge(3600L);
         
-        // Apply to ALL endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         
-        // Create and register the filter with highest priority
         FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
         
+        logger.info("Global CORS Filter configured with allowedOriginPatterns=[*], allowCredentials=true");
         return bean;
     }
 } 

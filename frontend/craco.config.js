@@ -28,6 +28,12 @@ module.exports = {
         }),
       ];
 
+      // Support for GLB files
+      webpackConfig.module.rules.push({
+        test: /\.(glb|gltf)$/,
+        type: 'asset/resource',
+      });
+
       return webpackConfig;
     },
     plugins: [

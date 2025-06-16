@@ -19,7 +19,7 @@ const WebRTCDebugger = () => {
     const interval = setInterval(() => {
       loadDebugInfo();
       setRefreshCount(prev => prev + 1);
-    }, 5000);
+    }, 3000);
     
     return () => clearInterval(interval);
   }, []);

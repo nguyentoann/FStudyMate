@@ -8,20 +8,28 @@ const Chat = () => {
     conversations, 
     unreadCount, 
     openConversation, 
-    activeConversation
+    activeConversation,
+    fetchConversations
   } = useChat();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredConversations = conversations.filter(conversation => 
     conversation.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conversation.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchConversations();
+    setTimeout(() => setIsRefreshing(false), 500); // Visual feedback
+  };
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-2 border-b">
-        <div className="relative">
+      <div className="px-3 py-2 border-b flex justify-between items-center">
+        <div className="relative flex-grow mr-2">
           <input
             type="text"
             placeholder="Search conversations..."
@@ -35,6 +43,16 @@ const Chat = () => {
             </svg>
           </div>
         </div>
+        <button 
+          onClick={handleRefresh} 
+          className={`flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-100 ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`}
+          title="Refresh conversations"
+          disabled={isRefreshing}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
       
       <div className="flex-1 overflow-y-auto">

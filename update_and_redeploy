@@ -25,3 +25,7 @@ if ! git diff --quiet || ! git diff --cached --quiet || [ "$LOCAL" != "$REMOTE" 
 else
   echo "No changes."
 fi
+
+
+#please run "git config core.fileMode false" if you want to chmod +x and avoid github detect change in executable bit file
+#or replace to "if [ "$LOCAL" != "$REMOTE" ]; then" then set this to "git config core.fileMode true"

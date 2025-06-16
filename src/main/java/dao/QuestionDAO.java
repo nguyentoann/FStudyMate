@@ -10,10 +10,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import model.Question;
 import model.Quiz;
+import java.sql.Statement;
 
 /**
  *
@@ -371,6 +373,115 @@ public class QuestionDAO {
             System.out.println("Error updating questions for quiz: " + e.getMessage());
             e.printStackTrace();
             return 0;
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+    }
+
+    // Create a new question associated with a quiz
+    public static int createQuestion(Question question, int quizId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        int questionId = -1;
+        
+        try {
+            String sql = "INSERT INTO Questions (QuestionImg, QuestionText, SLDapAn, Correct, Explanation, quiz_id) " +
+                        "VALUES (?, ?, ?, ?, ?, ?)";
+                        
+            ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, question.getQuestionImg());
+            ps.setString(2, question.getQuestionText());
+            ps.setInt(3, question.getSLDapAn());
+            ps.setString(4, question.getCorrect());
+            ps.setString(5, question.getExplanation());
+            ps.setInt(6, quizId);
+            
+            int rowsAffected = ps.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    questionId = rs.getInt(1);
+                    // Set the ID of the question object
+                    question.setId(questionId);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error creating question: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return questionId;
+    }
+    
+    // Create multiple questions at once for a quiz
+    public static List<Integer> createQuestions(List<Question> questions, int quizId) {
+        List<Integer> questionIds = new ArrayList<>();
+        
+        for (Question question : questions) {
+            int questionId = createQuestion(question, quizId);
+            if (questionId > 0) {
+                questionIds.add(questionId);
+            }
+        }
+        
+        return questionIds;
+    }
+    
+    // Delete a question
+    public static boolean deleteQuestion(int questionId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        
+        try {
+            String sql = "DELETE FROM Questions WHERE ID = ?";
+            ps = connection.prepareStatement(sql);
+            ps.setInt(1, questionId);
+            
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.out.println("Error deleting question: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+    }
+    
+    // Update a question
+    public static boolean updateQuestion(Question question) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        
+        try {
+            String sql = "UPDATE Questions SET QuestionImg = ?, QuestionText = ?, SLDapAn = ?, " +
+                        "Correct = ?, Explanation = ? WHERE ID = ?";
+            
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, question.getQuestionImg());
+            ps.setString(2, question.getQuestionText());
+            ps.setInt(3, question.getSLDapAn());
+            ps.setString(4, question.getCorrect());
+            ps.setString(5, question.getExplanation());
+            ps.setInt(6, question.getId());
+            
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.out.println("Error updating question: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         } finally {
             DBUtils.closePreparedStatement(ps);
             pool.freeConnection(connection);

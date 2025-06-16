@@ -2,7 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  getSubjects, 
+  getAllMaMon, 
+  getMaDeByMaMon, 
+  createQuiz, 
+  getQuizById, 
+  updateQuiz 
+} from '../../services/api';
 import { API_URL } from '../../services/config';
+
+// Function to generate a default exam code based on subject
+const generateDefaultExamCode = (subjectName) => {
+  if (!subjectName) return '';
+  
+  // Format current date as YYYYMMDD
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  
+  // Remove any spaces and special characters from the subject name
+  const sanitizedSubject = subjectName.replace(/[^a-zA-Z0-9]/g, '');
+  
+  // Generate code in format: SubjectYYYYMMDD-HHMM
+  return `${sanitizedSubject}-${year}${month}${day}-${hours}${minutes}`;
+};
 
 const CreateQuiz = () => {
   const { id } = useParams(); // id will be defined if editing an existing quiz
@@ -16,24 +43,30 @@ const CreateQuiz = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [maMonList, setMaMonList] = useState([]);
+  const [maDeList, setMaDeList] = useState([]);
   
   // Quiz metadata
   const [quizData, setQuizData] = useState({
     title: '',
     description: '',
-    subjectId: '',
+    maMon: '',
+    maDe: '',
     timeLimit: 30,
     randomizeQuestions: false,
     showResults: true,
     passingScore: 60,
-    status: 'draft'
+    status: 'draft',
+    password: '',
+    securityLevel: 0
   });
   
   // Questions state
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [questionTypes] = useState([
-    { id: 'multiple-choice', label: 'Multiple Choice' },
+    { id: 'single-choice', label: 'Single Choice' },
+    { id: 'multiple-choice', label: 'Multiple Choice (Checkbox)' },
     { id: 'true-false', label: 'True/False' },
     { id: 'short-answer', label: 'Short Answer' },
     { id: 'matching', label: 'Matching' },
@@ -42,6 +75,7 @@ const CreateQuiz = () => {
   
   useEffect(() => {
     fetchSubjects();
+    fetchMaMonList();
     
     // If editing an existing quiz, fetch its data
     if (id) {
@@ -55,109 +89,118 @@ const CreateQuiz = () => {
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      // In a real implementation, replace with your actual API call
-      const response = await fetch(`${API_URL}/subjects`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch subjects');
-      }
-      
-      const data = await response.json();
+      const data = await getSubjects();
       setSubjects(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching subjects:', error);
       setError('Failed to load subjects. Please try again later.');
       setLoading(false);
-      
-      // Mock data for development
-      setSubjects([
-        { id: 1, code: 'PRF192', name: 'Programming Fundamentals' },
-        { id: 2, code: 'PRO192', name: 'Object-Oriented Programming' },
-        { id: 3, code: 'CSD201', name: 'Data Structures and Algorithms' },
-        { id: 4, code: 'DBI202', name: 'Database Management' },
-        { id: 5, code: 'SWE201', name: 'Software Engineering' },
-      ]);
+    }
+  };
+  
+  const fetchMaMonList = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllMaMon();
+      setMaMonList(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching MaMon list:', error);
+      setError('Failed to load subject codes. Please try again later.');
+      setLoading(false);
+    }
+  };
+  
+  const fetchMaDeList = async (maMon) => {
+    if (!maMon) return;
+    
+    try {
+      setLoading(true);
+      const data = await getMaDeByMaMon(maMon);
+      setMaDeList(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching MaDe list:', error);
+      setError('Failed to load exam codes. Please try again later.');
+      setLoading(false);
     }
   };
   
   const fetchQuizById = async (quizId) => {
     try {
       setFetchingQuiz(true);
-      // In a real implementation, replace with your actual API call
-      const response = await fetch(`${API_URL}/quizzes/${quizId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch quiz data');
-      }
-      
-      const data = await response.json();
+      const data = await getQuizById(quizId);
       
       // Set quiz metadata
       setQuizData({
-        title: data.title,
-        description: data.description,
-        subjectId: data.subjectId,
-        timeLimit: data.timeLimit,
-        randomizeQuestions: data.randomizeQuestions,
-        showResults: data.showResults,
-        passingScore: data.passingScore,
-        status: data.status
+        title: data.quiz.title,
+        description: data.quiz.description,
+        maMon: data.quiz.maMon,
+        maDe: data.quiz.maDe,
+        timeLimit: data.quiz.timeLimit || 30,
+        password: data.quiz.password || '',
+        securityLevel: data.quiz.securityLevel || 0,
+        status: 'draft'
       });
       
-      // Set questions
-      setQuestions(data.questions);
+      // Fetch MaDe list for the selected MaMon
+      if (data.quiz.maMon) {
+        fetchMaDeList(data.quiz.maMon);
+      }
+      
+      // Convert backend questions to frontend format
+      const formattedQuestions = data.questions.map(q => {
+        // Parse options from question
+        const options = [];
+        for (let i = 0; i < q.slDapAn; i++) {
+          options.push({
+            id: String.fromCharCode(97 + i), // a, b, c, d...
+            text: `Option ${String.fromCharCode(65 + i)}` // A, B, C, D...
+          });
+        }
+        
+        return {
+          id: q.id,
+          type: 'multiple-choice',
+          text: q.questionText,
+          options: options,
+          correctAnswer: q.correct,
+          points: 10,
+          explanation: q.explanation || '',
+          questionImg: q.questionImg || ''
+        };
+      });
+      
+      setQuestions(formattedQuestions);
       setFetchingQuiz(false);
     } catch (error) {
       console.error('Error fetching quiz:', error);
       setError('Failed to load quiz data. Please try again later.');
       setFetchingQuiz(false);
-      
-      // Mock data for development
-      setQuizData({
-        title: 'Sample Quiz',
-        description: 'This is a sample quiz for testing purposes.',
-        subjectId: 1,
-        timeLimit: 30,
-        randomizeQuestions: true,
-        showResults: true,
-        passingScore: 70,
-        status: 'draft'
-      });
-      
-      setQuestions([
-        {
-          id: 1,
-          type: 'multiple-choice',
-          text: 'What is the main purpose of a constructor in Java?',
-          options: [
-            { id: 'a', text: 'To destroy objects when they are no longer needed' },
-            { id: 'b', text: 'To initialize objects with default or specified values' },
-            { id: 'c', text: 'To create methods for the class' },
-            { id: 'd', text: 'To handle exceptions thrown by class methods' }
-          ],
-          correctAnswer: 'b',
-          points: 10,
-          explanation: 'Constructors are used to initialize objects with default or specified values when they are created.'
-        },
-        {
-          id: 2,
-          type: 'true-false',
-          text: 'In Java, a class can inherit from multiple classes.',
-          correctAnswer: false,
-          points: 5,
-          explanation: 'Java does not support multiple inheritance through classes. A class can only extend one class but can implement multiple interfaces.'
-        }
-      ]);
     }
   };
   
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setQuizData({
-      ...quizData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    
+    // If changing maMon, fetch the corresponding MaDe list and suggest a default exam code
+    if (name === 'maMon') {
+      fetchMaDeList(value);
+      // Generate default exam code based on selected subject
+      const defaultExamCode = generateDefaultExamCode(value);
+      // Reset maDe when maMon changes and suggest a default
+      setQuizData({
+        ...quizData,
+        maMon: value,
+        maDe: defaultExamCode
+      });
+    } else {
+      setQuizData({
+        ...quizData,
+        [name]: type === 'checkbox' ? checked : value
+      });
+    }
   };
   
   const handleQuestionChange = (e) => {
@@ -195,6 +238,29 @@ const CreateQuiz = () => {
       ...updatedQuestions[currentQuestionIndex],
       correctAnswer: value
     };
+    setQuestions(updatedQuestions);
+  };
+  
+  const handleMultipleChoiceAnswerChange = (optionId) => {
+    const updatedQuestions = [...questions];
+    const currentQuestion = updatedQuestions[currentQuestionIndex];
+    
+    // Get the current correctAnswers array or initialize it if it doesn't exist
+    const correctAnswers = currentQuestion.correctAnswers || [];
+    
+    // Toggle the option - add if not present, remove if present
+    let updatedCorrectAnswers;
+    if (correctAnswers.includes(optionId)) {
+      updatedCorrectAnswers = correctAnswers.filter(id => id !== optionId);
+    } else {
+      updatedCorrectAnswers = [...correctAnswers, optionId];
+    }
+    
+    updatedQuestions[currentQuestionIndex] = {
+      ...currentQuestion,
+      correctAnswers: updatedCorrectAnswers
+    };
+    
     setQuestions(updatedQuestions);
   };
   
@@ -314,7 +380,7 @@ const CreateQuiz = () => {
     
     // Create new question structure based on type while preserving text and points
     switch (type) {
-      case 'multiple-choice':
+      case 'single-choice':
         updatedQuestion = {
           ...currentQuestion,
           type,
@@ -325,6 +391,19 @@ const CreateQuiz = () => {
             { id: 'd', text: '' }
           ],
           correctAnswer: 'a'
+        };
+        break;
+      case 'multiple-choice':
+        updatedQuestion = {
+          ...currentQuestion,
+          type,
+          options: currentQuestion.options || [
+            { id: 'a', text: '' },
+            { id: 'b', text: '' },
+            { id: 'c', text: '' },
+            { id: 'd', text: '' }
+          ],
+          correctAnswers: currentQuestion.correctAnswers || ['a'] // Array for multiple selections
         };
         break;
       case 'true-false':
@@ -373,7 +452,7 @@ const CreateQuiz = () => {
         setError('Please enter a quiz title');
         return;
       }
-      if (!quizData.subjectId) {
+      if (!quizData.maMon) {
         setError('Please select a subject');
         return;
       }
@@ -395,25 +474,40 @@ const CreateQuiz = () => {
       return;
     }
     
-    if (!quizData.subjectId) {
+    if (!quizData.maMon) {
       setError('Please select a subject');
+      return;
+    }
+    
+    if (!quizData.maDe) {
+      setError('Please enter an exam code');
       return;
     }
     
     // Validate questions
     const invalidQuestions = questions.filter(q => !q.text.trim());
     if (invalidQuestions.length > 0) {
-      setError(`Please fill in all question texts (Question ${invalidQuestions[0].id} is empty)`);
+      setError(`Please fill in all question texts (Question ${questions.indexOf(invalidQuestions[0]) + 1} is empty)`);
       return;
     }
     
     // For multiple choice, validate options
     const multipleChoiceQuestionsWithEmptyOptions = questions.filter(
-      q => q.type === 'multiple-choice' && q.options.some(opt => !opt.text.trim())
+      q => (q.type === 'multiple-choice' || q.type === 'single-choice') && q.options.some(opt => !opt.text.trim())
     );
     
     if (multipleChoiceQuestionsWithEmptyOptions.length > 0) {
-      setError(`Please fill in all options for Question ${multipleChoiceQuestionsWithEmptyOptions[0].id}`);
+      setError(`Please fill in all options for Question ${questions.indexOf(multipleChoiceQuestionsWithEmptyOptions[0]) + 1}`);
+      return;
+    }
+    
+    // Check if multiple-choice questions have at least one correct answer
+    const multipleChoiceWithNoAnswers = questions.filter(
+      q => q.type === 'multiple-choice' && (!q.correctAnswers || q.correctAnswers.length === 0)
+    );
+    
+    if (multipleChoiceWithNoAnswers.length > 0) {
+      setError(`Please select at least one correct answer for Question ${questions.indexOf(multipleChoiceWithNoAnswers[0]) + 1}`);
       return;
     }
     
@@ -421,26 +515,110 @@ const CreateQuiz = () => {
       setIsSaving(true);
       setError(null);
       
-      const quizPayload = {
-        ...quizData,
-        status: asDraft ? 'draft' : 'active',
-        questions,
-        lecturerId: user.id
-      };
-      
-      // API call - replace with your actual implementation
-      const method = id ? 'PUT' : 'POST';
-      const url = id ? `${API_URL}/quizzes/${id}` : `${API_URL}/quizzes`;
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quizPayload)
+      // Convert frontend questions to backend format
+      const formattedQuestions = questions.map(q => {
+        // For multiple choice questions
+        if (q.type === 'multiple-choice') {
+          // Include options in the question text on the same line
+          let fullQuestionText = q.text + "\n\n";
+          
+          // Add options with labels (A, B, C, D, etc.) on the same line
+          const optionTexts = q.options.map((option, index) => {
+            const optionLabel = String.fromCharCode(65 + index); // A, B, C, D...
+            return `${optionLabel}) ${option.text}`;
+          });
+          
+          fullQuestionText += optionTexts.join(" | ");
+          
+          // Convert correctAnswers array to comma-separated string
+          // Map option IDs (a, b, c) to uppercase labels (A, B, C)
+          const correctAnswerString = q.correctAnswers.map(optionId => {
+            // Find the index of the option with this id
+            const optionIndex = q.options.findIndex(opt => opt.id === optionId);
+            // Map to uppercase letter if found, otherwise use the original id
+            return optionIndex >= 0 ? String.fromCharCode(65 + optionIndex) : optionId.toUpperCase();
+          }).join(',');
+          
+          return {
+            questionText: fullQuestionText.trim(),
+            questionImg: q.questionImg || '',
+            slDapAn: q.options.length,
+            correct: correctAnswerString,
+            explanation: q.explanation || ''
+          };
+        }
+        // For single choice questions
+        else if (q.type === 'single-choice') {
+          // Include options in the question text on the same line
+          let fullQuestionText = q.text + "\n\n";
+          
+          // Add options with labels (A, B, C, D, etc.) on the same line
+          const optionTexts = q.options.map((option, index) => {
+            const optionLabel = String.fromCharCode(65 + index); // A, B, C, D...
+            return `${optionLabel}) ${option.text}`;
+          });
+          
+          fullQuestionText += optionTexts.join(" | ");
+          
+          // Convert single correctAnswer (a, b, c) to uppercase label (A, B, C)
+          const optionIndex = q.options.findIndex(opt => opt.id === q.correctAnswer);
+          const correctAnswer = optionIndex >= 0 ? String.fromCharCode(65 + optionIndex) : q.correctAnswer.toUpperCase();
+          
+          return {
+            questionText: fullQuestionText.trim(),
+            questionImg: q.questionImg || '',
+            slDapAn: q.options.length,
+            correct: correctAnswer,
+            explanation: q.explanation || ''
+          };
+        }
+        // For true/false questions
+        else if (q.type === 'true-false') {
+          // Include True and False options in the question text on the same line
+          const fullQuestionText = `${q.text}\n\nA) True | B) False`;
+          
+          return {
+            questionText: fullQuestionText,
+            questionImg: q.questionImg || '',
+            slDapAn: 2,
+            correct: q.correctAnswer ? 'A' : 'B', // 'A' for true, 'B' for false
+            explanation: q.explanation || ''
+          };
+        }
+        // For other question types (can be expanded later)
+        else {
+          return {
+            questionText: q.text,
+            questionImg: q.questionImg || '',
+            slDapAn: 1,
+            correct: q.correctAnswer || '',
+            explanation: q.explanation || ''
+          };
+        }
       });
       
-      if (!response.ok) {
+      const quizPayload = {
+        title: quizData.title,
+        description: quizData.description,
+        userId: user.id,
+        maMon: quizData.maMon,
+        maDe: quizData.maDe,
+        isAiGenerated: false,
+        password: quizData.password || null,
+        timeLimit: quizData.timeLimit || 30,
+        securityLevel: quizData.securityLevel || 0,
+        status: asDraft ? 'draft' : 'active',
+        questions: formattedQuestions
+      };
+      
+      let response;
+      if (id) {
+        response = await updateQuiz(id, quizPayload);
+      } else {
+        response = await createQuiz(quizPayload);
+      }
+      
+      if (!response || !response.success) {
         throw new Error('Failed to save quiz');
       }
       
@@ -492,7 +670,7 @@ const CreateQuiz = () => {
           <div className="p-4 border rounded-lg">
             <div className="mb-2 font-medium">{currentQuestion.text || 'Question text goes here'}</div>
             
-            {currentQuestion.type === 'multiple-choice' && (
+            {currentQuestion.type === 'single-choice' && (
               <div className="ml-4 space-y-2">
                 {currentQuestion.options.map((option) => (
                   <div key={option.id} className="flex items-center">
@@ -503,6 +681,24 @@ const CreateQuiz = () => {
                       className="mr-2"
                     />
                     <span className={currentQuestion.correctAnswer === option.id ? 'font-medium text-green-600' : ''}>
+                      {option.text || `Option ${option.id}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {currentQuestion.type === 'multiple-choice' && (
+              <div className="ml-4 space-y-2">
+                {currentQuestion.options.map((option) => (
+                  <div key={option.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={currentQuestion.correctAnswers?.includes(option.id)}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span className={currentQuestion.correctAnswers?.includes(option.id) ? 'font-medium text-green-600' : ''}>
                       {option.text || `Option ${option.id}`}
                     </span>
                   </div>
@@ -603,7 +799,7 @@ const CreateQuiz = () => {
               />
             </div>
             
-            {currentQuestion.type === 'multiple-choice' && (
+            {currentQuestion.type === 'single-choice' && (
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-medium mb-1">
                   Options
@@ -617,6 +813,55 @@ const CreateQuiz = () => {
                         name="correctAnswer"
                         checked={currentQuestion.correctAnswer === option.id}
                         onChange={() => handleCorrectAnswerChange(option.id)}
+                        className="mr-2"
+                      />
+                      <input
+                        type="text"
+                        value={option.text}
+                        onChange={(e) => handleOptionChange(index, e.target.value)}
+                        className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder={`Option ${option.id}`}
+                      />
+                      {currentQuestion.options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOption(index)}
+                          className="ml-2 text-red-500 hover:text-red-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addOption}
+                  className="mt-2 text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add Option
+                </button>
+              </div>
+            )}
+            
+            {currentQuestion.type === 'multiple-choice' && (
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-1">
+                  Options (Select all that apply)
+                </label>
+                <div className="space-y-2">
+                  {currentQuestion.options.map((option, index) => (
+                    <div key={option.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`option-${option.id}`}
+                        checked={currentQuestion.correctAnswers?.includes(option.id)}
+                        onChange={() => handleMultipleChoiceAnswerChange(option.id)}
                         className="mr-2"
                       />
                       <input
@@ -797,19 +1042,37 @@ const CreateQuiz = () => {
                 Subject*
               </label>
               <select
-                name="subjectId"
-                value={quizData.subjectId}
+                name="maMon"
+                value={quizData.maMon}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               >
                 <option value="">Select a subject</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.code} - {subject.name}
+                {maMonList.map((maMon) => (
+                  <option key={maMon} value={maMon}>
+                    {maMon}
                   </option>
                 ))}
               </select>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-1">
+                Exam Code*
+              </label>
+              <input
+                type="text"
+                name="maDe"
+                value={quizData.maDe}
+                onChange={handleInputChange}
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Enter an exam code or use the suggested one"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Default format: Subject-YYYYMMDD-HHMM (e.g. CSD201-20230515-1430)
+              </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

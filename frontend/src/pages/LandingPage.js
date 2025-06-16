@@ -153,7 +153,7 @@ const LandingPage = () => {
           </div>
         )}
       </header>
-      
+
       {/* Hero Section */}
       <section className="bg-[#f9fbfc] relative overflow-hidden" id="home">
         {/* Background decorative elements */}
@@ -239,8 +239,8 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </section>
-      
+        </section>
+
       {/* Why Choose Us Section */}
       <section className="py-16 bg-[#f9fbfc]" id="why">
         <div className="max-w-[1366px] mx-auto px-4">
@@ -261,43 +261,43 @@ const LandingPage = () => {
                 className={`flex items-start space-x-4 bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-500 delay-${index * 100} ${visibleSections.why ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}
               >
                 <i className="fas fa-check-circle text-[#525fe1] mt-1 text-xl flex-shrink-0"></i>
-                <div>
+              <div>
                   {index === 0 && (
                     <>
-                      <strong className="font-semibold">Official Learning Materials by FPT Lecturers</strong><br />
-                      Access course slides, documents, videos, and external learning links – organized by subject, term, and class.
+                <strong className="font-semibold">Official Learning Materials by FPT Lecturers</strong><br />
+                Access course slides, documents, videos, and external learning links – organized by subject, term, and class.
                     </>
                   )}
                   {index === 1 && (
                     <>
-                      <strong className="font-semibold">Mock Tests Matching FE / PE / ME Format</strong><br />
-                      Train with realistic mock exams that follow FPT's exam structure to boost your confidence and performance.
+                <strong className="font-semibold">Mock Tests Matching FE / PE / ME Format</strong><br />
+                Train with realistic mock exams that follow FPT's exam structure to boost your confidence and performance.
                     </>
                   )}
                   {index === 2 && (
                     <>
-                      <strong className="font-semibold">Smart Slot-Based Class Schedule</strong><br />
-                      View your class timetable according to FPT's unique Slot system and ClassID format – always stay on track.
+                <strong className="font-semibold">Smart Slot-Based Class Schedule</strong><br />
+                View your class timetable according to FPT's unique Slot system and ClassID format – always stay on track.
                     </>
                   )}
                   {index === 3 && (
                     <>
-                      <strong className="font-semibold">Personalized Progress Tracking</strong><br />
-                      Get detailed insights into your test results, identify weak areas, and receive smart suggestions to improve.
+                <strong className="font-semibold">Personalized Progress Tracking</strong><br />
+                Get detailed insights into your test results, identify weak areas, and receive smart suggestions to improve.
                     </>
                   )}
                   {index === 4 && (
                     <>
-                      <strong className="font-semibold">User-Friendly & Cross-Device Support</strong><br />
-                      Use anytime, anywhere – whether on desktop, tablet, or mobile.
+                <strong className="font-semibold">User-Friendly & Cross-Device Support</strong><br />
+                Use anytime, anywhere – whether on desktop, tablet, or mobile.
                     </>
                   )}
-                </div>
-              </li>
+              </div>
+            </li>
             ))}
           </ul>
         </div>
-      </section>
+        </section>
 
       {/* Who Is It For Section */}
       <section className="py-16 bg-white" id="who">
@@ -365,7 +365,7 @@ const LandingPage = () => {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center text-[#525fe1] text-2xl">
                   <i className="fas fa-book"></i>
-                </div>
+            </div>
               </div>
               <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
                 Learning Resources
@@ -399,7 +399,7 @@ const LandingPage = () => {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center text-[#4d93df] text-2xl">
                   <i className="fas fa-chart-bar"></i>
-                </div>
+              </div>
               </div>
               <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
                 Analytics
@@ -460,8 +460,8 @@ const LandingPage = () => {
               </p>
             </div>
           </div>
-        </div>
-      </section>
+              </div>
+        </section>
 
       {/* Platform Preview Section */}
       <section className="py-16 bg-white" id="preview">
@@ -500,11 +500,11 @@ const LandingPage = () => {
                     <path fill="#f5f7ff" d="M40.9,-65.3C54.8,-59.2,69.2,-52,79.8,-39.7C90.3,-27.4,97,-10,94.9,6.2C92.9,22.3,82.1,37.3,69.6,49.3C57.1,61.4,42.9,70.6,27.4,76.2C11.9,81.9,-4.8,84,-21,80.8C-37.1,77.6,-52.7,69.2,-65.2,56.8C-77.7,44.5,-87.2,28.1,-89.5,10.8C-91.9,-6.5,-87.2,-24.8,-77.4,-39.1C-67.6,-53.4,-52.7,-63.8,-37.6,-69.3C-22.5,-74.8,-7.2,-75.4,7.1,-73.8C21.3,-72.2,27,-71.3,40.9,-65.3Z" transform="translate(100 100)" />
                   </svg>
                 </div>
-                <img 
-                  src="https://storage.googleapis.com/a1aa/image/5acb079a-8b58-4b3e-0dd9-35e418b6da4f.jpg" 
-                  alt="Homepage interface showing featured subjects and reminders on a modern digital dashboard with blue and white theme" 
+              <img 
+                src="https://storage.googleapis.com/a1aa/image/5acb079a-8b58-4b3e-0dd9-35e418b6da4f.jpg" 
+                alt="Homepage interface showing featured subjects and reminders on a modern digital dashboard with blue and white theme" 
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
-                />
+              />
               </div>
               <div className="p-4 font-semibold text-center text-gray-700">
                 Homepage with Featured Subjects & Reminders
@@ -517,11 +517,11 @@ const LandingPage = () => {
                     <path fill="#eefff5" d="M46.1,-73.5C58.1,-66,65.2,-50.9,70.9,-35.9C76.6,-20.9,80.9,-6,78.7,7.8C76.5,21.7,67.8,34.4,57.4,45.4C47,56.3,34.8,65.4,20.9,70.8C7,76.2,-8.6,77.9,-22.2,73.3C-35.8,68.8,-47.5,58.1,-58.9,45.9C-70.4,33.7,-81.5,20,-83.4,5.1C-85.2,-9.8,-77.7,-25.8,-67.7,-38.7C-57.6,-51.6,-45,-61.3,-31.8,-68.1C-18.6,-74.9,-4.6,-78.7,10.2,-79.6C25,-80.5,49.9,-78.5,46.1,-73.5Z" transform="translate(100 100)" />
                   </svg>
                 </div>
-                <img 
-                  src="https://storage.googleapis.com/a1aa/image/bae503b8-1384-4cde-5227-729d70ca3db6.jpg" 
-                  alt="Subject learning dashboard showing organized materials including slides, videos, and documents with clean UI" 
+              <img 
+                src="https://storage.googleapis.com/a1aa/image/bae503b8-1384-4cde-5227-729d70ca3db6.jpg" 
+                alt="Subject learning dashboard showing organized materials including slides, videos, and documents with clean UI" 
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
-                />
+              />
               </div>
               <div className="p-4 font-semibold text-center text-gray-700">
                 Subject Learning Dashboard
@@ -534,11 +534,11 @@ const LandingPage = () => {
                     <path fill="#ffeff5" d="M44.1,-76.5C55.6,-69.1,62.2,-54.3,70.3,-40.3C78.4,-26.3,88,-13.2,87.7,-0.2C87.4,12.8,77.2,25.5,67.4,37.4C57.6,49.2,48.1,60.2,36,67.1C23.9,74,11.9,76.9,-1.6,79.2C-15.1,81.6,-30.3,83.5,-41.8,77.2C-53.3,70.9,-61.1,56.4,-67.5,42.4C-73.9,28.4,-78.8,14.2,-78.8,0C-78.8,-14.2,-73.8,-28.3,-66.1,-41C-58.4,-53.6,-48,-64.8,-35.4,-71.5C-22.8,-78.2,-8,-80.5,5.2,-79C18.4,-77.6,36.8,-72.3,44.1,-76.5Z" transform="translate(100 100)" />
                   </svg>
                 </div>
-                <img 
-                  src="https://storage.googleapis.com/a1aa/image/857d9c56-e697-4d30-57cd-9204b6121823.jpg" 
-                  alt="Mock exam interface displaying multiple choice and coding questions with timer and progress bar" 
+              <img 
+                src="https://storage.googleapis.com/a1aa/image/857d9c56-e697-4d30-57cd-9204b6121823.jpg" 
+                alt="Mock exam interface displaying multiple choice and coding questions with timer and progress bar" 
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
-                />
+              />
               </div>
               <div className="p-4 font-semibold text-center text-gray-700">
                 Mock Exam Interface
@@ -551,19 +551,19 @@ const LandingPage = () => {
                     <path fill="#fffaef" d="M36.3,-63.3C47.2,-56.5,56.3,-46.8,65.3,-35.4C74.2,-24.1,82.9,-11,83.1,2.1C83.2,15.2,74.7,28.4,65.4,40.4C56.1,52.3,46,63.2,33.5,70.3C21,77.5,6,81,1,76.7C-9.8,74.5,-19.7,64.4,-31.4,57.5C-43.2,50.5,-56.9,46.8,-65.9,37.7C-74.9,28.5,-79.3,14.3,-81.2,-1.1C-83.1,-16.5,-82.6,-33,-74.4,-44.5C-66.2,-56,-50.3,-62.5,-35.8,-67.5C-21.3,-72.5,-8.2,-76.1,3.3,-76.5C14.8,-76.9,28.5,-74.2,36.3,-63.3Z" transform="translate(100 100)" />
                   </svg>
                 </div>
-                <img 
-                  src="https://storage.googleapis.com/a1aa/image/1e20466c-55a9-4786-5180-b17644bef15d.jpg" 
-                  alt="Score and progress analytics dashboard showing charts, graphs, and detailed reports in blue and white theme" 
+              <img 
+                src="https://storage.googleapis.com/a1aa/image/1e20466c-55a9-4786-5180-b17644bef15d.jpg" 
+                alt="Score and progress analytics dashboard showing charts, graphs, and detailed reports in blue and white theme" 
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
-                />
+              />
               </div>
               <div className="p-4 font-semibold text-center text-gray-700">
                 Score & Progress Analytics
               </div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* Sign Up Section */}
       <section className="py-16 bg-[#ffcf59]" id="signup">
@@ -571,28 +571,28 @@ const LandingPage = () => {
           <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
             <h3 className="text-[32px] font-bold leading-[48px] text-[#1c1c1c] font-poppins mb-6">
               <span className="text-[#525fe1]">Sign Up</span> Early and Get Exclusive Access!
-            </h3>
+          </h3>
             <p className="text-lg mb-6 text-gray-700">
-              🎁 <span className="font-semibold">Beta Offer:</span> First 100 users will receive free Premium Access for 1 term!
-            </p>
-            <button
-              onClick={() => navigate('/register')}
+            🎁 <span className="font-semibold">Beta Offer:</span> First 100 users will receive free Premium Access for 1 term!
+          </p>
+          <button
+            onClick={() => navigate('/register')}
               className="inline-block bg-gradient-to-r from-[#525fe1] to-[#4a4eb3] text-white font-semibold py-3 px-8 rounded-lg transition hover:opacity-90"
-            >
-              Sign Up Now
-            </button>
+          >
+            Sign Up Now
+          </button>
             <p className="mt-6 text-gray-700">
               📨 Contact: <a className="text-[#525fe1] hover:underline" href="mailto:your.email@example.com">your.email@example.com</a> | Hotline: <a className="text-[#525fe1] hover:underline" href="tel:+84000000000">+84 000 000 000</a>
-            </p>
+          </p>
             <p className="mt-4 text-gray-600 text-sm">
-              📍 FPT University – HCM | Danang | Hanoi Campuses
-            </p>
+            📍 FPT University – HCM | Danang | Hanoi Campuses
+          </p>
             <p className="mt-6 text-gray-500 text-sm italic">
-              👨‍💻 Developed by FPTU Students – Built for the FPTU Community!
-            </p>
+            👨‍💻 Developed by FPTU Students – Built for the FPTU Community!
+          </p>
           </div>
         </div>
-      </section>
+        </section>
 
       <footer className="bg-[#525fe1] text-white py-8">
         <div className="max-w-[1366px] mx-auto px-4">

@@ -85,6 +85,9 @@ const AIChat = ({ onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const messageContainerRef = useRef(null);
+  const [userScrolled, setUserScrolled] = useState(false);
+  const [previousMessagesLength, setPreviousMessagesLength] = useState(0);
   
   // Choose appropriate markdown styles based on theme
   const mdStyles = darkMode ? markdownStyles.dark : markdownStyles.light;
@@ -113,13 +116,38 @@ const AIChat = ({ onClose }) => {
     console.log("User information available to AI:", enrichedUserInfo);
   }, [user]);
   
+  // Handle user scroll events
+  const handleScroll = () => {
+    if (messageContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+      // If user scrolled away from bottom
+      if (scrollHeight - scrollTop - clientHeight > 10) {
+        setUserScrolled(true);
+      } else {
+        setUserScrolled(false);
+      }
+    }
+  };
+  
   // Scroll to bottom when messages change
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
+  // Smart scroll to bottom when messages change
   useEffect(() => {
+    // When user sends a new message, force scroll to bottom
+    const newMessageAdded = messages.length > previousMessagesLength;
+    
+    if (newMessageAdded && messages.length > 0 && messages[messages.length - 1]?.isUserMessage) {
+      scrollToBottom();
+    } 
+    // When conversation is first opened or user isn't reading earlier messages
+    else if (!userScrolled || messages.length === 0 || previousMessagesLength === 0) {
     scrollToBottom();
+    }
+    
+    setPreviousMessagesLength(messages.length);
     
     // Save messages to localStorage whenever they change
     if (user && messages.length > 0) {
@@ -142,6 +170,15 @@ const AIChat = ({ onClose }) => {
             showTypingEffect: false // Disable typing effect for saved messages
           }));
           setMessages(messagesWithoutTypingEffect);
+          
+          // Force scroll to bottom when chat opens
+          setTimeout(() => {
+            scrollToBottom();
+          }, 600);
+          
+          // Reset scroll state when opening chat
+          setUserScrolled(false);
+          setPreviousMessagesLength(0);
         } catch (error) {
           console.error('Error parsing saved messages:', error);
           fetchMessages(); // Fallback to fetching from server
@@ -189,6 +226,15 @@ const AIChat = ({ onClose }) => {
         localStorage.setItem(`ai_chat_${user.id}`, JSON.stringify(formattedMessages));
       }
       
+      // Force scroll to bottom after messages are fetched
+      setTimeout(() => {
+        scrollToBottom();
+      }, 300);
+      
+      // Reset scroll state
+      setUserScrolled(false);
+      setPreviousMessagesLength(formattedMessages.length);
+      
     } catch (error) {
       console.error('Error fetching AI chat messages:', error);
     } finally {
@@ -196,10 +242,131 @@ const AIChat = ({ onClose }) => {
     }
   };
   
+  // Send a like message
+  const sendLike = async () => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    // Create a temporary message for immediate display
+    const tempUserMessage = {
+      id: `temp-user-${Date.now()}`,
+      userId: user?.id || 0,
+      isUserMessage: true,
+      message: "👍", // Thumbs up emoji
+      createdAt: new Date().toISOString(),
+      username: user?.username || enrichedUserInfo.name,
+      fullName: user?.fullName || enrichedUserInfo.fullName,
+      profileImageUrl: user?.profileImageUrl || 'https://via.placeholder.com/40',
+      isTemp: true,
+      isLike: true
+    };
+    
+    // Add user message to UI immediately
+    setMessages(prev => [...prev, tempUserMessage]);
+    
+    // Create a temporary "thinking" message
+    const tempAIMessage = {
+      id: `temp-ai-${Date.now()}`,
+      userId: user?.id || 0,
+      isUserMessage: false,
+      message: "Thinking...",
+      createdAt: new Date().toISOString(),
+      username: "AI Assistant",
+      fullName: "AI Assistant",
+      profileImageUrl: "https://i.pinimg.com/564x/17/c5/45/17c545d994ff3fec519c9e2b522da4c3.jpg",
+      isTemp: true,
+      isThinking: true
+    };
+    
+    // Add AI "thinking" message
+    setMessages(prev => [...prev, tempAIMessage]);
+    
+    try {
+      // Make the API call
+      const response = await fetch(`${API_URL}/chat/ai/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id || 0,
+          message: "👍", // Send thumbs up
+          userInfo: enrichedUserInfo
+        }),
+      });
+
+      // Remove the thinking message
+      setMessages(prev => prev.filter(msg => msg.id !== tempAIMessage.id));
+      
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      // Get the response data
+      const data = await response.json();
+      
+      // Create AI response message with data from server
+      const aiResponseMessage = {
+        id: `ai-${Date.now()}`,
+        userId: user?.id || 0,
+        isUserMessage: false,
+        message: data.response,
+        createdAt: new Date().toISOString(),
+        username: "AI Assistant",
+        fullName: "AI Assistant",
+        profileImageUrl: "https://i.pinimg.com/564x/17/c5/45/17c545d994ff3fec519c9e2b522da4c3.jpg",
+        isTemp: false,
+        showTypingEffect: true
+      };
+      
+      // Add user message (without temporary flag)
+      const finalUserMessage = {
+        ...tempUserMessage,
+        id: `user-${Date.now()}`,
+        isTemp: false
+      };
+      
+      // Update messages with final versions
+      setMessages(prev => {
+        const prevWithoutTemp = prev.filter(msg => msg.id !== tempUserMessage.id);
+        return [...prevWithoutTemp, finalUserMessage, aiResponseMessage];
+      });
+      
+    } catch (error) {
+      console.error('Error sending message to AI:', error);
+      
+      // Update UI to show error
+      setMessages(prev => {
+        const prevWithoutTemp = prev.filter(msg => msg.id !== tempAIMessage.id);
+        const errorMessage = {
+          id: `error-${Date.now()}`,
+          userId: user?.id || 0,
+          isUserMessage: false,
+          message: "Sorry, I couldn't process your thumbs up. Please try again.",
+          createdAt: new Date().toISOString(),
+          username: "AI Assistant",
+          fullName: "AI Assistant",
+          profileImageUrl: "https://i.pinimg.com/564x/17/c5/45/17c545d994ff3fec519c9e2b522da4c3.jpg",
+          isTemp: false,
+          isError: true
+        };
+        return [...prevWithoutTemp, errorMessage];
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
-    if (!newMessage.trim() || isSubmitting) return;
+    // If sending a like (no text)
+    if (!newMessage.trim()) {
+      return sendLike();
+    }
+    
+    if (isSubmitting) return;
     
     setIsSubmitting(true);
     
@@ -401,7 +568,7 @@ const AIChat = ({ onClose }) => {
       </div>
       
       {/* Messages */}
-      <div className={`flex-1 p-2 overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+      <div className={`flex-1 p-2 overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`} ref={messageContainerRef} onScroll={handleScroll}>
         {isLoading && messages.length === 0 ? (
           <div className="text-center text-gray-500 py-4">
             <svg className="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24">
@@ -534,13 +701,21 @@ const AIChat = ({ onClose }) => {
           />
           <button
             type="submit"
-            className={`${darkMode ? 'bg-indigo-500 hover:bg-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-3 py-1.5 rounded-r-md disabled:opacity-50`}
-            disabled={!newMessage.trim() || isSubmitting}
+            className={`text-white px-3 py-1.5 rounded-r-md ${
+              !newMessage.trim() 
+                ? darkMode ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'
+                : darkMode ? 'bg-indigo-500 hover:bg-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700'
+            } disabled:opacity-50`}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <svg className="animate-spin h-4 w-4 m-auto" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : !newMessage.trim() ? (
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3m7-2V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
               </svg>
             ) : (
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,4 +1,3 @@
-
 DROP TABLE IF EXISTS `Lessons`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -34,6 +33,7 @@ CREATE TABLE `Questions` (
   `quiz_id` int(11) DEFAULT NULL,
   `MaDe` varchar(255) DEFAULT NULL,
   `MaMon` varchar(255) DEFAULT NULL,
+  `points` int(11) DEFAULT 10,
   PRIMARY KEY (`ID`),
   KEY `idx_quiz_id` (`quiz_id`),
   CONSTRAINT `fk_question_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE SET NULL
@@ -54,6 +54,36 @@ CREATE TABLE `QuizPermissions` (
   KEY `idx_class_id` (`class_id`),
   CONSTRAINT `QuizPermissions_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+
+DROP TABLE IF EXISTS `QuizTaken`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `QuizTaken` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `quiz_id` int(11) NOT NULL,
+  `start_time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `submit_time` timestamp NULL DEFAULT NULL,
+  `score` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `max_score` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `status` enum('completed','in_progress','abandoned','failed') NOT NULL DEFAULT 'in_progress',
+  `selected_answers` json DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `activity_log` json DEFAULT NULL,
+  `completion_time` int(11) DEFAULT NULL COMMENT 'Time in seconds taken to complete the quiz',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_quiz_id` (`quiz_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_start_time` (`start_time`),
+  CONSTRAINT `fk_quiztaken_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_quiztaken_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -126,11 +156,16 @@ DROP TABLE IF EXISTS `chat_groups`;
 CREATE TABLE `chat_groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
-  `class_id` varchar(20) NOT NULL,
+  `class_id` varchar(20) DEFAULT NULL,
+  `is_custom` tinyint(1) DEFAULT 0,
+  `creator_id` int(11) DEFAULT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `class_id` (`class_id`),
-  KEY `idx_chat_groups_class_id` (`class_id`)
+  KEY `idx_chat_groups_class_id` (`class_id`),
+  KEY `idx_chat_groups_creator_id` (`creator_id`),
+  CONSTRAINT `chat_groups_creator_fk` FOREIGN KEY (`creator_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -143,6 +178,7 @@ CREATE TABLE `chat_messages` (
   `receiver_id` int(11) NOT NULL,
   `message` text NOT NULL,
   `is_read` tinyint(1) DEFAULT 0,
+  `is_unsent` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_chat_messages_sender` (`sender_id`),
@@ -161,6 +197,7 @@ CREATE TABLE `group_chat_messages` (
   `group_id` int(11) NOT NULL,
   `sender_id` int(11) NOT NULL,
   `message` text NOT NULL,
+  `is_unsent` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_group_chat_messages_group_id` (`group_id`),
@@ -340,4 +377,56 @@ CREATE TABLE `users` (
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3215 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `chat_files`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `chat_files` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(500) NOT NULL,
+  `file_size` bigint(20) NOT NULL,
+  `file_type` varchar(100) NOT NULL,
+  `upload_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `uploader_id` int(11) NOT NULL,
+  `is_deleted` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_chat_files_uploader` (`uploader_id`),
+  CONSTRAINT `chat_files_ibfk_1` FOREIGN KEY (`uploader_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `chat_message_files`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `chat_message_files` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message_id` int(11) NOT NULL,
+  `file_id` int(11) NOT NULL,
+  `message_type` enum('direct','group') NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_unique_message_file` (`message_id`,`file_id`,`message_type`),
+  KEY `idx_message_files_file_id` (`file_id`),
+  CONSTRAINT `chat_message_files_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `chat_files` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TABLE IF EXISTS `group_members`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `group_members` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `group_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `added_by` int(11) DEFAULT NULL,
+  `joined_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_unique_group_member` (`group_id`,`user_id`),
+  KEY `idx_group_members_user` (`user_id`),
+  KEY `idx_group_members_added_by` (`added_by`),
+  CONSTRAINT `group_members_group_fk` FOREIGN KEY (`group_id`) REFERENCES `chat_groups` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `group_members_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `group_members_added_by_fk` FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;

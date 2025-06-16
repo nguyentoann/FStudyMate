@@ -17,8 +17,9 @@ public class FStudyMateApplication {
         SpringApplication.run(FStudyMateApplication.class, args);
     }
     
-    // DISABLED: Replaced with GlobalCorsConfig
-    //@Bean
+    // CORS configuration is now managed in com.mycompany.fstudymate.config.WebConfig
+    /*
+    @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
@@ -38,4 +39,5 @@ public class FStudyMateApplication {
             }
         };
     }
+    */
 } 

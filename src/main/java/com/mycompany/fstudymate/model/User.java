@@ -1,11 +1,8 @@
 package com.mycompany.fstudymate.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -16,34 +13,40 @@ public class User {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Integer id;
     
-    @Column(name = "username", nullable = false)
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
     
-    @Column(name = "email", nullable = false)
+    @Column(name = "password", nullable = false)
+    private String password;
+    
+    @Column(name = "email", unique = true)
     private String email;
-    
-    @Column(name = "password_hash")
-    private String passwordHash;
-    
-    @Column(name = "role")
-    private String role;
     
     @Column(name = "full_name")
     private String fullName;
     
-    @Column(name = "phone_number")
-    private String phoneNumber;
+    @Column(name = "role")
+    private String role;
     
-    @Column(name = "profile_image_url")
-    private String profileImageUrl;
+    @Column(name = "class_id")
+    private String classId;
     
     @Column(name = "created_at")
-    private java.time.LocalDateTime createdAt;
+    private LocalDateTime createdAt;
     
-    @Column(name = "updated_at")
-    private java.time.LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Quiz> quizzes;
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<QuizTaken> quizTakens;
+    
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
     
     // Getters and Setters
     
@@ -63,28 +66,20 @@ public class User {
         this.username = username;
     }
     
+    public String getPassword() {
+        return password;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
     public String getEmail() {
         return email;
     }
     
     public void setEmail(String email) {
         this.email = email;
-    }
-    
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-    
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-    
-    public String getRole() {
-        return role;
-    }
-    
-    public void setRole(String role) {
-        this.role = role;
     }
     
     public String getFullName() {
@@ -95,35 +90,56 @@ public class User {
         this.fullName = fullName;
     }
     
-    public String getPhoneNumber() {
-        return phoneNumber;
+    public String getRole() {
+        return role;
     }
     
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
+    public void setRole(String role) {
+        this.role = role;
     }
     
-    public String getProfileImageUrl() {
-        return profileImageUrl;
+    public String getClassId() {
+        return classId;
     }
     
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
+    public void setClassId(String classId) {
+        this.classId = classId;
     }
     
-    public java.time.LocalDateTime getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
     
-    public void setCreatedAt(java.time.LocalDateTime createdAt) {
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
     
-    public java.time.LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public List<Quiz> getQuizzes() {
+        return quizzes;
     }
     
-    public void setUpdatedAt(java.time.LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setQuizzes(List<Quiz> quizzes) {
+        this.quizzes = quizzes;
+    }
+    
+    public List<QuizTaken> getQuizTakens() {
+        return quizTakens;
+    }
+    
+    public void setQuizTakens(List<QuizTaken> quizTakens) {
+        this.quizTakens = quizTakens;
+    }
+    
+    // Constructors
+    
+    public User() {
+    }
+    
+    public User(String username, String password, String email, String fullName, String role) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.fullName = fullName;
+        this.role = role;
     }
 } 

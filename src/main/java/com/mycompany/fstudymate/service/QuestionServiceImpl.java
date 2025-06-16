@@ -234,13 +234,13 @@ public class QuestionServiceImpl implements QuestionService {
             // We've received maMon and maDe but we don't set them on the question entity
             // They should only be stored in the Quizzes table
             
-            // Extract the correct answer
-            Pattern correctAnswerPattern = Pattern.compile("(?:Correct answer:|correct answer:|Answer:|answer:)\\s*([A-D])", Pattern.CASE_INSENSITIVE);
+            // Extract the correct answer - now supporting multiple choice format (A,B) or (A;B)
+            Pattern correctAnswerPattern = Pattern.compile("(?:Correct answer:|correct answer:|Answer:|answer:)\\s*([A-D](?:[,;\\s]*[A-D])*)", Pattern.CASE_INSENSITIVE);
             Matcher correctAnswerMatcher = correctAnswerPattern.matcher(questionText);
             String correctAnswer = "A"; // Default
             if (correctAnswerMatcher.find()) {
-                correctAnswer = correctAnswerMatcher.group(1).toUpperCase();
-                logger.info("Found correct answer: " + correctAnswer);
+                correctAnswer = correctAnswerMatcher.group(1).toUpperCase().replaceAll("\\s+", "");
+                logger.info("Found correct answer(s): " + correctAnswer);
             } else {
                 logger.warning("Could not find correct answer, defaulting to A");
             }
@@ -479,38 +479,32 @@ public class QuestionServiceImpl implements QuestionService {
                 ResultSet rs = stmt.executeQuery();
                 
                 if (rs.next()) {
+                    logger.info("Found quiz metadata for MaMon: " + maMon + ", MaDe: " + maDe);
+                    
+                    // Include the quiz ID in the metadata
                     metadata.put("id", rs.getInt("id"));
+                    
                     metadata.put("title", rs.getString("title"));
                     metadata.put("description", rs.getString("description"));
-                    metadata.put("userId", rs.getInt("user_id"));
                     
-                    // Format creator as "Full Name (username)"
-                    String username = rs.getString("username");
-                    String fullName = rs.getString("full_name");
-                    
-                    if (fullName != null && !fullName.isEmpty()) {
-                        metadata.put("createdBy", fullName + " (" + username + ")");
-                    } else {
-                        metadata.put("createdBy", username);
+                    String createdBy = "Unknown";
+                    if (rs.getString("username") != null) {
+                        createdBy = rs.getString("username");
+                    } else if (rs.getString("full_name") != null) {
+                        createdBy = rs.getString("full_name");
                     }
+                    metadata.put("createdBy", createdBy);
                     
                     metadata.put("isAIGenerated", rs.getBoolean("is_ai_generated"));
-                    metadata.put("maMon", rs.getString("MaMon")); // Include the subject name
-                    metadata.put("maDe", rs.getString("MaDe"));   // Include the exam code
+                    metadata.put("createdAt", rs.getTimestamp("created_at"));
+                    metadata.put("userId", rs.getInt("user_id"));
+                    metadata.put("maMon", rs.getString("MaMon"));
+                    metadata.put("maDe", rs.getString("MaDe"));
                     
-                    // Use the original timestamp format from the database
-                    String createdAt = rs.getString("created_at");
-                    if (createdAt != null) {
-                        metadata.put("createdAt", createdAt);
-                    }
-                    
-                    // Add time limit if available
                     Integer timeLimit = rs.getInt("time_limit");
                     if (!rs.wasNull()) {
                         metadata.put("timeLimit", timeLimit);
                     }
-                    
-                    logger.info("Found metadata: " + metadata);
                 } else {
                     // If no match in Quizzes table, return default values
                     logger.info("No quiz found with MaMon: " + maMon + ", MaDe: " + maDe);
@@ -567,41 +561,39 @@ public class QuestionServiceImpl implements QuestionService {
                 int count = 0;
                 while (rs.next()) {
                     count++;
-                    // Handle both uppercase and lowercase column names
+                    
+                    // Get the MaDe from the result - try different case versions
                     String maDe = rs.getString("MaDe");
                     if (maDe == null) {
                         maDe = rs.getString("made");
                     }
+                    if (maDe == null) {
+                        maDe = rs.getString("maDe");
+                    }
                     
-                    if (maDe != null && !maDe.isEmpty()) {
+                    // Skip if MaDe is null or empty
+                    if (maDe != null && !maDe.trim().isEmpty()) {
                         Map<String, Object> metadata = new HashMap<>();
                         
+                        // Include the quiz ID
                         metadata.put("id", rs.getInt("id"));
+                        
                         metadata.put("title", rs.getString("title"));
                         metadata.put("description", rs.getString("description"));
-                        metadata.put("userId", rs.getInt("user_id"));
                         
-                        // Format creator as "Full Name (username)"
-                        String username = rs.getString("username");
-                        String fullName = rs.getString("full_name");
-                        
-                        if (fullName != null && !fullName.isEmpty()) {
-                            metadata.put("createdBy", fullName + " (" + username + ")");
-                        } else {
-                            metadata.put("createdBy", username);
+                        // Prepare creator information
+                        String createdBy = "Unknown";
+                        if (rs.getString("username") != null) {
+                            createdBy = rs.getString("username");
+                        } else if (rs.getString("full_name") != null) {
+                            createdBy = rs.getString("full_name");
                         }
+                        metadata.put("createdBy", createdBy);
                         
                         metadata.put("isAIGenerated", rs.getBoolean("is_ai_generated"));
-                        metadata.put("maMon", maMon); // Use the requested maMon for consistency
-                        metadata.put("maDe", maDe);   // Include the exam code
+                        metadata.put("createdAt", rs.getTimestamp("created_at"));
+                        metadata.put("userId", rs.getInt("user_id"));
                         
-                        // Use the original timestamp format from the database
-                        String createdAt = rs.getString("created_at");
-                        if (createdAt != null) {
-                            metadata.put("createdAt", createdAt);
-                        }
-                        
-                        // Add time limit if available
                         Integer timeLimit = rs.getInt("time_limit");
                         if (!rs.wasNull()) {
                             metadata.put("timeLimit", timeLimit);

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import DashboardLayout from '../components/DashboardLayout';
-import { API_URL } from '../services/config';
+import ProfileCard from '../components/ProfileCard';
+import { API_URL, PUBLIC_URL } from '../services/config';
 
 const Profile = () => {
   const { user, setUser } = useAuth();
@@ -24,6 +25,62 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [studentImageUrl, setStudentImageUrl] = useState('');
+  const [originalImageUrl, setOriginalImageUrl] = useState('');
+
+  // Code icon SVG for software engineers/students
+  const codeIconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+    </svg>
+  `;
+  const codeIconUrl = `data:image/svg+xml;base64,${btoa(codeIconSvg)}`;
+
+  // Get the student image URL based on student ID
+  useEffect(() => {
+    try {
+      if (user) {
+        console.log('User object:', user);
+        
+        let newStudentImageUrl = '';
+        let originalUrl = '';
+        
+        // Safely get the original URL
+        if (user.profileImageUrl && typeof user.profileImageUrl === 'string') {
+          originalUrl = user.profileImageUrl;
+          console.log('Original profile image URL:', originalUrl);
+          
+          // Extract student ID from the original URL
+          if (originalUrl.includes('/profile/image/')) {
+            try {
+              const parts = originalUrl.split('/');
+              const fileName = parts[parts.length - 1]; // This will be like "DE180045.jpg"
+              console.log('Extracted filename:', fileName);
+              
+              const studentId = fileName.split('.')[0]; // Extract DE180045 from DE180045.jpg
+              console.log('Extracted student ID:', studentId);
+              
+              if (studentId) {
+                // Use the exact same format as the working endpoint
+                newStudentImageUrl = `${API_URL.replace(/\/api$/, '')}/api/StudentImages/${studentId}.png`;
+                console.log('New student image URL:', newStudentImageUrl);
+              }
+            } catch (err) {
+              console.error('Error extracting student ID from URL:', err);
+            }
+          }
+        }
+        
+        setStudentImageUrl(newStudentImageUrl || originalUrl || "/images/default-avatar.svg");
+        setOriginalImageUrl(originalUrl);
+      }
+    } catch (err) {
+      console.error('Error in student image URL processing:', err);
+      // Set default values in case of error
+      setStudentImageUrl("/images/default-avatar.svg");
+      setOriginalImageUrl("");
+    }
+  }, [user, API_URL]);
 
   // Load user data into form
   useEffect(() => {
@@ -110,10 +167,38 @@ const Profile = () => {
     }
   };
 
+  const handleContactClick = () => {
+    // You can implement contact functionality here
+    console.log('Contact button clicked');
+  };
+
+  // Get user role in a formatted way
+  const getUserTitle = () => {
+    if (!user || !user.role) return "User";
+    
+    // Convert role to a more readable format
+    switch (user.role) {
+      case 'lecturer':
+        return 'Lecturer';
+      case 'student':
+        return 'Student';
+      case 'outsrc_student':
+        return 'External Student';
+      default:
+        return user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    }
+  };
+
+  // Get user handle from email
+  const getUserHandle = () => {
+    if (!user || !user.email) return "user";
+    return user.email.split('@')[0];
+  };
+
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">User Profile</h1>
+      <div className="max-w-6xl mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8 text-center">User Profile</h1>
 
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
@@ -127,40 +212,36 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="md:flex">
-            {/* Profile Image Section */}
-            <div className="md:w-1/3 bg-indigo-50 p-8 flex flex-col items-center justify-center">
-              <img
-                src={profileData.profileImageUrl || 'https://via.placeholder.com/150'}
-                alt="Profile"
-                className="h-48 w-48 rounded-full object-cover border-4 border-white shadow-md"
-              />
-              
-              {editing && (
-                <div className="mt-4 w-full">
-                  <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
-                  <input
-                    type="text"
-                    name="profileImageUrl"
-                    value={profileData.profileImageUrl}
-                    onChange={handleInputChange}
-                    className="mt-1 p-2 w-full border rounded-md"
-                    placeholder="Image URL"
-                  />
-                </div>
-              )}
-              
-              <div className="mt-4 text-center">
-                <h2 className="text-xl font-semibold">{user?.fullName}</h2>
-                <p className="text-gray-600 capitalize">{user?.role}</p>
+        {!user ? (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+            <p>Loading user data...</p>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Profile Card Section - Take 40% width on large screens */}
+            <div className="lg:w-5/12 flex justify-center mb-8 lg:mb-0">
+              <div className="w-full max-w-[350px]">
+                <ProfileCard
+                  name={user?.fullName || "User Name"}
+                  title={getUserTitle()}
+                  handle={getUserHandle()}
+                  status={user?.isActive ? "Active" : "Offline"}
+                  contactText="Message"
+                  avatarUrl={studentImageUrl}
+                  originalUrl={originalImageUrl}
+                  iconUrl={codeIconUrl}
+                  showUserInfo={true}
+                  enableTilt={true}
+                  onContactClick={handleContactClick}
+                />
               </div>
             </div>
 
-            {/* Profile Details Section */}
-            <div className="md:w-2/3 p-8">
+            {/* Profile Details Section - Take 60% width on large screens */}
+            <div className="lg:w-7/12 bg-white/80 backdrop-blur-md rounded-[30px] shadow-md overflow-hidden">
+              <div className="p-8">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold">Profile Information</h3>
+                  <h3 className="text-xl font-semibold">Profile Information</h3>
                 <div>
                   {!editing ? (
                     <div className="space-x-2">
@@ -228,6 +309,21 @@ const Profile = () => {
                       <p className="mt-1">{profileData.phoneNumber || 'Not provided'}</p>
                     )}
                   </div>
+
+                      {/* Profile Image URL */}
+                      {editing && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
+                          <input
+                            type="text"
+                            name="profileImageUrl"
+                            value={profileData.profileImageUrl}
+                            onChange={handleInputChange}
+                            className="mt-1 p-2 w-full border rounded-md"
+                            placeholder="Image URL"
+                          />
+                        </div>
+                      )}
 
                   {/* Role */}
                   <div>
@@ -369,6 +465,7 @@ const Profile = () => {
             </div>
           </div>
         </div>
+        )}
       </div>
     </DashboardLayout>
   );
