@@ -13,6 +13,7 @@ const BackgroundCustomizer = () => {
     glassEffectRange,
     glassEffectMaxBrightness,
     glassEffectMinBrightness,
+    menuType,
     updateBackgroundImage, 
     updateBackgroundOpacity,
     updateComponentOpacity,
@@ -24,7 +25,8 @@ const BackgroundCustomizer = () => {
     updateLiquidGlassEffect,
     updateGlassEffectRange,
     updateGlassEffectMaxBrightness,
-    updateGlassEffectMinBrightness
+    updateGlassEffectMinBrightness,
+    updateMenuType
   } = useTheme();
   const [imagePreview, setImagePreview] = useState(backgroundImage || '');
   const [bgOpacity, setBgOpacity] = useState(backgroundOpacity);
@@ -519,6 +521,46 @@ const BackgroundCustomizer = () => {
               <li>Min Brightness: Controls the minimum brightness threshold for the effect to show</li>
               <li>Shadow Direction: The shadow light now follows your cursor position around the borders</li>
             </ul>
+          </div>
+        </div>
+
+        {/* Menu Type Section */}
+        <div className="mt-8 mb-6 pt-6 border-t border-gray-200">
+          <h4 className="font-medium text-gray-800 mb-3">Menu Style</h4>
+          
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <input
+                id="menu-floating"
+                name="menu-type"
+                type="radio"
+                checked={menuType === 'floating'}
+                onChange={() => updateMenuType('floating')}
+                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <label htmlFor="menu-floating" className="ml-3 block text-sm font-medium text-gray-700">
+                Floating Menu (Collapsible)
+              </label>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                id="menu-traditional"
+                name="menu-type"
+                type="radio"
+                checked={menuType === 'traditional'}
+                onChange={() => updateMenuType('traditional')}
+                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <label htmlFor="menu-traditional" className="ml-3 block text-sm font-medium text-gray-700">
+                Traditional Sidebar
+              </label>
+            </div>
+            
+            <p className="text-sm text-gray-500 mt-2">
+              Choose your preferred navigation menu style. Changes will take effect immediately.
+              You may need to refresh the page for the changes to fully apply.
+            </p>
           </div>
         </div>
 

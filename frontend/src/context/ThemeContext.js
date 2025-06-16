@@ -138,6 +138,17 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  // Initialize menu type (default: 'floating')
+  const [menuType, setMenuType] = useState(() => {
+    try {
+      const savedMenuType = localStorage.getItem('appMenuType');
+      return savedMenuType || 'floating';
+    } catch (error) {
+      console.error("Error initializing menu type:", error);
+      return 'floating';
+    }
+  });
+
   // Apply theme changes to document
   useEffect(() => {
     try {
@@ -878,6 +889,12 @@ export const ThemeProvider = ({ children }) => {
     setGlassEffectMinBrightness(brightness);
   };
 
+  // Update menu type
+  const updateMenuType = (type) => {
+    setMenuType(type);
+    localStorage.setItem('appMenuType', type);
+  };
+
   console.log("ThemeProvider rendering with darkMode:", darkMode);
 
   return (
@@ -902,7 +919,9 @@ export const ThemeProvider = ({ children }) => {
       updateLiquidGlassEffect,
       updateGlassEffectRange,
       updateGlassEffectMaxBrightness,
-      updateGlassEffectMinBrightness
+      updateGlassEffectMinBrightness,
+      menuType,
+      updateMenuType
     }}>
       {children}
     </ThemeContext.Provider>
