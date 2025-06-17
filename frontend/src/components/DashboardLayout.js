@@ -25,6 +25,7 @@ const DashboardLayout = ({ children }) => {
   const [isGroupChatOpen, setIsGroupChatOpen] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(null);
+  const [showMobileFloatingMenu, setShowMobileFloatingMenu] = useState(false);
 
   // Calculate sidebar opacity based on componentOpacity
   const sidebarOpacity = componentOpacity / 100;
@@ -38,6 +39,18 @@ const DashboardLayout = ({ children }) => {
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Handle sidebar toggle - different behavior based on screen size
+  const handleSidebarToggle = () => {
+    // For desktop with traditional sidebar
+    if (menuType !== 'floating') {
+      setIsMenuOpen(!isMenuOpen);
+    } 
+    // For mobile with floating menu
+    else {
+      setShowMobileFloatingMenu(!showMobileFloatingMenu);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -417,12 +430,34 @@ const DashboardLayout = ({ children }) => {
         )}
         
       {/* Navbar - visible on all screens */}
-      <Navbar toggleSidebar={() => setIsMenuOpen(!isMenuOpen)} />
+      <Navbar toggleSidebar={handleSidebarToggle} />
       
         {/* Conditional rendering based on menu type */}
         {menuType === 'floating' ? (
-          /* Floating Menu */
-          <FloatingMenu />
+          /* Floating Menu - hidden on mobile but controlled by showMobileFloatingMenu */
+          <>
+            {/* Desktop version - always visible on sm and up */}
+            <div className="hidden sm:block">
+              <FloatingMenu />
+            </div>
+            
+            {/* Mobile version - conditionally visible with animation */}
+            {showMobileFloatingMenu && (
+              <div className="sm:hidden animate-slide-in fixed inset-0 z-[9000]">
+                <div 
+                  className="fixed inset-0 bg-black bg-opacity-50 z-[9001]"
+                  onClick={() => setShowMobileFloatingMenu(false)}
+                ></div>
+                <div className="relative z-[9002] max-h-screen overflow-auto pt-16 pb-4 px-4">
+                  <FloatingMenu 
+                    forceExpanded={true} 
+                    onClose={() => setShowMobileFloatingMenu(false)}
+                    mobileView={true}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           /* Traditional Sidebar - Always visible on desktop */
           <>
@@ -567,7 +602,7 @@ const DashboardLayout = ({ children }) => {
           </div>
         )}
         
-          <main className={`flex-1 relative overflow-y-auto focus:outline-none p-4 mt-16 ${menuType === 'floating' ? 'pl-24 md:pl-28' : ''}`}>
+          <main className={`flex-1 relative overflow-y-auto focus:outline-none p-4 mt-16 ${menuType === 'floating' ? 'sm:pl-24 md:pl-28' : ''}`}>
           {children}
         </main>
       </div>

@@ -3,13 +3,32 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-const FloatingMenu = () => {
+const FloatingMenu = ({ forceExpanded = false, onClose = null, mobileView = false }) => {
   const { user, logout } = useAuth();
   const { componentOpacity, blurLevel } = useTheme();
   const location = useLocation();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(forceExpanded);
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
+  const [closingSubmenu, setClosingSubmenu] = useState(null);
+  const [animatingOut, setAnimatingOut] = useState(false);
+
+  // Update isExpanded when forceExpanded changes
+  useEffect(() => {
+    setIsExpanded(forceExpanded);
+  }, [forceExpanded]);
+  
+  // Handle animation end for collapse animation
+  useEffect(() => {
+    if (animatingOut) {
+      const timer = setTimeout(() => {
+        setAnimatingOut(false);
+        setClosingSubmenu(null);
+      }, 300); // Match animation duration in tailwind config
+      
+      return () => clearTimeout(timer);
+    }
+  }, [animatingOut]);
 
   // Calculate sidebar opacity based on componentOpacity
   const sidebarOpacity = componentOpacity / 100;
@@ -47,9 +66,12 @@ const FloatingMenu = () => {
   // Toggle submenu open/closed
   const toggleSubmenu = (menuName) => {
     if (openSubmenu === menuName) {
+      setAnimatingOut(true);
+      setClosingSubmenu(openSubmenu);
       setOpenSubmenu(null);
     } else {
       setOpenSubmenu(menuName);
+      setAnimatingOut(false);
     }
   };
 
@@ -68,38 +90,79 @@ const FloatingMenu = () => {
   // Default profile image if none provided
   const profileImage = user?.profileImageUrl || 'https://via.placeholder.com/150';
 
+  // Role badge color based on user role
+  const getRoleBadgeColor = () => {
+    if (!user || !user.role) return 'bg-gray-200/80';
+    
+    switch (user.role) {
+      case 'student': return 'bg-green-400/70 text-green-800';
+      case 'lecturer': return 'bg-blue-400/70 text-blue-800';
+      case 'admin': return 'bg-purple-400/70 text-purple-800';
+      case 'guest': return 'bg-gray-200/70 text-gray-800';
+      case 'outsrc_student': return 'bg-yellow-300/70 text-yellow-800';
+      default: return 'bg-gray-200/90 text-gray-800';
+    }
+  };
+
   return (
     <div 
-      className={`fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col rounded-xl shadow-xl transition-all duration-300 overflow-hidden 
+      className={`${mobileView ? 'relative' : 'fixed left-4 top-1/2 -translate-y-1/2'} z-[9002] flex flex-col rounded-xl shadow-xl transition-all duration-300 overflow-hidden sm:flex
                 ${isExpanded ? 'w-64' : 'w-14'}`}
       style={{
-        backgroundColor: `rgba(255, 255, 255, ${sidebarOpacity})`,
+        backgroundColor: mobileView ? `rgba(255, 255, 255, 1)` : `rgba(255, 255, 255, ${sidebarOpacity})`,
         backdropFilter: `blur(${backdropBlurValue})`,
         
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Close button for mobile version */}
+      {onClose && (
+        <button 
+          onClick={onClose}
+          className="absolute top-2 right-2 p-1 rounded-full bg-gray-200/50 text-gray-700 hover:bg-gray-300/50 z-[9999]"
+          aria-label="Close menu"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+      
       {/* Menu items with fixed width container to prevent content shift */}
-      <div className="flex-1 overflow-y-auto py-4 px-2 w-64">
+      <div className={`flex-1 overflow-y-auto py-4 px-1.5 ${isExpanded ? 'w-64' : 'w-14'} transition-all duration-300 hide-scrollbar`}
+           style={{ 
+             scrollbarWidth: 'none', 
+             msOverflowStyle: 'none',
+             maxHeight: mobileView ? 'calc(100vh - 80px)' : 'auto'
+           }}>
+        <style jsx>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
         {/* Profile section - always rendered but visible based on expansion */}
         <div className={`flex flex-col items-center p-2 mb-4 border-b border-gray-200/50 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden m-0 p-0'}`}>
-          <img
-            className="h-16 w-16 rounded-full object-cover mb-2"
-            src={profileImage}
-            alt="Profile"
-          />
-          <h2 className="text-sm font-semibold">{user?.fullName}</h2>
-          <p className="text-xs text-gray-500">{user?.email}</p>
-          <p className="text-xs text-gray-500 capitalize mt-1">Role: {user?.role}</p>
+                    <div className="relative mb-2">
+            <img
+              className="h-16 w-16 rounded-full object-cover"
+              src={profileImage}
+              alt="Profile"
+            />
+                        <div className={`absolute right-0 top-4/5 transform translate-x-1/2 -translate-y-1/2 px-2 py-0 text-xs font-semibold rounded-md backdrop-blur-sm ${getRoleBadgeColor()}`} style={{ backdropFilter: 'blur(16px)' }}>
+                {user?.role}
+              </div>
+          </div>
+          <h2 className="text-sm font-semibold truncate max-w-full">{user?.fullName}</h2>
+          <p className="text-xs text-gray-500 truncate max-w-full">{user?.email}</p>
         </div>
 
         <nav className="space-y-2">
           {/* Dashboard */}
           <Link 
             to={getDashboardUrl()} 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
-              ${location.pathname.includes('dashboard') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
+              ${location.pathname.includes('dashboard') ? 'bg-indigo-300/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -110,7 +173,7 @@ const FloatingMenu = () => {
           {/* My Classes */}
           <Link 
             to="/classes" 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('classes') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,7 +185,7 @@ const FloatingMenu = () => {
           {/* Weekly Timetable */}
           <Link 
             to="/timetable" 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('timetable') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +197,7 @@ const FloatingMenu = () => {
           {/* Quizzes */}
           <Link 
             to="/quiz" 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('quiz') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -146,7 +209,7 @@ const FloatingMenu = () => {
           {/* Lessons */}
           <Link 
             to="/lessons" 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('lessons') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -158,7 +221,7 @@ const FloatingMenu = () => {
           {/* Course Materials */}
           <Link 
             to="/materials" 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('materials') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -170,7 +233,7 @@ const FloatingMenu = () => {
           {/* Student Overview */}
           <Link 
             to="/student-overview" 
-            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 w-full
+            className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('student-overview') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
             <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,7 +246,7 @@ const FloatingMenu = () => {
           <div className="relative">
             <button
               onClick={() => toggleSubmenu('requests')}
-              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 justify-between"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 justify-between"
             >
               <div className="flex items-center">
                 <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,8 +266,8 @@ const FloatingMenu = () => {
               )}
             </button>
             
-            {isExpanded && openSubmenu === 'requests' && (
-              <div className="pl-7 mt-1 space-y-1">
+            {isExpanded && (openSubmenu === 'requests' || (closingSubmenu === 'requests' && animatingOut)) && (
+              <div className={`pl-7 mt-1 space-y-1 overflow-hidden ${openSubmenu === 'requests' ? 'animate-expand' : 'animate-collapse'}`}>
                 <Link 
                   to="/request/move-class" 
                   className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
@@ -242,7 +305,7 @@ const FloatingMenu = () => {
           <div className="relative">
             <button
               onClick={() => toggleSubmenu('help')}
-              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 justify-between"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 justify-between"
             >
               <div className="flex items-center">
                 <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -262,8 +325,8 @@ const FloatingMenu = () => {
               )}
             </button>
             
-            {isExpanded && openSubmenu === 'help' && (
-              <div className="pl-7 mt-1 space-y-1">
+            {isExpanded && (openSubmenu === 'help' || (closingSubmenu === 'help' && animatingOut)) && (
+              <div className={`pl-7 mt-1 space-y-1 overflow-hidden ${openSubmenu === 'help' ? 'animate-expand' : 'animate-collapse'}`}>
                 <Link 
                   to="/help/faq" 
                   className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
@@ -301,7 +364,7 @@ const FloatingMenu = () => {
           <div className="relative">
             <button
               onClick={() => toggleSubmenu('settings')}
-              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100/20 justify-between"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 justify-between"
             >
               <div className="flex items-center">
                 <svg className="w-5 h-5 text-gray-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,8 +385,8 @@ const FloatingMenu = () => {
               )}
             </button>
             
-            {isExpanded && openSubmenu === 'settings' && (
-              <div className="pl-7 mt-1 space-y-1">
+            {isExpanded && (openSubmenu === 'settings' || (closingSubmenu === 'settings' && animatingOut)) && (
+              <div className={`pl-7 mt-1 space-y-1 overflow-hidden ${openSubmenu === 'settings' ? 'animate-expand' : 'animate-collapse'}`}>
                 <Link 
                   to="/profile" 
                   className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
@@ -374,7 +437,7 @@ const FloatingMenu = () => {
         <div className="p-3 border-t border-gray-200/50">
           <button
             onClick={logout}
-            className="flex items-center w-full mt-16 px-3 py-2 text-sm text-red-600 hover:bg-red-50/70 rounded-md"
+            className="flex items-center w-full mt-12 px-3 py-2 text-sm text-red-600 hover:bg-red-50/70 rounded-md"
           >
             <svg className="w-5 h-5 text-red-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
