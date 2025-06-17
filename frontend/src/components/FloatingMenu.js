@@ -70,11 +70,12 @@ const FloatingMenu = () => {
 
   return (
     <div 
-      className={`fixed left-4 z-40 flex flex-col rounded-xl shadow-xl transition-all duration-300 overflow-hidden 
-                ${isExpanded ? 'w-64 top-24' : 'w-14 top-60'}`}
+      className={`fixed left-4 top-1/2 -translate-y-1/2 z-40 flex flex-col rounded-xl shadow-xl transition-all duration-300 overflow-hidden 
+                ${isExpanded ? 'w-64' : 'w-14'}`}
       style={{
         backgroundColor: `rgba(255, 255, 255, ${sidebarOpacity})`,
         backdropFilter: `blur(${backdropBlurValue})`,
+        
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -93,7 +94,7 @@ const FloatingMenu = () => {
           <p className="text-xs text-gray-500 capitalize mt-1">Role: {user?.role}</p>
         </div>
 
-        <nav className="space-y-1">
+        <nav className="space-y-2">
           {/* Dashboard */}
           <Link 
             to={getDashboardUrl()} 
@@ -373,7 +374,7 @@ const FloatingMenu = () => {
         <div className="p-3 border-t border-gray-200/50">
           <button
             onClick={logout}
-            className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50/70 rounded-md"
+            className="flex items-center w-full mt-16 px-3 py-2 text-sm text-red-600 hover:bg-red-50/70 rounded-md"
           >
             <svg className="w-5 h-5 text-red-500 min-w-[1.25rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
