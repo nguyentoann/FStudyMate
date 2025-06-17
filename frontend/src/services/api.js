@@ -47,8 +47,8 @@ export const getMaDeByMaMon = async (maMon) => {
   try {
     console.log(`[API] Fetching MaDe for MaMon: ${maMon}`);
     
-    // Ensure maMon is properly formatted
-    const formattedMaMon = maMon.toString().trim();
+    // Ensure maMon is properly formatted and encoded
+    const formattedMaMon = encodeURIComponent(maMon.toString().trim());
     
     // Get current user information from localStorage
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -85,9 +85,9 @@ export const getQuestions = async (maMon, maDe, random = false) => {
   try {
     console.log(`[API] Fetching questions for MaMon: ${maMon}, MaDe: ${maDe}, Random: ${random}`);
     
-    // Ensure parameters are properly formatted
-    const formattedMaMon = maMon.toString().trim();
-    const formattedMaDe = maDe.toString().trim();
+    // Ensure parameters are properly formatted and encoded
+    const formattedMaMon = encodeURIComponent(maMon.toString().trim());
+    const formattedMaDe = encodeURIComponent(maDe.toString().trim());
     
     // Get current user information for context
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -690,9 +690,9 @@ export const getQuizMetadata = async (maMon, maDe) => {
   try {
     console.log(`[API] Fetching quiz metadata for MaMon: ${maMon}, MaDe: ${maDe}`);
     
-    // Ensure parameters are properly formatted
-    const formattedMaMon = maMon.toString().trim();
-    const formattedMaDe = maDe.toString().trim();
+    // Ensure parameters are properly formatted and encoded
+    const formattedMaMon = encodeURIComponent(maMon.toString().trim());
+    const formattedMaDe = encodeURIComponent(maDe.toString().trim());
     
     // Fix: Change endpoint from /quizzes/metadata to /questions/quizzes/metadata
     const response = await axios.get(`${API_URL}/questions/quizzes/metadata`, {
@@ -738,7 +738,7 @@ export const getQuizMetadataForSubject = async (maMon) => {
   try {
     console.log(`[API] Fetching quiz metadata for all exams in subject: ${maMon}`);
     
-    const formattedMaMon = maMon.toString().trim();
+    const formattedMaMon = encodeURIComponent(maMon.toString().trim());
     
     // Fix the API endpoint URL to match the backend controller mapping at /api/questions/quizzes/subject-metadata
     const response = await axios.get(`${API_URL}/questions/quizzes/subject-metadata`, {
