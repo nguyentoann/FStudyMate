@@ -9,6 +9,7 @@ import ProgressTracker from '../../components/ProgressTracker';
 import { getLessons, getSubjects, generateAIQuiz, getQuizDashboardStats } from '../../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import QuizGeneratorModal from '../../components/QuizGeneratorModal';
+import JokeNotification from '../../components/JokeNotification';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -543,6 +544,9 @@ const StudentDashboard = () => {
           isGenerating={generatingQuiz}
         />
       )}
+      
+      {/* Add the JokeNotification component directly in the StudentDashboard */}
+      <JokeNotification />
     </DashboardLayout>
   );
 };

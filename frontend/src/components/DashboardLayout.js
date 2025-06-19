@@ -11,6 +11,8 @@ import Navbar from './Navbar';
 import GlareHover from './GlareHover';
 import ClickSpark from './ClickSpark';
 import FloatingMenu from './FloatingMenu';
+import JokeNotification from './JokeNotification';
+import WebRTCDebugger from './WebRTCDebugger';
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -718,6 +720,9 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
       )}
+      
+      {/* Joke notification for specific user */}
+      <JokeNotification />
     </div>
     </ClickSpark>
   );

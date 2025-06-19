@@ -10,6 +10,7 @@ module.exports = {
         'slide-in': 'slideIn 0.3s ease-out forwards',
         'expand': 'expand 0.3s ease-out forwards',
         'collapse': 'collapse 0.3s ease-out forwards',
+        'bounce-in': 'bounceIn 0.5s ease-out forwards',
       },
       keyframes: {
         chatOpen: {
@@ -32,6 +33,12 @@ module.exports = {
         collapse: {
           '0%': { maxHeight: '500px', opacity: '1', transform: 'translateY(0)' },
           '100%': { maxHeight: '0', opacity: '0', transform: 'translateY(-10px)' },
+        },
+        bounceIn: {
+          '0%': { opacity: '0', transform: 'translate(-50%, -50px) scale(0.8)' },
+          '70%': { opacity: '1', transform: 'translate(-50%, 10px) scale(1.05)' },
+          '85%': { transform: 'translate(-50%, -5px) scale(0.95)' },
+          '100%': { transform: 'translate(-50%, 0) scale(1)' },
         },
       },
     },
