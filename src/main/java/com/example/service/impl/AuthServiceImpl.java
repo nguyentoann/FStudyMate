@@ -97,6 +97,7 @@ public class AuthServiceImpl implements AuthService {
      * @param otp One-time password
      * @return true if verification successful
      */
+    @Override
     @Transactional
     public boolean verifyAccount(String email, String otp) {
         // Validate the OTP
@@ -118,5 +119,59 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String generateOtpForEmail(String email) {
         return otpService.generateAndSendOtp(email);
+    }
+    
+    @Override
+    @Transactional
+    public boolean generatePasswordResetOtp(String email) {
+        try {
+            // Check if user exists
+            if (!userRepository.findByEmail(email).isPresent()) {
+                return false;
+            }
+            
+            // Generate and send OTP
+            String otp = otpService.generateAndSendOtp(email);
+            return otp != null && !otp.isEmpty();
+        } catch (Exception e) {
+            System.err.println("Error generating password reset OTP: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    @Override
+    @Transactional
+    public boolean resetPassword(String email, String otp, String newPassword) {
+        try {
+            // Validate the OTP
+            boolean otpValid = otpService.validateOtp(email, otp);
+            
+            if (!otpValid) {
+                return false;
+            }
+            
+            // Find the user
+            User user = userRepository.findByEmail(email)
+                    .orElse(null);
+            
+            if (user == null) {
+                return false;
+            }
+            
+            // Update password
+            String hashedPassword = passwordEncoder.encode(newPassword);
+            user.setPasswordHash(hashedPassword);
+            
+            // Ensure user is marked as verified
+            user.setVerified(true);
+            
+            // Save the user
+            userRepository.save(user);
+            
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error resetting password: " + e.getMessage());
+            return false;
+        }
     }
 } 
