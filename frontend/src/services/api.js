@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { API_URL } from './config';
 
+// Add DEBUG flag to easily enable/disable logging - SET TO FALSE WHEN DONE DEBUGGING
+const DEBUG_QUIZ_SUBMISSIONS = false;
+
 // Setup request interceptor to add auth token to all requests
 axios.interceptors.request.use(
   config => {
@@ -759,8 +762,18 @@ export const startQuiz = async (quizId) => {
   try {
     // Get user ID from localStorage
     const user = JSON.parse(localStorage.getItem('user'));
+    
+    if (DEBUG_QUIZ_SUBMISSIONS) {
+      console.log("DEBUG [startQuiz] API_URL:", API_URL);
+      console.log("DEBUG [startQuiz] User data:", user);
+      console.log("DEBUG [startQuiz] Session token:", localStorage.getItem('sessionId'));
+      console.log("DEBUG [startQuiz] Starting quiz with ID:", quizId);
+    }
+    
     if (!user || !user.id) {
-      throw new Error('You must be logged in to start a quiz');
+      const error = new Error('You must be logged in to start a quiz');
+      console.error("DEBUG [startQuiz] Error:", error.message);
+      throw error;
     }
     
     const response = await axios.post(`${API_URL}/quiz-attempts/start`, null, {
@@ -770,19 +783,50 @@ export const startQuiz = async (quizId) => {
       }
     });
     
+    if (DEBUG_QUIZ_SUBMISSIONS) {
+      console.log("DEBUG [startQuiz] Response:", response.data);
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error starting quiz:', error);
+    if (DEBUG_QUIZ_SUBMISSIONS) {
+      console.error("DEBUG [startQuiz] Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+    }
     throw error;
   }
 };
 
 export const submitQuiz = async (quizTakenId, answers) => {
   try {
+    if (DEBUG_QUIZ_SUBMISSIONS) {
+      console.log("DEBUG [submitQuiz] Submitting quiz:", quizTakenId);
+      console.log("DEBUG [submitQuiz] Answer data summary:", {
+        numberOfQuestions: Object.keys(answers).length,
+        answerKeys: Object.keys(answers)
+      });
+    }
+    
     const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/submit`, answers);
+    
+    if (DEBUG_QUIZ_SUBMISSIONS) {
+      console.log("DEBUG [submitQuiz] Response:", response.data);
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error submitting quiz:', error);
+    if (DEBUG_QUIZ_SUBMISSIONS) {
+      console.error("DEBUG [submitQuiz] Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+    }
     throw error;
   }
 };
@@ -812,14 +856,23 @@ export const logQuizActivity = async (quizTakenId, eventType, details) => {
   }
 };
 
-export const getUserQuizHistory = async () => {
+export const getUserQuizHistory = async (userId = null) => {
   try {
-    // Get user ID from localStorage
+    // If userId is provided directly, use it
+    if (userId) {
+      console.log(`Using provided user ID: ${userId} for quiz history`);
+      const response = await axios.get(`${API_URL}/quiz-attempts/user/${userId}`);
+      return response.data;
+    }
+    
+    // Otherwise, try to get user ID from localStorage
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.id) {
+      console.error("No user ID found in localStorage");
       throw new Error('You must be logged in to view quiz history');
     }
     
+    console.log(`Using user ID from localStorage: ${user.id} for quiz history`);
     const response = await axios.get(`${API_URL}/quiz-attempts/user/${user.id}`);
     return response.data;
   } catch (error) {
@@ -896,5 +949,67 @@ export const getClassLeaderboard = async (quizId) => {
     console.error('Error fetching class leaderboard:', error);
     // Return empty array on error
     return [];
+  }
+};
+
+// Add this function to get quiz statistics for the dashboard
+export const getQuizDashboardStats = async () => {
+  try {
+    // Get user ID from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('You must be logged in to view quiz statistics');
+    }
+    
+    // Get quiz history
+    const historyResponse = await axios.get(`${API_URL}/quiz-attempts/user/${user.id}`);
+    
+    if (!historyResponse.data || !historyResponse.data.success) {
+      throw new Error('Failed to fetch quiz history');
+    }
+    
+    const history = historyResponse.data.history || [];
+    
+    // Calculate statistics
+    const totalQuizzes = history.length;
+    const completedQuizzes = history.filter(quiz => quiz.status === 'completed');
+    const inProgressQuizzes = history.filter(quiz => quiz.status === 'in_progress');
+    
+    // Calculate average score
+    const totalScore = completedQuizzes.reduce((sum, quiz) => sum + parseFloat(quiz.percentage || 0), 0);
+    const averageScore = completedQuizzes.length > 0 
+      ? (totalScore / completedQuizzes.length).toFixed(1) 
+      : 0;
+    
+    // Calculate completion rate
+    const completionRate = totalQuizzes > 0 
+      ? ((completedQuizzes.length / totalQuizzes) * 100).toFixed(1) 
+      : 0;
+    
+    // Get most recent quiz score
+    const sortedQuizzes = [...completedQuizzes].sort((a, b) => 
+      new Date(b.submitTime || b.startTime) - new Date(a.submitTime || a.startTime)
+    );
+    const recentQuizScore = sortedQuizzes.length > 0 
+      ? parseFloat(sortedQuizzes[0].percentage).toFixed(1) 
+      : null;
+    
+    return {
+      quizzesTaken: totalQuizzes,
+      averageScore: parseFloat(averageScore),
+      completionRate: parseFloat(completionRate),
+      recentQuizScore: recentQuizScore ? parseFloat(recentQuizScore) : null,
+      inProgressQuizzes: inProgressQuizzes.length
+    };
+  } catch (error) {
+    console.error('Error fetching quiz dashboard stats:', error);
+    // Return default values on error
+    return {
+      quizzesTaken: 0,
+      averageScore: 0,
+      completionRate: 0,
+      recentQuizScore: null,
+      inProgressQuizzes: 0
+    };
   }
 }; 

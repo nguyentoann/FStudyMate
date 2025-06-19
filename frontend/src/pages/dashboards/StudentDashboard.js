@@ -6,8 +6,8 @@ import { format } from 'date-fns';
 import { useChat } from '../../context/ChatContext';
 import LessonViewer from '../../components/LessonViewer';
 import ProgressTracker from '../../components/ProgressTracker';
-import { getLessons, getSubjects, generateAIQuiz } from '../../services/api';
-import { useNavigate } from 'react-router-dom';
+import { getLessons, getSubjects, generateAIQuiz, getQuizDashboardStats } from '../../services/api';
+import { useNavigate, Link } from 'react-router-dom';
 import QuizGeneratorModal from '../../components/QuizGeneratorModal';
 
 const StudentDashboard = () => {
@@ -19,7 +19,10 @@ const StudentDashboard = () => {
     quizzesTaken: 0,
     averageScore: 0,
     completedCourses: 0,
-    activeCourses: 0
+    activeCourses: 0,
+    recentQuizScore: null,
+    completionRate: 0,
+    inProgressQuizzes: 0
   });
   
   const [recentActivity, setRecentActivity] = useState([
@@ -49,16 +52,38 @@ const StudentDashboard = () => {
   const filteredLessons = lessons.filter(lesson => lesson.subjectId === selectedSubject);
 
   useEffect(() => {
-    // In a real app, you would fetch this data from your API
-    // For now, we'll use mock data
+    // Fetch quiz stats
+    const fetchQuizStats = async () => {
+      try {
+        const quizStats = await getQuizDashboardStats();
+        
+        // Update stats with quiz data and default values for other stats
+        setStats(prevStats => ({
+          ...prevStats,
+          quizzesTaken: quizStats.quizzesTaken,
+          averageScore: quizStats.averageScore,
+          recentQuizScore: quizStats.recentQuizScore,
+          completionRate: quizStats.completionRate,
+          inProgressQuizzes: quizStats.inProgressQuizzes
+        }));
+      } catch (error) {
+        console.error('Error fetching quiz stats:', error);
+      }
+    };
+    
+    // Set default values
     setStats({
-      quizzesTaken: 12,
-      averageScore: 78,
+      quizzesTaken: 0,
+      averageScore: 0,
       completedCourses: 3,
-      activeCourses: 2
+      activeCourses: 2,
+      recentQuizScore: null,
+      completionRate: 0,
+      inProgressQuizzes: 0
     });
     
-    // Fetch subjects from the API
+    // Fetch quiz stats and subjects
+    fetchQuizStats();
     fetchSubjects();
   }, []);
   
@@ -189,25 +214,52 @@ const StudentDashboard = () => {
         </div>
         
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className={`p-4 rounded-lg shadow ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-500'} text-sm`}>Quizzes Taken</p>
-            <p className="text-2xl font-bold">{stats.quizzesTaken}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6 flex flex-col relative">
+            {/* Top section with title and view button */}
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-medium text-gray-500">Quizzes Taken</h3>
+              <Link
+                to="/quiz-history"
+                className="text-xs text-indigo-600 hover:text-indigo-900 flex items-center"
+              >
+                View
+                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </Link>
+            </div>
+            
+            {/* Quiz count */}
+            <div className="mb-1">
+              <p className="text-3xl font-semibold">{stats.quizzesTaken}</p>
+            </div>
+            
+            {/* Details */}
+            <div className="text-xs text-gray-500 space-y-1 mb-auto">
+              <p>Completion rate: <span className="font-medium text-gray-700">{stats.completionRate}%</span></p>
+              {stats.recentQuizScore && (
+                <p>Recent score: <span className="font-medium text-gray-700">{stats.recentQuizScore}%</span></p>
+              )}
+              {stats.inProgressQuizzes > 0 && (
+                <p className="text-blue-500">{stats.inProgressQuizzes} in progress</p>
+              )}
+            </div>
           </div>
           
-          <div className={`p-4 rounded-lg shadow ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-500'} text-sm`}>Average Score</p>
-            <p className="text-2xl font-bold">{stats.averageScore}%</p>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-sm font-medium text-gray-500">Average Score</h3>
+            <p className="text-3xl font-semibold">{stats.averageScore}%</p>
           </div>
           
-          <div className={`p-4 rounded-lg shadow ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-500'} text-sm`}>Completed Courses</p>
-            <p className="text-2xl font-bold">{stats.completedCourses}</p>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-sm font-medium text-gray-500">Completed Courses</h3>
+            <p className="text-3xl font-semibold">{stats.completedCourses}</p>
           </div>
           
-          <div className={`p-4 rounded-lg shadow ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-500'} text-sm`}>Active Courses</p>
-            <p className="text-2xl font-bold">{stats.activeCourses}</p>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-sm font-medium text-gray-500">Active Courses</h3>
+            <p className="text-3xl font-semibold">{stats.activeCourses}</p>
           </div>
         </div>
         

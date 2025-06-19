@@ -34,6 +34,8 @@ import CreateQuiz from './pages/lecturer/CreateQuiz';
 import BlueCursor from './components/BlueCursor';
 import AppTheme from './pages/AppTheme';
 import AboutUs from './pages/AboutUs';
+import QuizHistory from './pages/QuizHistory';
+import QuizDetails from './pages/QuizDetails';
 import './styles/globals.css';
 
 // Show developer tools only in development environment
@@ -87,6 +89,18 @@ function App() {
                   <Route path="/quiz-game/:maMon/:maDe" element={
                     <ProtectedRoute>
                       <QuizGamePage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Quiz History routes */}
+                  <Route path="/quiz-history" element={
+                    <ProtectedRoute>
+                      <QuizHistory />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/quiz-details/:quizTakenId" element={
+                    <ProtectedRoute>
+                      <QuizDetails />
                     </ProtectedRoute>
                   } />
                   

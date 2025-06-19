@@ -3,6 +3,7 @@ package com.mycompany.fstudymate.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "QuizTaken")
@@ -35,7 +36,7 @@ public class QuizTaken {
     
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    private QuizStatus status = QuizStatus.IN_PROGRESS;
+    private QuizStatus status = QuizStatus.in_progress;
     
     @Column(name = "selected_answers", columnDefinition = "json")
     private String selectedAnswers;
@@ -60,11 +61,12 @@ public class QuizTaken {
     @JoinColumn(name = "quiz_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Quiz quiz;
     
+    // Simple enum that exactly matches database values
     public enum QuizStatus {
-        COMPLETED,
-        IN_PROGRESS,
-        ABANDONED,
-        FAILED
+        completed,
+        in_progress,
+        abandoned,
+        failed
     }
     
     // Add a log entry to the activity log

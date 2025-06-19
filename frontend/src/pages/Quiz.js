@@ -8,6 +8,9 @@ import { toast } from 'react-toastify';
 import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 
+// Debug flag - SET TO FALSE WHEN DONE DEBUGGING
+const DEBUG_QUIZ_SUBMISSIONS = false;
+
 // Add custom animation keyframes
 const animations = `
 @keyframes bounce-in {
@@ -782,33 +785,86 @@ const QuizComponent = ({ maMon, maDe }) => {
     try {
       setLoading(true);
       
+      if (DEBUG_QUIZ_SUBMISSIONS) {
+        console.group("DEBUG: Quiz Submission Process");
+        console.log("DEBUG: Starting quiz submission");
+        console.log("DEBUG: User data:", localStorage.getItem('user'));
+        console.log("DEBUG: Session ID:", localStorage.getItem('sessionId'));
+      }
+      
       // Initialize quiz session if not already done
       let quizTakenId = localStorage.getItem(`quiz_session_${maMon}_${maDe}`);
       let usedQuizId = quizMetadata?.id;
       
+      if (DEBUG_QUIZ_SUBMISSIONS) {
+        console.log("DEBUG: Existing quizTakenId:", quizTakenId);
+        console.log("DEBUG: Quiz metadata:", {
+          id: usedQuizId,
+          maMon,
+          maDe,
+          timeLimit: quizMetadata?.timeLimit
+        });
+      }
+      
       if (!quizTakenId) {
         // Get quiz ID (assuming it's available in quiz metadata)
         if (!usedQuizId) {
-          throw new Error("Quiz ID not found. Cannot save results.");
+          const error = new Error("Quiz ID not found. Cannot save results.");
+          if (DEBUG_QUIZ_SUBMISSIONS) console.error("DEBUG:", error.message);
+          throw error;
+        }
+        
+        if (DEBUG_QUIZ_SUBMISSIONS) {
+          console.log("DEBUG: Calling startQuiz with ID:", usedQuizId);
         }
         
         // Start a new quiz session
         const startResponse = await startQuiz(usedQuizId);
+        
+        if (DEBUG_QUIZ_SUBMISSIONS) {
+          console.log("DEBUG: startQuiz response:", startResponse);
+        }
+        
         if (!startResponse.success) {
-          throw new Error("Failed to start quiz session: " + startResponse.message);
+          const error = new Error("Failed to start quiz session: " + startResponse.message);
+          if (DEBUG_QUIZ_SUBMISSIONS) console.error("DEBUG:", error.message);
+          throw error;
         }
         
         quizTakenId = startResponse.quizTakenId;
         localStorage.setItem(`quiz_session_${maMon}_${maDe}`, quizTakenId);
+        
+        if (DEBUG_QUIZ_SUBMISSIONS) {
+          console.log("DEBUG: Saved quizTakenId to localStorage:", quizTakenId);
+        }
+      }
+      
+      if (DEBUG_QUIZ_SUBMISSIONS) {
+        console.log("DEBUG: Submitting answers for quizTakenId:", quizTakenId);
+        console.log("DEBUG: Questions answered:", Object.keys(selectedAnswers).length);
+        console.log("DEBUG: Total questions:", questions.length);
       }
       
       // Submit answers
-      await submitQuiz(quizTakenId, selectedAnswers);
+      const submitResponse = await submitQuiz(quizTakenId, selectedAnswers);
+      
+      if (DEBUG_QUIZ_SUBMISSIONS) {
+        console.log("DEBUG: submitQuiz response:", submitResponse);
+      }
       
       // Fetch leaderboard data after submitting
       if (usedQuizId) {
         try {
+          if (DEBUG_QUIZ_SUBMISSIONS) {
+            console.log("DEBUG: Fetching leaderboard for quizId:", usedQuizId);
+          }
+          
           const leaderboard = await getClassLeaderboard(usedQuizId);
+          
+          if (DEBUG_QUIZ_SUBMISSIONS) {
+            console.log("DEBUG: Leaderboard data:", leaderboard);
+          }
+          
           setLeaderboardData(leaderboard);
         } catch (leaderboardError) {
           console.error("Failed to fetch leaderboard:", leaderboardError);
@@ -817,14 +873,24 @@ const QuizComponent = ({ maMon, maDe }) => {
       }
       
       // Show results
-    setShowResults(true);
+      setShowResults(true);
       
       // Clean up local storage
-    localStorage.removeItem(`quiz_${maMon}_${maDe}`);
+      localStorage.removeItem(`quiz_${maMon}_${maDe}`);
       localStorage.removeItem(`quiz_session_${maMon}_${maDe}`);
+      
+      if (DEBUG_QUIZ_SUBMISSIONS) {
+        console.log("DEBUG: Quiz submission complete");
+        console.groupEnd();
+      }
     } catch (error) {
       console.error("Failed to submit quiz:", error);
       toast.error("Failed to save your quiz results: " + error.message);
+      
+      if (DEBUG_QUIZ_SUBMISSIONS) {
+        console.error("DEBUG: Quiz submission failed", error);
+        console.groupEnd();
+      }
       
       // Still show results even if saving failed
       setShowResults(true);

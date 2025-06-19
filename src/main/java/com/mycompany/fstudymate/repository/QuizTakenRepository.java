@@ -30,12 +30,12 @@ public interface QuizTakenRepository extends JpaRepository<QuizTaken, Integer> {
     long countByUserIdAndQuizId(Integer userId, Integer quizId);
     
     // Get average score for a quiz across all users
-    @Query("SELECT AVG(qt.percentage) FROM QuizTaken qt WHERE qt.quizId = ?1 AND qt.status = 'COMPLETED'")
+    @Query("SELECT AVG(qt.percentage) FROM QuizTaken qt WHERE qt.quizId = ?1 AND qt.status = 'completed'")
     Double getAverageScoreForQuiz(Integer quizId);
     
     // Get highest scores for each user on a specific quiz
-    @Query("SELECT qt FROM QuizTaken qt WHERE qt.quizId = ?1 AND qt.status = 'COMPLETED' " +
+    @Query("SELECT qt FROM QuizTaken qt WHERE qt.quizId = ?1 AND qt.status = 'completed' " +
            "AND qt.id IN (SELECT MAX(qt2.id) FROM QuizTaken qt2 " +
-           "WHERE qt2.quizId = ?1 AND qt2.status = 'COMPLETED' GROUP BY qt2.userId)")
+           "WHERE qt2.quizId = ?1 AND qt2.status = 'completed' GROUP BY qt2.userId)")
     List<QuizTaken> getHighestScoresForQuiz(Integer quizId);
 } 

@@ -63,7 +63,7 @@ public class QuizTakenServiceImpl implements QuizTakenService {
         if (hasInProgressAttempt(userId, quizId)) {
             logger.warn("User already has an in-progress attempt for this quiz");
             Optional<QuizTaken> inProgressAttempt = quizTakenRepository
-                .findByUserIdAndStatus(userId, QuizTaken.QuizStatus.IN_PROGRESS)
+                .findByUserIdAndStatus(userId, QuizTaken.QuizStatus.in_progress)
                 .stream()
                 .filter(qt -> qt.getQuizId().equals(quizId))
                 .findFirst();
@@ -78,7 +78,7 @@ public class QuizTakenServiceImpl implements QuizTakenService {
         quizTaken.setUserId(userId);
         quizTaken.setQuizId(quizId);
         quizTaken.setStartTime(LocalDateTime.now());
-        quizTaken.setStatus(QuizTaken.QuizStatus.IN_PROGRESS);
+        quizTaken.setStatus(QuizTaken.QuizStatus.in_progress);
         quizTaken.setIpAddress(ipAddress);
         quizTaken.setUserAgent(userAgent);
         
@@ -101,7 +101,7 @@ public class QuizTakenServiceImpl implements QuizTakenService {
         QuizTaken quizTaken = quizTakenOpt.get();
         
         // Only allow submission if the quiz is in progress
-        if (quizTaken.getStatus() != QuizTaken.QuizStatus.IN_PROGRESS) {
+        if (quizTaken.getStatus() != QuizTaken.QuizStatus.in_progress) {
             throw new IllegalStateException("Quiz attempt is not in progress");
         }
         
@@ -128,12 +128,35 @@ public class QuizTakenServiceImpl implements QuizTakenService {
         }
         
         // Update status
-        quizTaken.setStatus(QuizTaken.QuizStatus.COMPLETED);
+        quizTaken.setStatus(QuizTaken.QuizStatus.completed);
         
         // Log completion
         quizTaken.addLogEntry("SUBMIT", "Quiz submitted");
         
-        return quizTakenRepository.save(quizTaken);
+        // Save the updated quiz attempt
+        QuizTaken savedQuizTaken = quizTakenRepository.save(quizTaken);
+        
+        // Find and delete other in_progress attempts for this user and quiz to avoid duplicates
+        Integer userId = quizTaken.getUserId();
+        Integer quizId = quizTaken.getQuizId();
+        
+        if (userId != null && quizId != null) {
+            List<QuizTaken> duplicateAttempts = quizTakenRepository.findByUserIdAndStatus(userId, QuizTaken.QuizStatus.in_progress)
+                .stream()
+                .filter(qt -> qt.getQuizId().equals(quizId) && !qt.getId().equals(quizTakenId))
+                .collect(Collectors.toList());
+            
+            if (!duplicateAttempts.isEmpty()) {
+                logger.info("Found {} duplicate in_progress attempts for user {} and quiz {}, deleting them", 
+                    duplicateAttempts.size(), userId, quizId);
+                
+                for (QuizTaken duplicate : duplicateAttempts) {
+                    quizTakenRepository.delete(duplicate);
+                }
+            }
+        }
+        
+        return savedQuizTaken;
     }
 
     @Override
@@ -149,11 +172,11 @@ public class QuizTakenServiceImpl implements QuizTakenService {
         QuizTaken quizTaken = quizTakenOpt.get();
         
         // Only allow abandonment if the quiz is in progress
-        if (quizTaken.getStatus() != QuizTaken.QuizStatus.IN_PROGRESS) {
+        if (quizTaken.getStatus() != QuizTaken.QuizStatus.in_progress) {
             return; // Already completed or abandoned
         }
         
-        quizTaken.setStatus(QuizTaken.QuizStatus.ABANDONED);
+        quizTaken.setStatus(QuizTaken.QuizStatus.abandoned);
         quizTaken.addLogEntry("ABANDON", "Quiz abandoned");
         
         quizTakenRepository.save(quizTaken);
@@ -193,7 +216,7 @@ public class QuizTakenServiceImpl implements QuizTakenService {
         // Calculate statistics
         long totalAttempts = attempts.size();
         long completedAttempts = attempts.stream()
-            .filter(qt -> qt.getStatus() == QuizTaken.QuizStatus.COMPLETED)
+            .filter(qt -> qt.getStatus() == QuizTaken.QuizStatus.completed)
             .count();
         
         // Average score
@@ -217,13 +240,13 @@ public class QuizTakenServiceImpl implements QuizTakenService {
 
     @Override
     public List<QuizTaken> getInProgressQuizzes(Integer userId) {
-        return quizTakenRepository.findByUserIdAndStatus(userId, QuizTaken.QuizStatus.IN_PROGRESS);
+        return quizTakenRepository.findByUserIdAndStatus(userId, QuizTaken.QuizStatus.in_progress);
     }
 
     @Override
     public boolean hasInProgressAttempt(Integer userId, Integer quizId) {
         List<QuizTaken> inProgressAttempts = quizTakenRepository.findByUserIdAndStatus(
-            userId, QuizTaken.QuizStatus.IN_PROGRESS);
+            userId, QuizTaken.QuizStatus.in_progress);
         
         return inProgressAttempts.stream()
             .anyMatch(qt -> qt.getQuizId().equals(quizId));
