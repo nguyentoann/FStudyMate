@@ -28,6 +28,7 @@ import OutsrcStudentDashboard from './pages/dashboards/OutsrcStudentDashboard';
 import LandingPage from './pages/LandingPage';
 import QuizGamePage from './pages/QuizGamePage';
 import VerifyOtp from './pages/VerifyOtp';
+import CalendarPage from './pages/CalendarPage';
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from './pages/lecturer/QuizManager';
 import CreateQuiz from './pages/lecturer/CreateQuiz';
@@ -186,6 +187,13 @@ function App() {
                   <Route path="/lecturer/clone-quiz/:id" element={
                     <ProtectedRoute allowedRoles={['lecturer']}>
                       <CreateQuiz />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Calendar routes */}
+                  <Route path="/calendar" element={
+                    <ProtectedRoute>
+                      <CalendarPage />
                     </ProtectedRoute>
                   } />
                   

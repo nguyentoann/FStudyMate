@@ -184,7 +184,7 @@ const FloatingMenu = ({ forceExpanded = false, onClose = null, mobileView = fals
 
           {/* Weekly Timetable */}
           <Link 
-            to="/timetable" 
+            to="/calendar" 
             className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${location.pathname.includes('timetable') ? 'bg-indigo-100/50 text-indigo-700' : ''}`}
           >
