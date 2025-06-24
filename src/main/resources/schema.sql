@@ -430,3 +430,110 @@ CREATE TABLE `group_members` (
   CONSTRAINT `group_members_added_by_fk` FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+-- Personal Schedule and Events Tables
+DROP TABLE IF EXISTS `personal_schedules`;
+CREATE TABLE `personal_schedules` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `description` text,
+  `start_time` datetime NOT NULL,
+  `end_time` datetime NOT NULL,
+  `type` enum('CLASS','EXAM','ASSIGNMENT','MEETING','PERSONAL','OTHER') NOT NULL DEFAULT 'OTHER',
+  `location` varchar(255),
+  `color` varchar(7) DEFAULT '#3B82F6',
+  `is_recurring` tinyint(1) DEFAULT 0,
+  `recurrence_pattern` varchar(50) DEFAULT NULL,
+  `reminder_minutes` int(11) DEFAULT 15,
+  `is_reminder_sent` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_start_time` (`start_time`),
+  KEY `idx_type` (`type`),
+  CONSTRAINT `fk_personal_schedules_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `class_schedules`;
+CREATE TABLE `class_schedules` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `subject_id` int(11) NOT NULL,
+  `class_id` varchar(20) NOT NULL,
+  `lecturer_id` int(11) NOT NULL,
+  `day_of_week` int(1) NOT NULL COMMENT '1=Monday, 2=Tuesday, ..., 7=Sunday',
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `room` varchar(50),
+  `building` varchar(50),
+  `semester` varchar(20) NOT NULL,
+  `academic_year` varchar(10) NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_subject_id` (`subject_id`),
+  KEY `idx_class_id` (`class_id`),
+  KEY `idx_lecturer_id` (`lecturer_id`),
+  KEY `idx_day_time` (`day_of_week`, `start_time`),
+  CONSTRAINT `fk_class_schedules_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE,
+  CONSTRAINT `fk_class_schedules_lecturer` FOREIGN KEY (`lecturer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `events`;
+CREATE TABLE `events` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL,
+  `description` text,
+  `start_date` datetime NOT NULL,
+  `end_date` datetime NOT NULL,
+  `location` varchar(255),
+  `organizer_id` int(11) NOT NULL,
+  `event_type` enum('academic','social','sports','cultural','other') NOT NULL DEFAULT 'other',
+  `max_participants` int(11) DEFAULT NULL,
+  `current_participants` int(11) DEFAULT 0,
+  `is_public` tinyint(1) DEFAULT 1,
+  `registration_deadline` datetime DEFAULT NULL,
+  `image_url` varchar(255),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_organizer_id` (`organizer_id`),
+  KEY `idx_start_date` (`start_date`),
+  KEY `idx_event_type` (`event_type`),
+  CONSTRAINT `fk_events_organizer` FOREIGN KEY (`organizer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `event_participants`;
+CREATE TABLE `event_participants` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `registration_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('registered','attended','cancelled') NOT NULL DEFAULT 'registered',
+  `notes` text,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_event_user` (`event_id`, `user_id`),
+  KEY `idx_user_id` (`user_id`),
+  CONSTRAINT `fk_event_participants_event` FOREIGN KEY (`event_id`) REFERENCES `events` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_event_participants_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `schedule_reminders`;
+CREATE TABLE `schedule_reminders` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `schedule_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `reminder_time` datetime NOT NULL,
+  `is_sent` tinyint(1) DEFAULT 0,
+  `sent_at` timestamp NULL DEFAULT NULL,
+  `reminder_type` enum('email','notification','both') NOT NULL DEFAULT 'notification',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_schedule_id` (`schedule_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_reminder_time` (`reminder_time`),
+  CONSTRAINT `fk_schedule_reminders_schedule` FOREIGN KEY (`schedule_id`) REFERENCES `personal_schedules` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_schedule_reminders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
