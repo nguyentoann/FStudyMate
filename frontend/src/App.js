@@ -38,6 +38,7 @@ import AppTheme from './pages/AppTheme';
 import AboutUs from './pages/AboutUs';
 import QuizHistory from './pages/QuizHistory';
 import QuizDetails from './pages/QuizDetails';
+import FeedbackPage from './pages/FeedbackPage';
 import './styles/globals.css';
 
 // Show developer tools only in development environment
@@ -200,6 +201,13 @@ function App() {
                   <Route path="/calendar" element={
                     <ProtectedRoute>
                       <CalendarPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Feedback route */}
+                  <Route path="/feedback" element={
+                    <ProtectedRoute>
+                      <FeedbackPage />
                     </ProtectedRoute>
                   } />
                   
