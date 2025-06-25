@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,51 @@ public class UserActivityService {
     // Define how many minutes of inactivity before a session is considered inactive
     @Value("${activity.timeout.minutes:15}")
     private int activityTimeoutMinutes;
+    
+    /**
+     * Cleanup method to run on application startup
+     * Finds and fixes duplicate UserActivityDetails records
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void cleanupDuplicateActivityDetails() {
+        logger.info("Running cleanup for duplicate UserActivityDetails records");
+        
+        // Get all sessions
+        List<UserSession> allSessions = userSessionRepository.findAll();
+        int cleanedCount = 0;
+        
+        for (UserSession session : allSessions) {
+            List<UserActivityDetails> details = userActivityDetailsRepository.findAllBySessionId(session.getId());
+            
+            // If there are multiple records for the same session, keep only the most recent one
+            if (details.size() > 1) {
+                logger.info("Found " + details.size() + " activity details for session ID: " + session.getId());
+                
+                // Sort by created date (descending)
+                details.sort((d1, d2) -> {
+                    if (d1.getCreatedAt() == null) return 1;
+                    if (d2.getCreatedAt() == null) return -1;
+                    return d2.getCreatedAt().compareTo(d1.getCreatedAt());
+                });
+                
+                // Keep the first one (most recent) and delete the rest
+                UserActivityDetails mostRecent = details.get(0);
+                logger.info("Keeping most recent record ID: " + mostRecent.getId() + 
+                           " created at: " + mostRecent.getCreatedAt());
+                
+                for (int i = 1; i < details.size(); i++) {
+                    UserActivityDetails toDelete = details.get(i);
+                    logger.info("Deleting duplicate record ID: " + toDelete.getId() + 
+                               " created at: " + toDelete.getCreatedAt());
+                    userActivityDetailsRepository.delete(toDelete);
+                    cleanedCount++;
+                }
+            }
+        }
+        
+        logger.info("Cleanup completed. Removed " + cleanedCount + " duplicate activity detail records.");
+    }
     
     /**
      * Save or update user activity based on session token
@@ -139,7 +186,8 @@ public class UserActivityService {
                 return;
             }
             
-            Optional<UserActivityDetails> existingDetails = userActivityDetailsRepository.findBySessionId(sessionId);
+            // Get the most recent activity details or create a new one
+            Optional<UserActivityDetails> existingDetails = userActivityDetailsRepository.findFirstBySessionIdOrderByCreatedAtDesc(sessionId);
             UserActivityDetails details = existingDetails.orElseGet(() -> {
                 UserActivityDetails newDetails = new UserActivityDetails();
                 newDetails.setSessionId(sessionId);
@@ -271,8 +319,8 @@ public class UserActivityService {
         userMap.put("lastActivity", session.getLastActivity());
         userMap.put("ipAddress", session.getIpAddress());
         
-        // Get device info
-        Optional<UserActivityDetails> details = userActivityDetailsRepository.findBySessionId(session.getId());
+        // Get device info - use the most recent activity details
+        Optional<UserActivityDetails> details = userActivityDetailsRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId());
         if (details.isPresent()) {
             UserActivityDetails deviceDetails = details.get();
             String deviceString = (deviceDetails.getBrowserName() != null ? deviceDetails.getBrowserName() : "Unknown") + 

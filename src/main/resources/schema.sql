@@ -304,8 +304,30 @@ CREATE TABLE `students` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
-
+-- Classes table for class management
+DROP TABLE IF EXISTS `classes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `classes` (
+  `class_id` varchar(20) NOT NULL,
+  `class_name` varchar(100) NOT NULL,
+  `academic_year` varchar(10) NOT NULL,
+  `semester` varchar(20) NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `max_students` int(11) DEFAULT 50,
+  `current_students` int(11) DEFAULT 0,
+  `homeroom_teacher_id` int(11) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`class_id`),
+  KEY `idx_academic_year` (`academic_year`),
+  KEY `idx_semester` (`semester`),
+  KEY `idx_department` (`department`),
+  KEY `idx_homeroom_teacher` (`homeroom_teacher_id`),
+  CONSTRAINT `fk_classes_teacher` FOREIGN KEY (`homeroom_teacher_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 
 DROP TABLE IF EXISTS `user_activity_details`;

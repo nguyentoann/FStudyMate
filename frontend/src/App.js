@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import PasswordChange from './pages/PasswordChange';
 import UserManagement from './pages/admin/UserManagement';
 import UserEdit from './pages/admin/UserEdit';
+import ClassManagement from './pages/admin/ClassManagement';
 import MathTest from './pages/MathTest';
 import AuthenticatedRedirect from './components/AuthenticatedRedirect'; 
 import { ThemeProvider } from './context/ThemeContext';
@@ -165,6 +166,11 @@ function App() {
                   <Route path="/admin/users/:userId" element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <UserEdit />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin/classes" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <ClassManagement />
                     </ProtectedRoute>
                   } />
                   
