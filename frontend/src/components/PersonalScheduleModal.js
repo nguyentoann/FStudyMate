@@ -92,7 +92,7 @@ const PersonalScheduleModal = ({ isOpen, onClose, schedule, selectedDate, onSave
       };
 
       const url = schedule 
-        ? `${API_URL}/schedule/personal/schedule/${schedule.id}`
+        ? `${API_URL}/schedule/pensrsonal/schedule/${schedule.id}`
         : `${API_URL}/schedule/personal`;
       
       const method = schedule ? 'PUT' : 'POST';

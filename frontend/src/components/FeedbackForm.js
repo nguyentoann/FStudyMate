@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import FeedbackService from '../services/feedbackService';
 
 const FeedbackForm = ({ onSuccess, existingFeedback = null }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [subject, setSubject] = useState(existingFeedback ? existingFeedback.subject : '');
   const [content, setContent] = useState(existingFeedback ? existingFeedback.content : '');
   const [isSubmitting, setIsSubmitting] = useState(false);

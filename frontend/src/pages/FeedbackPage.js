@@ -1,10 +1,10 @@
 import React, { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import FeedbackList from '../components/FeedbackList';
 import DashboardLayout from '../components/DashboardLayout';
 
 const FeedbackPage = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   
   return (
     <DashboardLayout>

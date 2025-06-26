@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import FeedbackService from '../services/feedbackService';
 import FeedbackForm from './FeedbackForm';
 
 const FeedbackList = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [feedbackList, setFeedbackList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
