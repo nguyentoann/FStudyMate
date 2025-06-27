@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Quiz from './pages/Quiz';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword.js';
+import ResetPassword from './pages/ResetPassword.js';
 import Profile from './pages/Profile';
 import PasswordChange from './pages/PasswordChange';
 import UserManagement from './pages/admin/UserManagement';
@@ -45,6 +47,19 @@ import './styles/globals.css';
 //                      window.location.hostname === '127.0.0.1';
 
 function App() {
+  useEffect(() => {
+    console.log("App component mounted");
+    console.log("Available routes:", [
+      "/",
+      "/home",
+      "/login",
+      "/register",
+      "/forgot-password",
+      "/reset-password",
+      // ... other routes
+    ]);
+  }, []);
+
   return (
     <AuthProvider>
       <ChatProvider>
@@ -52,7 +67,7 @@ function App() {
           <DirectWebRTCProvider>
             <ThemeProvider>
               <Router>
-                <BlueCursor />
+                {/* <BlueCursor /> */}
                 <Routes>
                   <Route path="/" element={
                     <AuthenticatedRedirect>
@@ -66,6 +81,8 @@ function App() {
                   } />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/math-test" element={<MathTest />} />
                   
