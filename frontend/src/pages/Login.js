@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
   const [loginIdentifier, setLoginIdentifier] = useState("");
@@ -81,7 +81,8 @@ const Login = () => {
 
   const testNavigate = () => {
     console.log("Testing programmatic navigation");
-    navigate("/forgot-password");
+
+    navigate('/forgot-password');
   };
 
   return (
@@ -124,11 +125,9 @@ const Login = () => {
             </div>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6"
-            style={{ position: "relative", zIndex: 1000 }}
-          >
+
+          
+          <form onSubmit={handleSubmit} className="space-y-6" style={{ position: 'relative', zIndex: 1000 }}>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <svg
@@ -217,14 +216,11 @@ const Login = () => {
               <button
                 onClick={() => {
                   console.log("Forgot Password button clicked");
-                  navigate("/forgot-password");
+
+                  navigate('/forgot-password');
                 }}
                 className="text-sm font-medium text-blue-600 hover:text-blue-500 p-2"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Forgot Password?
               </button>
