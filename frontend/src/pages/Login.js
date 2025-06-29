@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -10,6 +10,10 @@ const Login = () => {
   const [unverifiedAccount, setUnverifiedAccount] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log("Login component mounted");
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,6 +74,16 @@ const Login = () => {
     // This would typically redirect to your OAuth endpoint
   };
 
+  const handleForgotPasswordClick = (e) => {
+    console.log("Forgot Password link clicked!");
+    // No need to prevent default since we're using Link
+  };
+
+  const testNavigate = () => {
+    console.log("Testing programmatic navigation");
+    navigate("/forgot-password");
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-blue-600 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full bg-white rounded-lg shadow-xl overflow-hidden flex">
@@ -110,7 +124,11 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+            style={{ position: "relative", zIndex: 1000 }}
+          >
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <svg
@@ -133,7 +151,7 @@ const Login = () => {
                 name="loginIdentifier"
                 type="text"
                 required
-                className="pl-10 py-3 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 placeholder="Email Address"
                 value={loginIdentifier}
                 onChange={(e) => setLoginIdentifier(e.target.value)}
@@ -162,7 +180,7 @@ const Login = () => {
                 name="password"
                 type="password"
                 required
-                className="pl-10 py-3 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -196,12 +214,20 @@ const Login = () => {
             </div>
 
             <div className="text-center">
-              <a
-                href="#"
-                className="text-sm font-medium text-blue-600 hover:text-blue-500"
+              <button
+                onClick={() => {
+                  console.log("Forgot Password button clicked");
+                  navigate("/forgot-password");
+                }}
+                className="text-sm font-medium text-blue-600 hover:text-blue-500 p-2"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
               >
                 Forgot Password?
-              </a>
+              </button>
             </div>
 
             <div className="relative flex py-4 items-center">
