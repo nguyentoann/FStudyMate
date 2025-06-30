@@ -54,17 +54,8 @@ public class UserDAO {
                 if (result.verified) {
                     // Check if user is verified
                     if (!isVerified) {
-                        System.out.println("User " + login + " is not verified. Generating new OTP.");
-                        
-                        // Generate and send new OTP
-                        try {
-                            String email = rs.getString("email");
-                            generateAndSendNewOtp(email);
-                        } catch (Exception e) {
-                            System.err.println("Error generating new OTP: " + e.getMessage());
-                        }
-                        
-                        // Return null to indicate authentication failed due to verification
+                        System.out.println("User " + login + " is not verified.");
+                        // Just return null without sending OTP
                         return null;
                     }
                     
@@ -84,7 +75,10 @@ public class UserDAO {
                     
                     System.out.println("User authentication successful for: " + login);
                 } else {
+                    // Password is incorrect - just log the error, don't send OTP
                     System.out.println("Password verification failed for: " + login);
+                    // Return null to indicate authentication failed due to wrong password
+                    return null;
                 }
             } else {
                 System.out.println("No user found with login: " + login);

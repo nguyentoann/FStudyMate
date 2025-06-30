@@ -85,45 +85,10 @@ public class NoSecurityController {
                 
                 return ResponseEntity.ok(response);
             } else {
-                // Check if this is due to unverified account
-                boolean accountExists = userDAO.checkAccountExists(login);
-                
-                if (accountExists) {
-                    // Assuming this is an unverified account - generate new OTP
-                    response.put("status", "unverified");
-                    response.put("message", "Account needs verification. A new verification code has been sent.");
-                    response.put("email", email);
-                    response.put("requiresVerification", true);
-                    
-                    // Try to resend the OTP through emergency controller
-                    try {
-                        java.net.URL url = new java.net.URL("http://localhost:8080/emergency/generate-otp");
-                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                        conn.setRequestMethod("POST");
-                        conn.setRequestProperty("Content-Type", "application/json");
-                        conn.setRequestProperty("Accept", "application/json");
-                        conn.setDoOutput(true);
-                        
-                        String jsonInputString = "{\"email\": \"" + email + "\"}";
-                        
-                        try (java.io.OutputStream os = conn.getOutputStream()) {
-                            byte[] input = jsonInputString.getBytes("utf-8");
-                            os.write(input, 0, input.length);
-                        }
-                        
-                        int responseCode = conn.getResponseCode();
-                        System.out.println("OTP generation on login response code: " + responseCode);
-                    } catch (Exception e) {
-                        System.err.println("Failed to trigger OTP generation: " + e.getMessage());
-                    }
-                    
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-                } else {
-                    // Authentication failed due to invalid credentials
-                    response.put("status", "error");
-                    response.put("message", "Invalid username/email or password");
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-                }
+                // Authentication failed - don't send OTP, just return error
+                response.put("status", "error");
+                response.put("message", "Invalid username/email or password");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
         } catch (Exception e) {
             System.err.println("Error in login: " + e.getMessage());

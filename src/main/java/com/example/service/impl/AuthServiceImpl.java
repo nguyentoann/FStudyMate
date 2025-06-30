@@ -31,9 +31,8 @@ public class AuthServiceImpl implements AuthService {
         
         // Check if user is verified
         if (!user.isVerified()) {
-            // Generate a new OTP for unverified users
-            otpService.generateAndSendOtp(email);
-            throw new RuntimeException("Account not verified. A new verification code has been sent to your email.");
+            // Don't generate or send OTP, just notify that account isn't verified
+            throw new RuntimeException("Account not verified. Please check your email for verification instructions.");
         }
         
         // Try regular password comparison
@@ -41,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
         System.out.println("Password matched: " + matched);
         
         if (!matched) {
+            // Just throw an exception for wrong password, don't send OTP
             // As a fallback, check if we are using the test account
             if ("admin@example.com".equals(email) && "admin123".equals(password)) {
                 return user;
