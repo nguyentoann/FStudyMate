@@ -1,5 +1,6 @@
 // Import polyfills first
 import './setupPolyfills';
+import './setupAxios'; // Import axios configuration
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

@@ -535,6 +535,16 @@ const AdminDashboard = () => {
               </Link>
             </div>
             
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+              <h3 className="font-medium text-amber-800 mb-2">Class Management</h3>
+              <p className="text-sm text-amber-600 mb-4">
+                Create classes and assign students
+              </p>
+              <Link to="/admin/classes" className="px-4 py-2 bg-amber-600 text-white text-sm rounded hover:bg-amber-700 inline-block">
+                Manage Classes
+              </Link>
+            </div>
+            
             <div className="bg-green-50 p-4 rounded-lg border border-green-100">
               <h3 className="font-medium text-green-800 mb-2">System Settings</h3>
               <p className="text-sm text-green-600 mb-4">
