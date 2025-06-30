@@ -1,18 +1,19 @@
-// This fixes the "process/browser" resolution error in axios
-// Create a simplified version of the process/browser module
-// Based on what axios needs
-
-// The version property is specifically checked by axios
 const processPolyfill = {
-  env: { NODE_ENV: process.env.NODE_ENV || 'development' },
-  version: '16.0.0',
-  nextTick: function(cb) { setTimeout(cb, 0); },
-  browser: true
+  env: {
+    NODE_ENV: "development",
+  },
+  version: "16.0.0",
+  nextTick: function (cb) {
+    setTimeout(cb, 0);
+  },
+  browser: true,
 };
 
-// Export as both default and a named export
-export default processPolyfill;
-export const process = processPolyfill;
+// Cập nhật NODE_ENV từ window.process nếu có
+if (typeof window !== "undefined" && window.process && window.process.env) {
+  processPolyfill.env.NODE_ENV = window.process.env.NODE_ENV;
+}
 
-// Install globally
-window.process = processPolyfill; 
+// Export cả named và default
+export const process = processPolyfill;
+export default processPolyfill;
