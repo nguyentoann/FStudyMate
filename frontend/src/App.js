@@ -18,6 +18,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import { GroupChatProvider } from "./context/GroupChatContext";
 import DirectWebRTCProvider from "./context/DirectWebRTCContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import VideoCall from "./components/VideoCall";
 import IncomingCallNotification from "./components/IncomingCallNotification";
 import ThemeToggle from "./components/ThemeToggle";
@@ -31,6 +32,7 @@ import LandingPage from "./pages/LandingPage";
 import QuizGamePage from "./pages/QuizGamePage";
 import VerifyOtp from "./pages/VerifyOtp";
 import CalendarPage from "./pages/CalendarPage";
+import NotificationPage from './pages/NotificationPage';
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -74,255 +76,266 @@ function App() {
         <GroupChatProvider>
           <DirectWebRTCProvider>
             <ThemeProvider>
-              <Router>
-                {/* <BlueCursor /> */}
-                <Routes>
-                  <Route
-                    path="/"
-                    element={
-                      <AuthenticatedRedirect>
-                        <LandingPage />
-                      </AuthenticatedRedirect>
-                    }
-                  />
-                  <Route
-                    path="/home"
-                    element={
-                      <AuthenticatedRedirect>
-                        <Home />
-                      </AuthenticatedRedirect>
-                    }
-                  />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/verify-otp" element={<VerifyOtp />} />
-                  <Route path="/math-test" element={<MathTest />} />
-                  {/* Quiz routes */}
-                  <Route
-                    path="/quiz"
-                    element={
-                      <ProtectedRoute>
-                        <Quiz />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/quiz/:maMon/:maDe"
-                    element={
-                      <ProtectedRoute>
-                        <Quiz />
-                      </ProtectedRoute>
-                    }
-                  />
-                  {/* Quiz Game routes */}
-                  <Route
-                    path="/quiz-game"
-                    element={
-                      <ProtectedRoute>
-                        <QuizGamePage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/quiz-game/:maMon/:maDe"
-                    element={
-                      <ProtectedRoute>
-                        <QuizGamePage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  {/* Quiz History routes */}
-                  <Route
-                    path="/quiz-history"
-                    element={
-                      <ProtectedRoute>
-                        <QuizHistory />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/quiz-details/:quizTakenId"
-                    element={
-                      <ProtectedRoute>
-                        <QuizDetails />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/change-password"
-                    element={
-                      <ProtectedRoute>
-                        <PasswordChange />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/theme"
-                    element={
-                      <ProtectedRoute>
-                        <AppTheme />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/help/about"
-                    element={
-                      <ProtectedRoute>
-                        <AboutUs />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <StudentDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/student/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={["student"]}>
-                        <StudentDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/lecturer/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={["lecturer"]}>
-                        <LecturerDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={["admin"]}>
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/guest/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={["guest"]}>
-                        <GuestDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/outsource/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={["outsrc_student"]}>
-                        <OutsrcStudentDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  {/* Admin routes */}
-                  <Route
-                    path="/admin/users"
-                    element={
-                      <ProtectedRoute allowedRoles={["admin"]}>
-                        <UserManagement />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/users/:userId"
-                    element={
-                      <ProtectedRoute allowedRoles={["admin"]}>
-                        <UserEdit />
-                      </ProtectedRoute>
-                    }
-                  />
-                  {/* Quiz Manager routes */}
-                  <Route
-                    path="/lecturer/quiz-manager"
-                    element={
-                      <ProtectedRoute allowedRoles={["lecturer"]}>
-                        <QuizManager />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/lecturer/create-quiz"
-                    element={
-                      <ProtectedRoute allowedRoles={["lecturer"]}>
-                        <CreateQuiz />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/lecturer/edit-quiz/:id"
-                    element={
-                      <ProtectedRoute allowedRoles={["lecturer"]}>
-                        <CreateQuiz />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/lecturer/clone-quiz/:id"
-                    element={
-                      <ProtectedRoute allowedRoles={["lecturer"]}>
-                        <CreateQuiz />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/my-courses"
-                    element={
-                      <ProtectedRoute>
-                        <MyCoursesPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/classes"
-                    element={
-                      <ProtectedRoute>
-                        <ClassesPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/classes"
-                    element={
-                      <ProtectedRoute allowedRoles={["admin"]}>
-                        <ClassManagement />
-                      </ProtectedRoute>
-                    }
-                  />
-                  ;{/* Calendar routes */}
-                  <Route
-                    path="/calendar"
-                    element={
-                      <ProtectedRoute>
-                        <CalendarPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  // Thêm route này vào trong Routes component, trước Route
-                  path="*"
-                  <Route path="/course/:courseId" element={<Course />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <ThemeToggle />
-                <VideoCall />
-                <IncomingCallNotification />
-                {/* {isDevelopment && <DeveloperTools />} */}
-              </Router>
+              <NotificationProvider>
+                <Router>
+                  {/* <BlueCursor /> */}
+                  <Routes>
+                    <Route
+                      path="/"
+                      element={
+                        <AuthenticatedRedirect>
+                          <LandingPage />
+                        </AuthenticatedRedirect>
+                      }
+                    />
+                    <Route
+                      path="/home"
+                      element={
+                        <AuthenticatedRedirect>
+                          <Home />
+                        </AuthenticatedRedirect>
+                      }
+                    />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/verify-otp" element={<VerifyOtp />} />
+                    <Route path="/math-test" element={<MathTest />} />
+                    {/* Quiz routes */}
+                    <Route
+                      path="/quiz"
+                      element={
+                        <ProtectedRoute>
+                          <Quiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/quiz/:maMon/:maDe"
+                      element={
+                        <ProtectedRoute>
+                          <Quiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Quiz Game routes */}
+                    <Route
+                      path="/quiz-game"
+                      element={
+                        <ProtectedRoute>
+                          <QuizGamePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/quiz-game/:maMon/:maDe"
+                      element={
+                        <ProtectedRoute>
+                          <QuizGamePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Quiz History routes */}
+                    <Route
+                      path="/quiz-history"
+                      element={
+                        <ProtectedRoute>
+                          <QuizHistory />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/quiz-details/:quizTakenId"
+                      element={
+                        <ProtectedRoute>
+                          <QuizDetails />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <Profile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/change-password"
+                      element={
+                        <ProtectedRoute>
+                          <PasswordChange />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/theme"
+                      element={
+                        <ProtectedRoute>
+                          <AppTheme />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/help/about"
+                      element={
+                        <ProtectedRoute>
+                          <AboutUs />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <StudentDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/student/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={["student"]}>
+                          <StudentDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/lecturer/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={["lecturer"]}>
+                          <LecturerDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/guest/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={["guest"]}>
+                          <GuestDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/outsource/dashboard"
+                      element={
+                        <ProtectedRoute allowedRoles={["outsrc_student"]}>
+                          <OutsrcStudentDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Admin routes */}
+                    <Route
+                      path="/admin/users"
+                      element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                          <UserManagement />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/users/:userId"
+                      element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                          <UserEdit />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Quiz Manager routes */}
+                    <Route
+                      path="/lecturer/quiz-manager"
+                      element={
+                        <ProtectedRoute allowedRoles={["lecturer"]}>
+                          <QuizManager />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/lecturer/create-quiz"
+                      element={
+                        <ProtectedRoute allowedRoles={["lecturer"]}>
+                          <CreateQuiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/lecturer/edit-quiz/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={["lecturer"]}>
+                          <CreateQuiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/lecturer/clone-quiz/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={["lecturer"]}>
+                          <CreateQuiz />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/my-courses"
+                      element={
+                        <ProtectedRoute>
+                          <MyCoursesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/classes"
+                      element={
+                        <ProtectedRoute>
+                          <ClassesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/classes"
+                      element={
+                        <ProtectedRoute allowedRoles={["admin"]}>
+                          <ClassManagement />
+                        </ProtectedRoute>
+                      }
+                    />
+                    ;{/* Calendar routes */}
+                    <Route
+                      path="/calendar"
+                      element={
+                        <ProtectedRoute>
+                          <CalendarPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Add new route */}
+                    <Route
+                      path="/notifications"
+                      element={
+                        <ProtectedRoute>
+                          <NotificationPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    // Thêm route này vào trong Routes component, trước Route
+                    path="*"
+                    <Route path="/course/:courseId" element={<Course />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <ThemeToggle />
+                  <VideoCall />
+                  <IncomingCallNotification />
+                  {/* {isDevelopment && <DeveloperTools />} */}
+                </Router>
+              </NotificationProvider>
 
               {/* Global CSS for dark mode */}
               <style jsx global>{`

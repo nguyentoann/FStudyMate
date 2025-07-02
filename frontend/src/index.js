@@ -7,6 +7,11 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
+// Router đã được định nghĩa trong App.js, không cần import và sử dụng ở đây
+// import { BrowserRouter as Router } from 'react-router-dom';
 
 // Import the AuthUtils for debugging
 import * as AuthUtils from './utils/AuthUtils';
@@ -14,7 +19,13 @@ import * as AuthUtils from './utils/AuthUtils';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <ThemeProvider>
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
+      </ThemeProvider>
+    </AuthProvider>
   </React.StrictMode>
 );
 

@@ -559,3 +559,22 @@ CREATE TABLE `schedule_reminders` (
   CONSTRAINT `fk_schedule_reminders_schedule` FOREIGN KEY (`schedule_id`) REFERENCES `personal_schedules` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_schedule_reminders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Notifications table for storing user notifications
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `link` varchar(255) DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `resource_id` bigint DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `read_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_notifications_user_id` (`user_id`),
+  KEY `idx_notifications_created_at` (`created_at`),
+  KEY `idx_notifications_is_read` (`is_read`),
+  CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
