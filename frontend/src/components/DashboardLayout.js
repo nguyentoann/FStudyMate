@@ -24,6 +24,7 @@ const DashboardLayout = ({ children }) => {
     componentOpacity,
     blurLevel,
     menuType,
+    darkMode
   } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
