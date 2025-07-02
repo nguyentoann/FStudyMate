@@ -458,9 +458,9 @@ export const GroupChatProvider = ({ children }) => {
     try {
       // First try with the X-User-Role header
       try {
-        const response = await makeApiCall(`/chat/groups/class/all`, 'GET', null, {
-          'X-User-Role': user.role
-        });
+      const response = await makeApiCall(`/chat/groups/class/all`, 'GET', null, {
+        'X-User-Role': user.role
+      });
 
         if (response.ok) {
           const data = await response.json();
@@ -482,7 +482,7 @@ export const GroupChatProvider = ({ children }) => {
       if (!fallbackResponse.ok) {
         throw new Error('Failed to fetch class groups');
       }
-      
+
       const data = await fallbackResponse.json();
       return data;
       

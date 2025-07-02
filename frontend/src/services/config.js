@@ -13,7 +13,15 @@ let API_BASE_URL;
 
 if (isLocalhost) {
   // When running locally on a browser on the same machine
+  // Try both localhost and 127.0.0.1 if one fails
   API_BASE_URL = 'http://localhost:8080';
+  
+  // Test if localhost is accessible
+  fetch('http://localhost:8080/open/health', { method: 'GET', mode: 'no-cors' })
+    .catch(() => {
+      console.log('Localhost not accessible, trying 127.0.0.1');
+      API_BASE_URL = 'http://127.0.0.1:8080';
+    });
 } else if (hostname === 'fstudy.tinymation.com') {
   // When accessing from the production domain, use specific backend
   API_BASE_URL = 'http://toandz.ddns.net:8080';

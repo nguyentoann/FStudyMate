@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
           'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody),
-        credentials: 'omit' // Must match server configuration
+        credentials: 'include' // Changed from 'omit' to 'include' to allow cookies
       });
 
       console.log('Login response status:', response.status);
@@ -168,15 +168,15 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('Registration data being sent:', userData);
       
-      // Switch back to the emergency endpoint that was working previously
-      const response = await fetch(`${EMERGENCY_URL}/auth`, {
+      // Use the open endpoint for registration
+      const response = await fetch(`${OPEN_URL}/register`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify(userData),
-        credentials: 'omit' // Set back to 'omit' to avoid CORS issues
+        credentials: 'include' // Changed to 'include' to allow cookies
       });
 
       console.log('Registration response status:', response.status);
