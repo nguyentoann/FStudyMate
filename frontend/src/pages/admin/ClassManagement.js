@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { API_URL } from '../../services/config';
+import { mockApi } from '../../services/mockApi'; // Import mock API
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DashboardLayout from '../../components/DashboardLayout';
 import './ClassManagement.css';
+
+// Biến để kiểm soát việc sử dụng mock API
+const USE_MOCK_API = true; // Đặt thành false khi backend đã sẵn sàng
 
 const ClassManagement = () => {
   const { user } = useAuth();
@@ -43,14 +47,22 @@ const ClassManagement = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setClasses(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getAllClasses();
       } else {
-        setError('Failed to fetch classes');
+        const response = await fetch(`${API_URL}/classes`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch classes');
+        }
       }
+      
+      setClasses(data);
+      setError('');
     } catch (err) {
       setError('An error occurred while fetching classes');
       console.error(err);
@@ -61,12 +73,20 @@ const ClassManagement = () => {
   
   const fetchAcademicYears = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/academic-years`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAcademicYears(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getAcademicYears();
+      } else {
+        const response = await fetch(`${API_URL}/classes/academic-years`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch academic years');
+        }
       }
+      
+      setAcademicYears(data);
     } catch (err) {
       console.error('Error fetching academic years:', err);
     }
@@ -74,12 +94,20 @@ const ClassManagement = () => {
   
   const fetchSemesters = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/semesters`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSemesters(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getSemesters();
+      } else {
+        const response = await fetch(`${API_URL}/classes/semesters`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch semesters');
+        }
       }
+      
+      setSemesters(data);
     } catch (err) {
       console.error('Error fetching semesters:', err);
     }
@@ -87,12 +115,20 @@ const ClassManagement = () => {
   
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/departments`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDepartments(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getDepartments();
+      } else {
+        const response = await fetch(`${API_URL}/classes/departments`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch departments');
+        }
       }
+      
+      setDepartments(data);
     } catch (err) {
       console.error('Error fetching departments:', err);
     }
@@ -100,12 +136,20 @@ const ClassManagement = () => {
   
   const fetchTeachers = async () => {
     try {
-      const response = await fetch(`${API_URL}/users?role=LECTURER`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setTeachers(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getTeachers();
+      } else {
+        const response = await fetch(`${API_URL}/users?role=LECTURER`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch teachers');
+        }
       }
+      
+      setTeachers(data);
     } catch (err) {
       console.error('Error fetching teachers:', err);
     }
@@ -114,14 +158,22 @@ const ClassManagement = () => {
   const fetchStudentsByClass = async (classId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes/${classId}/students`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setStudents(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getStudentsByClass(classId);
       } else {
-        setError('Failed to fetch students');
+        const response = await fetch(`${API_URL}/classes/${classId}/students`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch students');
+        }
       }
+      
+      setStudents(data);
+      setError('');
     } catch (err) {
       setError('An error occurred while fetching students');
       console.error(err);
@@ -132,11 +184,24 @@ const ClassManagement = () => {
   
   const fetchAvailableStudents = async () => {
     try {
+      // Trong phiên bản mock, chúng ta sẽ tạo một danh sách học sinh có sẵn
+      if (USE_MOCK_API) {
+        const mockAvailableStudents = [
+          { id: 201, username: "student201", email: "student201@example.com", fullName: "Available Student 1", profileImageUrl: null },
+          { id: 202, username: "student202", email: "student202@example.com", fullName: "Available Student 2", profileImageUrl: null },
+          { id: 203, username: "student203", email: "student203@example.com", fullName: "Available Student 3", profileImageUrl: null }
+        ];
+        setAvailableStudents(mockAvailableStudents);
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/users?role=STUDENT&unassigned=true`);
       
       if (response.ok) {
         const data = await response.json();
         setAvailableStudents(data);
+      } else {
+        throw new Error('Failed to fetch available students');
       }
     } catch (err) {
       console.error('Error fetching available students:', err);
@@ -193,6 +258,24 @@ const ClassManagement = () => {
     try {
       setLoading(true);
       
+      if (USE_MOCK_API) {
+        // Trong phiên bản mock, chúng ta giả định thành công
+        const newClass = { ...formData, currentStudents: 0 };
+        
+        if (formMode === 'create') {
+          setClasses([...classes, newClass]);
+          setSelectedClass(newClass);
+        } else {
+          setClasses(classes.map(c => c.classId === newClass.classId ? newClass : c));
+          setSelectedClass(newClass);
+        }
+        
+        setError('');
+        alert(formMode === 'create' ? 'Class created successfully' : 'Class updated successfully');
+        setLoading(false);
+        return;
+      }
+      
       const url = formMode === 'create' 
         ? `${API_URL}/classes` 
         : `${API_URL}/classes/${formData.classId}`;
@@ -242,6 +325,17 @@ const ClassManagement = () => {
     try {
       setLoading(true);
       
+      if (USE_MOCK_API) {
+        // Trong phiên bản mock, chỉ cần xóa khỏi danh sách
+        setClasses(classes.filter(c => c.classId !== selectedClass.classId));
+        setSelectedClass(null);
+        setStudents([]);
+        handleCreateNewClass();
+        alert('Class deleted successfully');
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}`, {
         method: 'DELETE'
       });
@@ -269,6 +363,20 @@ const ClassManagement = () => {
     
     try {
       setLoading(true);
+      
+      if (USE_MOCK_API) {
+        await mockApi.assignStudentToClass(selectedClass.classId, userId);
+        // Refresh student lists
+        fetchStudentsByClass(selectedClass.classId);
+        fetchAvailableStudents();
+        
+        // Update class count
+        const updatedClass = { ...selectedClass, currentStudents: selectedClass.currentStudents + 1 };
+        setSelectedClass(updatedClass);
+        setClasses(classes.map(c => c.classId === updatedClass.classId ? updatedClass : c));
+        setLoading(false);
+        return;
+      }
       
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}/students/${userId}`, {
         method: 'POST'
@@ -304,6 +412,20 @@ const ClassManagement = () => {
     
     try {
       setLoading(true);
+      
+      if (USE_MOCK_API) {
+        await mockApi.removeStudentFromClass(selectedClass.classId, userId);
+        // Refresh student lists
+        fetchStudentsByClass(selectedClass.classId);
+        fetchAvailableStudents();
+        
+        // Update class count
+        const updatedClass = { ...selectedClass, currentStudents: Math.max(0, selectedClass.currentStudents - 1) };
+        setSelectedClass(updatedClass);
+        setClasses(classes.map(c => c.classId === updatedClass.classId ? updatedClass : c));
+        setLoading(false);
+        return;
+      }
       
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}/students/${userId}`, {
         method: 'DELETE'

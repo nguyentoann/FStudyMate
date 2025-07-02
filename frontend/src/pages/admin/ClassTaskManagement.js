@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { API_URL } from '../../services/config';
+import { mockApi } from '../../services/mockApi'; // Import mock API
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DashboardLayout from '../../components/DashboardLayout';
-import './ClassManagement.css';
+import './ClassTaskManagement.css';
+import { formatDate } from '../../utils/DateUtils';
+
+// Biến để kiểm soát việc sử dụng mock API
+const USE_MOCK_API = true; // Đặt thành false khi backend đã sẵn sàng
 
 const ClassTaskManagement = () => {
   const { user } = useAuth();
@@ -12,11 +17,13 @@ const ClassTaskManagement = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
   const [searchTerm, setSearchTerm] = useState('');
-  const [taskFormData, setTaskFormData] = useState({
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
+  const [formData, setFormData] = useState({
     taskId: '',
     title: '',
     description: '',
@@ -25,7 +32,6 @@ const ClassTaskManagement = () => {
     status: 'pending',
     assignedTo: ''
   });
-  const [students, setStudents] = useState([]);
   
   useEffect(() => {
     fetchClasses();
@@ -34,14 +40,22 @@ const ClassTaskManagement = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setClasses(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getAllClasses();
       } else {
-        setError('Failed to fetch classes');
+        const response = await fetch(`${API_URL}/classes`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch classes');
+        }
       }
+      
+      setClasses(data);
+      setError('');
     } catch (err) {
       setError('An error occurred while fetching classes');
       console.error(err);
@@ -53,14 +67,22 @@ const ClassTaskManagement = () => {
   const fetchClassTasks = async (classId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes/${classId}/tasks`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getClassTasks(classId);
       } else {
-        setError('Failed to fetch tasks');
+        const response = await fetch(`${API_URL}/classes/${classId}/tasks`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch tasks');
+        }
       }
+      
+      setTasks(data);
+      setError('');
     } catch (err) {
       setError('An error occurred while fetching tasks');
       console.error(err);
@@ -72,14 +94,22 @@ const ClassTaskManagement = () => {
   const fetchStudentsByClass = async (classId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes/${classId}/students`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setStudents(data);
+      let data;
+      if (USE_MOCK_API) {
+        data = await mockApi.getStudentsByClass(classId);
       } else {
-        setError('Failed to fetch students');
+        const response = await fetch(`${API_URL}/classes/${classId}/students`);
+        
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Failed to fetch students');
+        }
       }
+      
+      setStudents(data);
+      setError('');
     } catch (err) {
       setError('An error occurred while fetching students');
       console.error(err);
@@ -92,11 +122,11 @@ const ClassTaskManagement = () => {
     setSelectedClass(classObj);
     fetchClassTasks(classObj.classId);
     fetchStudentsByClass(classObj.classId);
-    resetTaskForm();
+    setShowForm(false);
   };
   
-  const resetTaskForm = () => {
-    setTaskFormData({
+  const handleCreateTask = () => {
+    setFormData({
       taskId: '',
       title: '',
       description: '',
@@ -106,43 +136,57 @@ const ClassTaskManagement = () => {
       assignedTo: ''
     });
     setFormMode('create');
+    setShowForm(true);
   };
   
-  const handleTaskInputChange = (e) => {
+  const handleEditTask = (task) => {
+    setFormData({
+      taskId: task.taskId,
+      title: task.title,
+      description: task.description,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      priority: task.priority,
+      status: task.status,
+      assignedTo: task.assignedTo ? task.assignedTo.toString() : ''
+    });
+    setFormMode('edit');
+    setShowForm(true);
+  };
+  
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setTaskFormData({
-      ...taskFormData,
+    setFormData({
+      ...formData,
       [name]: value
     });
   };
   
-  const handleEditTask = (task) => {
-    setTaskFormData({
-      taskId: task.taskId,
-      title: task.title,
-      description: task.description,
-      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-      priority: task.priority || 'medium',
-      status: task.status || 'pending',
-      assignedTo: task.assignedTo || ''
-    });
-    setFormMode('edit');
-  };
-  
-  const handleTaskSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!selectedClass) {
-      setError('Please select a class first');
-      return;
-    }
+    if (!selectedClass) return;
     
     try {
       setLoading(true);
       
+      let savedTask;
+      if (USE_MOCK_API) {
+        if (formMode === 'create') {
+          savedTask = await mockApi.createClassTask(selectedClass.classId, formData);
+        } else {
+          savedTask = await mockApi.updateClassTask(selectedClass.classId, formData.taskId, formData);
+        }
+        
+        // Update tasks list
+        fetchClassTasks(selectedClass.classId);
+        setShowForm(false);
+        setLoading(false);
+        return;
+      }
+      
       const url = formMode === 'create' 
         ? `${API_URL}/classes/${selectedClass.classId}/tasks` 
-        : `${API_URL}/classes/${selectedClass.classId}/tasks/${taskFormData.taskId}`;
+        : `${API_URL}/classes/${selectedClass.classId}/tasks/${formData.taskId}`;
       
       const method = formMode === 'create' ? 'POST' : 'PUT';
       
@@ -151,21 +195,16 @@ const ClassTaskManagement = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(taskFormData)
+        body: JSON.stringify(formData)
       });
       
       if (response.ok) {
         const data = await response.json();
         
-        if (formMode === 'create') {
-          setTasks([...tasks, data]);
-        } else {
-          setTasks(tasks.map(t => t.taskId === data.taskId ? data : t));
-        }
-        
-        resetTaskForm();
+        // Update tasks list
+        fetchClassTasks(selectedClass.classId);
+        setShowForm(false);
         setError('');
-        alert(formMode === 'create' ? 'Task created successfully' : 'Task updated successfully');
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Failed to save task');
@@ -188,14 +227,21 @@ const ClassTaskManagement = () => {
     try {
       setLoading(true);
       
+      if (USE_MOCK_API) {
+        await mockApi.deleteClassTask(selectedClass.classId, taskId);
+        // Update tasks list
+        fetchClassTasks(selectedClass.classId);
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}/tasks/${taskId}`, {
         method: 'DELETE'
       });
       
       if (response.ok) {
-        setTasks(tasks.filter(t => t.taskId !== taskId));
-        resetTaskForm();
-        alert('Task deleted successfully');
+        // Update tasks list
+        fetchClassTasks(selectedClass.classId);
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Failed to delete task');
@@ -208,19 +254,6 @@ const ClassTaskManagement = () => {
     }
   };
   
-  const filteredClasses = classes.filter(c => 
-    c.classId.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.className.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No due date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-  
-  // Get priority class for styling
   const getPriorityClass = (priority) => {
     switch (priority) {
       case 'high':
@@ -234,7 +267,6 @@ const ClassTaskManagement = () => {
     }
   };
   
-  // Get status class for styling
   const getStatusClass = (status) => {
     switch (status) {
       case 'completed':
@@ -248,14 +280,34 @@ const ClassTaskManagement = () => {
     }
   };
   
+  const formatDueDate = (dateString) => {
+    if (!dateString) return 'No due date';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+  
+  const isTaskOverdue = (dueDate) => {
+    if (!dueDate) return false;
+    
+    const today = new Date();
+    const taskDueDate = new Date(dueDate);
+    return taskDueDate < today && taskDueDate.toDateString() !== today.toDateString();
+  };
+  
+  const filteredClasses = classes.filter(c => 
+    c.classId.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.className.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
   return (
     <DashboardLayout>
-      <div className={`class-management-container ${darkMode ? 'dark' : ''}`}>
+      <div className={`class-task-management-container ${darkMode ? 'dark' : ''}`}>
         <h1>Class Task Management</h1>
         
         {error && <div className="error-message">{error}</div>}
         
-        <div className="class-management-content">
+        <div className="class-task-management-content">
           <div className="class-list-section">
             <div className="class-list-header">
               <h2>Classes</h2>
@@ -288,6 +340,7 @@ const ClassTaskManagement = () => {
                     <p><strong>ID:</strong> {classObj.classId}</p>
                     <p><strong>Academic Year:</strong> {classObj.academicYear}</p>
                     <p><strong>Semester:</strong> {classObj.semester}</p>
+                    <p><strong>Students:</strong> {classObj.currentStudents}/{classObj.maxStudents}</p>
                   </div>
                 </div>
               ))}
@@ -300,156 +353,180 @@ const ClassTaskManagement = () => {
             </div>
           </div>
           
-          <div className="class-details-section">
+          <div className="task-management-section">
             {selectedClass ? (
               <>
-                <h2>Tasks for {selectedClass.className}</h2>
+                <div className="task-header">
+                  <h2>Tasks for {selectedClass.className}</h2>
+                  <button className="btn-primary" onClick={handleCreateTask}>
+                    Create New Task
+                  </button>
+                </div>
                 
-                <form onSubmit={handleTaskSubmit} className="task-form">
-                  <div className="form-group">
-                    <label htmlFor="title">Task Title</label>
-                    <input
-                      type="text"
-                      id="title"
-                      name="title"
-                      value={taskFormData.title}
-                      onChange={handleTaskInputChange}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="description">Description</label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      value={taskFormData.description}
-                      onChange={handleTaskInputChange}
-                      rows="3"
-                    ></textarea>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="dueDate">Due Date</label>
-                      <input
-                        type="date"
-                        id="dueDate"
-                        name="dueDate"
-                        value={taskFormData.dueDate}
-                        onChange={handleTaskInputChange}
-                      />
-                    </div>
+                {showForm && (
+                  <div className="task-form-container">
+                    <h3>{formMode === 'create' ? 'Create New Task' : 'Edit Task'}</h3>
                     
-                    <div className="form-group">
-                      <label htmlFor="priority">Priority</label>
-                      <select
-                        id="priority"
-                        name="priority"
-                        value={taskFormData.priority}
-                        onChange={handleTaskInputChange}
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    </div>
+                    <form onSubmit={handleSubmit} className="task-form">
+                      <div className="form-group">
+                        <label htmlFor="title">Title</label>
+                        <input
+                          type="text"
+                          id="title"
+                          name="title"
+                          value={formData.title}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="description">Description</label>
+                        <textarea
+                          id="description"
+                          name="description"
+                          value={formData.description}
+                          onChange={handleInputChange}
+                          rows="4"
+                        />
+                      </div>
+                      
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="dueDate">Due Date</label>
+                          <input
+                            type="date"
+                            id="dueDate"
+                            name="dueDate"
+                            value={formData.dueDate}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        
+                        <div className="form-group">
+                          <label htmlFor="priority">Priority</label>
+                          <select
+                            id="priority"
+                            name="priority"
+                            value={formData.priority}
+                            onChange={handleInputChange}
+                          >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                        </div>
+                        
+                        <div className="form-group">
+                          <label htmlFor="status">Status</label>
+                          <select
+                            id="status"
+                            name="status"
+                            value={formData.status}
+                            onChange={handleInputChange}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="assignedTo">Assign To Student</label>
+                        <select
+                          id="assignedTo"
+                          name="assignedTo"
+                          value={formData.assignedTo}
+                          onChange={handleInputChange}
+                        >
+                          <option value="">Unassigned</option>
+                          {students.map(student => (
+                            <option key={student.id} value={student.id}>
+                              {student.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="form-actions">
+                        <button 
+                          type="button" 
+                          className="btn-secondary" 
+                          onClick={() => setShowForm(false)}
+                        >
+                          Cancel
+                        </button>
+                        
+                        <button type="submit" className="btn-primary">
+                          {formMode === 'create' ? 'Create Task' : 'Update Task'}
+                        </button>
+                      </div>
+                    </form>
                   </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="status">Status</label>
-                      <select
-                        id="status"
-                        name="status"
-                        value={taskFormData.status}
-                        onChange={handleTaskInputChange}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="assignedTo">Assigned To</label>
-                      <select
-                        id="assignedTo"
-                        name="assignedTo"
-                        value={taskFormData.assignedTo}
-                        onChange={handleTaskInputChange}
-                      >
-                        <option value="">Select Student</option>
-                        {students.map(student => (
-                          <option key={student.id} value={student.id}>
-                            {student.fullName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="form-actions">
-                    {formMode === 'edit' && (
-                      <button 
-                        type="button" 
-                        className="btn-danger" 
-                        onClick={() => handleDeleteTask(taskFormData.taskId)}
-                      >
-                        Delete Task
-                      </button>
-                    )}
-                    
-                    <button type="button" className="btn-secondary" onClick={resetTaskForm}>
-                      Cancel
-                    </button>
-                    
-                    <button type="submit" className="btn-primary">
-                      {formMode === 'create' ? 'Create Task' : 'Update Task'}
-                    </button>
-                  </div>
-                </form>
+                )}
                 
-                <div className="tasks-list">
-                  <h3>Current Tasks</h3>
-                  
-                  {tasks.length === 0 ? (
-                    <p>No tasks assigned to this class yet.</p>
+                {loading && <LoadingSpinner />}
+                
+                <div className="task-list">
+                  {tasks.length === 0 && !loading ? (
+                    <div className="no-tasks-message">
+                      No tasks found for this class. Create a new task to get started.
+                    </div>
                   ) : (
-                    <div className="tasks-grid">
-                      {tasks.map(task => (
-                        <div key={task.taskId} className="task-card" onClick={() => handleEditTask(task)}>
-                          <div className="task-header">
-                            <h4>{task.title}</h4>
+                    tasks.map(task => (
+                      <div 
+                        key={task.taskId} 
+                        className={`task-item ${isTaskOverdue(task.dueDate) ? 'overdue' : ''}`}
+                      >
+                        <div className="task-header">
+                          <h3>{task.title}</h3>
+                          <div className="task-badges">
                             <span className={`priority-badge ${getPriorityClass(task.priority)}`}>
                               {task.priority}
                             </span>
+                            <span className={`status-badge ${getStatusClass(task.status)}`}>
+                              {task.status}
+                            </span>
                           </div>
-                          
-                          <div className="task-description">
-                            {task.description}
-                          </div>
-                          
-                          <div className="task-footer">
-                            <div className="task-due-date">
-                              <strong>Due:</strong> {formatDate(task.dueDate)}
-                            </div>
-                            
-                            <div className="task-status">
-                              <span className={`status-badge ${getStatusClass(task.status)}`}>
-                                {task.status}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {task.assignedTo && (
-                            <div className="task-assigned-to">
-                              <strong>Assigned to:</strong> {students.find(s => s.id === task.assignedTo)?.fullName || 'Unknown'}
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
+                        
+                        <div className="task-details">
+                          {task.description && (
+                            <p className="task-description">{task.description}</p>
+                          )}
+                          
+                          <div className="task-meta">
+                            <p>
+                              <strong>Due:</strong> {formatDueDate(task.dueDate)}
+                              {isTaskOverdue(task.dueDate) && (
+                                <span className="overdue-label"> (Overdue)</span>
+                              )}
+                            </p>
+                            
+                            <p>
+                              <strong>Assigned to:</strong> {task.assignedToName || 'Unassigned'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="task-actions">
+                          <button 
+                            className="btn-secondary btn-small" 
+                            onClick={() => handleEditTask(task)}
+                          >
+                            Edit
+                          </button>
+                          
+                          <button 
+                            className="btn-danger btn-small" 
+                            onClick={() => handleDeleteTask(task.taskId)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </>
