@@ -983,8 +983,16 @@ public class ChatController {
      * Get all class groups (Admin only)
      */
     @GetMapping("/groups/class/all")
-    public ResponseEntity<List<Map<String, Object>>> getAllClassGroups(@RequestHeader(name = "X-User-Role", required = false) String userRole) {
+    public ResponseEntity<List<Map<String, Object>>> getAllClassGroups(
+            @RequestHeader(name = "X-User-Role", required = false) String headerUserRole,
+            @RequestParam(name = "role", required = false) String queryUserRole) {
         try {
+            // Check for user role in header or query parameter
+            String userRole = headerUserRole;
+            if (userRole == null || userRole.isEmpty()) {
+                userRole = queryUserRole;
+            }
+            
             // Only allow admins to access this endpoint
             if (!"admin".equalsIgnoreCase(userRole)) {
                 return ResponseEntity.status(403).body(List.of(Map.of(

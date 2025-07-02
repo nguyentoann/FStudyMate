@@ -179,15 +179,47 @@ const DashboardLayout = ({ children }) => {
         </GlareHover>
 
         <GlareHover {...glareProps} style={menuItemStyle}>
-
-          <Link to={user?.role === 'admin' ? "/admin/classes" : "/classes"} className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md">
-            <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-
- 
-            </svg>
-            Class Management
-          </Link>
+          <div 
+            className="relative w-full"
+            onMouseEnter={() => toggleSubmenu('classes')}
+            onMouseLeave={() => toggleSubmenu(null)}
+          >
+            <div className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md cursor-pointer">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                My Classes
+              </div>
+              <svg 
+                className={`w-4 h-4 transition-transform ${openSubmenu === 'classes' ? 'transform rotate-180' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {openSubmenu === 'classes' && (
+              <div className={`absolute left-0 w-full mt-1 py-1 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-700'} rounded-md shadow-lg z-10 transform origin-top`}>
+                <Link 
+                  to={user?.role === 'admin' ? "/admin/classes" : "/classes"} 
+                  className={`block px-4 py-2 text-sm ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                >
+                  Class Management
+                </Link>
+                {user?.role === 'admin' && (
+                  <Link 
+                    to="/admin/class-tasks" 
+                    className={`block px-4 py-2 text-sm ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  >
+                    Class Tasks
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </GlareHover>
 
         <GlareHover {...glareProps} style={menuItemStyle}>
