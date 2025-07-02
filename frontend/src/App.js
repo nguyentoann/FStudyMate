@@ -11,6 +11,8 @@ import Profile from "./pages/Profile";
 import PasswordChange from "./pages/PasswordChange";
 import UserManagement from "./pages/admin/UserManagement";
 import UserEdit from "./pages/admin/UserEdit";
+import ClassManagement from "./pages/admin/ClassManagement";
+import ClassTaskManagement from "./pages/admin/ClassTaskManagement";
 import MathTest from "./pages/MathTest";
 import AuthenticatedRedirect from "./components/AuthenticatedRedirect";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -244,6 +246,30 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/admin/classes"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <ClassManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/class-tasks"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <ClassTaskManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/classes"
+                    element={
+                      <ProtectedRoute allowedRoles={["student", "lecturer"]}>
+                        <ClassManagement />
+                      </ProtectedRoute>
+                    }
+                  />
                   {/* Quiz Manager routes */}
                   <Route
                     path="/lecturer/quiz-manager"
@@ -285,7 +311,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  ;{/* Calendar routes */}
+                  {/* Calendar routes */}
                   <Route
                     path="/calendar"
                     element={
@@ -294,8 +320,6 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  // Thêm route này vào trong Routes component, trước Route
-                  path="*"
                   <Route path="/course/:courseId" element={<Course />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

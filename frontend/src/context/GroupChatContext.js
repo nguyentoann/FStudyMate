@@ -456,19 +456,34 @@ export const GroupChatProvider = ({ children }) => {
     
     setLoading(true);
     try {
-      const response = await makeApiCall(`/chat/groups/class/all`, 'GET', null, {
-        'X-User-Role': user.role
-      });
+      // First try with the X-User-Role header
+      try {
+        const response = await makeApiCall(`/chat/groups/class/all`, 'GET', null, {
+          'X-User-Role': user.role
+        });
 
-      if (!response.ok) {
+        if (response.ok) {
+          const data = await response.json();
+          return data;
+        }
+        
+        // If we get a CORS error or other error, try without the custom header
         if (response.status === 403) {
           console.error('Access denied: Admin privileges required');
           throw { status: 403, message: 'Access denied: Admin privileges required' };
         }
+      } catch (headerError) {
+        console.warn('Failed with custom header, trying without X-User-Role header');
+      }
+      
+      // Fallback without custom header
+      const fallbackResponse = await makeApiCall(`/chat/groups/class/all?role=${user.role}`, 'GET');
+      
+      if (!fallbackResponse.ok) {
         throw new Error('Failed to fetch class groups');
       }
-
-      const data = await response.json();
+      
+      const data = await fallbackResponse.json();
       return data;
       
     } catch (error) {
