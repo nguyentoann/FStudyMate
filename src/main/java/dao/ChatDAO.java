@@ -585,44 +585,55 @@ public class ChatDAO {
      * @param userId The student's user ID
      * @return The class group if available, empty map otherwise
      */
-    public Map<String, Object> getStudentClassGroup(int userId) {
-        ConnectionPool pool = ConnectionPool.getInstance();
-        Connection connection = pool.getConnection();
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        Map<String, Object> group = new HashMap<>();
-        
-        try {
-            String query = "SELECT cg.*, " +
-                           "(SELECT COUNT(*) FROM group_chat_messages WHERE group_id = cg.id) as message_count, " +
-                           "(SELECT MAX(created_at) FROM group_chat_messages WHERE group_id = cg.id) as last_activity " +
-                           "FROM students s " +
-                           "JOIN chat_groups cg ON s.class_id = cg.class_id " +
-                           "WHERE s.user_id = ?";
-            ps = connection.prepareStatement(query);
-            ps.setInt(1, userId);
-            rs = ps.executeQuery();
+        public Map<String, Object> getStudentClassGroup(int userId) {
+            ConnectionPool pool = ConnectionPool.getInstance();
+            Connection connection = pool.getConnection();
+            PreparedStatement ps = null;
+            ResultSet rs = null;
+            Map<String, Object> group = new HashMap<>();
             
-            if (rs.next()) {
-                group.put("id", rs.getInt("id"));
-                group.put("name", rs.getString("name"));
-                group.put("classId", rs.getString("class_id"));
-                group.put("createdAt", rs.getTimestamp("created_at"));
-                group.put("messageCount", rs.getInt("message_count"));
-                group.put("lastActivity", rs.getTimestamp("last_activity"));
+            try {
+                String query = "SELECT cg.*, c.class_name, am.name AS academic_major_name, t.name AS term_name, " +
+                "(SELECT COUNT(*) FROM group_chat_messages WHERE group_id = cg.id) AS message_count, " +
+                "(SELECT MAX(created_at) FROM group_chat_messages WHERE group_id = cg.id) AS last_activity " +
+                "FROM students s " +
+                "JOIN chat_groups cg ON s.class_id = cg.class_id " +
+                "JOIN classes c ON cg.class_id = c.class_id " +
+                "LEFT JOIN academic_majors am ON s.major_id = am.id " +
+                "LEFT JOIN Terms t ON s.term_id = t.id " +
+                "WHERE s.user_id = ?";
+                ps = connection.prepareStatement(query);
+                ps.setInt(1, userId);
+                rs = ps.executeQuery();
+                
+                if (rs.next()) {
+                    group.put("id", rs.getInt("id"));
+                    group.put("name", rs.getString("name"));
+                    group.put("className", rs.getString("class_name"));
+                    group.put("createdAt", rs.getTimestamp("created_at"));
+                    group.put("messageCount", rs.getInt("message_count"));
+                    group.put("lastActivity", rs.getTimestamp("last_activity"));
+                    
+                    // Add the academic major and term information
+                    if (rs.getString("academic_major_name") != null) {
+                        group.put("academicMajor", rs.getString("academic_major_name"));
+                    }
+                    if (rs.getString("term_name") != null) {
+                        group.put("term", rs.getString("term_name"));
+                    }
+                }
+                
+            } catch (SQLException e) {
+                System.err.println("Error getting student class group: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+                pool.freeConnection(connection);
             }
             
-        } catch (SQLException e) {
-            System.err.println("Error getting student class group: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            DBUtils.closeResultSet(rs);
-            DBUtils.closePreparedStatement(ps);
-            pool.freeConnection(connection);
+            return group;
         }
-        
-        return group;
-    }
 
     /**
      * Sends a message to a class group
@@ -750,14 +761,23 @@ public class ChatDAO {
             if ("student".equalsIgnoreCase(userRole) || "outsrc_student".equalsIgnoreCase(userRole)) {
                 // For students, get their class group
                 query = "SELECT g.*, " +
+                       "c.class_name, " +
+                       "am.name AS academic_major_name, " +
+                       "t.name AS term_name, " +
                        "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
                        "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
                        "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
                        "FROM chat_groups g " +
                        "JOIN students s ON g.class_id = s.class_id " +
+                       "JOIN classes c ON g.class_id = c.class_id " +
+                       "LEFT JOIN academic_majors am ON s.major_id = am.id " +
+                       "LEFT JOIN Terms t ON s.term_id = t.id " +
                        "WHERE s.user_id = ? " +
                        "UNION " +
                        "SELECT g.*, " +
+                       "NULL AS class_name, " +
+                       "NULL AS academic_major_name, " +
+                       "NULL AS term_name, " +
                        "(SELECT COUNT(*) FROM group_chat_messages m WHERE m.group_id = g.id) AS message_count, " +
                        "(SELECT MAX(created_at) FROM group_chat_messages m WHERE m.group_id = g.id) AS last_activity, " +
                        "(SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count " +
@@ -821,6 +841,22 @@ public class ChatDAO {
                 // Handle nullable last activity
                 if (rs.getTimestamp("last_activity") != null) {
                     group.put("lastActivity", rs.getTimestamp("last_activity"));
+                }
+                
+                // Add class, major, and term info if available
+                try {
+                    if (rs.getString("class_name") != null) {
+                        group.put("className", rs.getString("class_name"));
+                    }
+                    if (rs.getString("academic_major_name") != null) {
+                        group.put("academicMajor", rs.getString("academic_major_name"));
+                    }
+                    if (rs.getString("term_name") != null) {
+                        group.put("term", rs.getString("term_name"));
+                    }
+                } catch (SQLException e) {
+                    // These fields might not be present in all result sets
+                    // (e.g. from custom groups query part of the UNION)
                 }
                 
                 groups.add(group);
@@ -1085,7 +1121,11 @@ public class ChatDAO {
                 DBUtils.closeResultSet(rs);
                 DBUtils.closePreparedStatement(ps);
                 
-                String classQuery = "SELECT COUNT(*) AS count FROM students WHERE user_id = ? AND class_id = ?";
+                // Using LEFT JOIN to academic_majors to handle the new table relationships
+                String classQuery = "SELECT COUNT(*) AS count FROM students s " +
+                                    "LEFT JOIN academic_majors am ON s.major_id = am.id " +
+                                    "LEFT JOIN Terms t ON s.term_id = t.id " +
+                                    "WHERE s.user_id = ? AND s.class_id = ?";
                 ps = connection.prepareStatement(classQuery);
                 ps.setInt(1, userId);
                 ps.setString(2, classId);
@@ -1194,11 +1234,14 @@ public class ChatDAO {
                 ps = connection.prepareStatement(query);
                 ps.setInt(1, groupId);
             } else {
-                // For class groups, get students in the class
+                // For class groups, get students in the class with their academic major and term info
                 query = "SELECT u.id as userId, u.username, u.full_name as fullName, u.profile_image_url as profileImageUrl, " +
-                        "u.role, NULL as addedBy, NULL as joinedAt " +
+                        "u.role, NULL as addedBy, NULL as joinedAt, " +
+                        "am.name as academic_major_name, t.name as term_name " +
                         "FROM students s " +
                         "JOIN users u ON s.user_id = u.id " +
+                        "LEFT JOIN academic_majors am ON s.major_id = am.id " +
+                        "LEFT JOIN Terms t ON s.term_id = t.id " +
                         "WHERE s.class_id = ? " +
                         "ORDER BY u.full_name";
                         
@@ -1228,6 +1271,18 @@ public class ChatDAO {
                 if (isCustom) {
                     member.put("addedBy", rs.getInt("addedBy"));
                     member.put("joinedAt", rs.getTimestamp("joinedAt"));
+                } else {
+                    // For class groups, add academic major and term info if available
+                    try {
+                        if (rs.getString("academic_major_name") != null) {
+                            member.put("academicMajor", rs.getString("academic_major_name"));
+                        }
+                        if (rs.getString("term_name") != null) {
+                            member.put("term", rs.getString("term_name"));
+                        }
+                    } catch (SQLException e) {
+                        // These fields might not exist in all result sets
+                    }
                 }
                 
                 members.add(member);

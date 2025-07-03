@@ -135,9 +135,10 @@ public class UserDAO {
             
             switch (role) {
                 case "student":
-                query = "SELECT a.name AS academic_major, s.gender, s.date_of_birth, s.class_id " +
+                query = "SELECT a.name AS academic_major, t.name AS term_name, s.gender, s.date_of_birth, s.class_id " +
                 "FROM students s " +
-                "JOIN academic_majors a ON s.academic_major_id = a.id " +
+                "LEFT JOIN academic_majors a ON s.major_id = a.id " +
+                "LEFT JOIN Terms t ON s.term_id = t.id " +
                 "WHERE s.user_id = ?";
                     ps = connection.prepareStatement(query);
                     ps.setInt(1, userId);
@@ -145,6 +146,7 @@ public class UserDAO {
                     
                     if (rs.next()) {
                         user.setProperty("academicMajor", rs.getString("academic_major"));
+                        user.setProperty("term", rs.getString("term_name"));
                         user.setProperty("gender", rs.getString("gender"));
                         user.setProperty("dateOfBirth", rs.getString("date_of_birth"));
                         user.setProperty("classId", rs.getString("class_id"));
@@ -219,9 +221,11 @@ public class UserDAO {
             
             switch (role) {
                 case "student":
-                query = "SELECT s.student_id, a.name AS academic_major, s.gender, s.date_of_birth, s.class_id " +
+                query = "SELECT s.student_id, a.name AS academic_major, t.name AS term_name, s.gender, s.date_of_birth, s.class_id, " +
+                       "s.major_id, s.term_id " +
                 "FROM students s " +
-                "JOIN academic_majors a ON s.academic_major_id = a.id " +
+                "LEFT JOIN academic_majors a ON s.major_id = a.id " +
+                "LEFT JOIN Terms t ON s.term_id = t.id " +
                 "WHERE s.user_id = ?";
                     ps = connection.prepareStatement(query);
                     ps.setInt(1, userId);
@@ -230,6 +234,9 @@ public class UserDAO {
                     if (rs.next()) {
                         user.put("studentId", rs.getString("student_id"));
                         user.put("academicMajor", rs.getString("academic_major"));
+                        user.put("term", rs.getString("term_name"));
+                        user.put("majorId", rs.getInt("major_id"));
+                        user.put("termId", rs.getInt("term_id"));
                         user.put("gender", rs.getString("gender"));
                         user.put("dateOfBirth", rs.getString("date_of_birth"));
                         user.put("classId", rs.getString("class_id"));
@@ -459,6 +466,7 @@ public class UserDAO {
     
     private boolean addStudentDetails(Connection connection, int userId, Map<String, Object> roleData) throws SQLException {
         PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
             // Generate a student ID
             String studentId = "SE" + System.currentTimeMillis() % 10000;
@@ -466,18 +474,80 @@ public class UserDAO {
             String dateOfBirth = (String) roleData.get("dateOfBirth");
             String gender = (String) roleData.get("gender");
             String academicMajor = (String) roleData.get("academicMajor");
+            String term = (String) roleData.get("term");
             String classId = (String) roleData.get("classId");
             
-            System.out.println("Adding student details: ID=" + studentId + ", DOB=" + dateOfBirth + ", Gender=" + gender + ", Class ID=" + classId);
+            // Get major_id from academic_majors table
+            Integer majorId = null;
+            if (academicMajor != null) {
+                ps = connection.prepareStatement("SELECT id FROM academic_majors WHERE name = ?");
+                ps.setString(1, academicMajor);
+                rs = ps.executeQuery();
+                if (rs.next()) {
+                    majorId = rs.getInt("id");
+                } else {
+                    // Insert new academic major if it doesn't exist
+                    DBUtils.closeResultSet(rs);
+                    DBUtils.closePreparedStatement(ps);
+                    ps = connection.prepareStatement("INSERT INTO academic_majors (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+                    ps.setString(1, academicMajor);
+                    ps.executeUpdate();
+                    rs = ps.getGeneratedKeys();
+                    if (rs.next()) {
+                        majorId = rs.getInt(1);
+                    }
+                }
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+            }
+            
+            // Get term_id from Terms table
+            Integer termId = null;
+            if (term != null) {
+                ps = connection.prepareStatement("SELECT id FROM Terms WHERE name = ?");
+                ps.setString(1, term);
+                rs = ps.executeQuery();
+                if (rs.next()) {
+                    termId = rs.getInt("id");
+                } else {
+                    // Insert new term if it doesn't exist
+                    DBUtils.closeResultSet(rs);
+                    DBUtils.closePreparedStatement(ps);
+                    ps = connection.prepareStatement("INSERT INTO Terms (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+                    ps.setString(1, term);
+                    ps.executeUpdate();
+                    rs = ps.getGeneratedKeys();
+                    if (rs.next()) {
+                        termId = rs.getInt(1);
+                    }
+                }
+                DBUtils.closeResultSet(rs);
+                DBUtils.closePreparedStatement(ps);
+            }
+            
+            System.out.println("Adding student details: ID=" + studentId + ", DOB=" + dateOfBirth + ", Gender=" + gender + 
+                              ", Major ID=" + majorId + ", Term ID=" + termId + ", Class ID=" + classId);
             
             ps = connection.prepareStatement(
-                "INSERT INTO students (student_id, user_id, date_of_birth, gender, academic_major, class_id) VALUES (?, ?, ?, ?, ?, ?)");
+                "INSERT INTO students (student_id, user_id, date_of_birth, gender, class_id, major_id, term_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
             ps.setString(1, studentId);
             ps.setInt(2, userId);
             ps.setString(3, dateOfBirth != null ? dateOfBirth : null);
             ps.setString(4, gender != null ? gender : "Male");
-            ps.setString(5, academicMajor != null ? academicMajor : "Software Engineering");
-            ps.setString(6, classId);
+            ps.setString(5, classId);
+            
+            // Set the IDs (can be null)
+            if (majorId != null) {
+                ps.setInt(6, majorId);
+            } else {
+                ps.setNull(6, java.sql.Types.INTEGER);
+            }
+            
+            if (termId != null) {
+                ps.setInt(7, termId);
+            } else {
+                ps.setNull(7, java.sql.Types.INTEGER);
+            }
             
             int result = ps.executeUpdate();
             System.out.println("Student insert result: " + result);
@@ -666,13 +736,85 @@ public class UserDAO {
             
             switch (role) {
                 case "student":
-                    query = "UPDATE students SET academic_major = ?, gender = ?, date_of_birth = ?, class_id = ? WHERE user_id = ?";
+                    // First, get or create major_id
+                    Integer majorId = null;
+                    String academicMajor = (String) profileData.get("academicMajor");
+                    if (academicMajor != null && !academicMajor.isEmpty()) {
+                        ResultSet rs = null;
+                        try {
+                            ps = connection.prepareStatement("SELECT id FROM academic_majors WHERE name = ?");
+                            ps.setString(1, academicMajor);
+                            rs = ps.executeQuery();
+                            if (rs.next()) {
+                                majorId = rs.getInt("id");
+                            } else {
+                                // Insert new academic major if it doesn't exist
+                                DBUtils.closeResultSet(rs);
+                                DBUtils.closePreparedStatement(ps);
+                                ps = connection.prepareStatement("INSERT INTO academic_majors (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+                                ps.setString(1, academicMajor);
+                                ps.executeUpdate();
+                                rs = ps.getGeneratedKeys();
+                                if (rs.next()) {
+                                    majorId = rs.getInt(1);
+                                }
+                            }
+                        } finally {
+                            DBUtils.closeResultSet(rs);
+                            DBUtils.closePreparedStatement(ps);
+                        }
+                    }
+                    
+                    // Next, get or create term_id
+                    Integer termId = null;
+                    String term = (String) profileData.get("term");
+                    if (term != null && !term.isEmpty()) {
+                        ResultSet rs = null;
+                        try {
+                            ps = connection.prepareStatement("SELECT id FROM Terms WHERE name = ?");
+                            ps.setString(1, term);
+                            rs = ps.executeQuery();
+                            if (rs.next()) {
+                                termId = rs.getInt("id");
+                            } else {
+                                // Insert new term if it doesn't exist
+                                DBUtils.closeResultSet(rs);
+                                DBUtils.closePreparedStatement(ps);
+                                ps = connection.prepareStatement("INSERT INTO Terms (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+                                ps.setString(1, term);
+                                ps.executeUpdate();
+                                rs = ps.getGeneratedKeys();
+                                if (rs.next()) {
+                                    termId = rs.getInt(1);
+                                }
+                            }
+                        } finally {
+                            DBUtils.closeResultSet(rs);
+                            DBUtils.closePreparedStatement(ps);
+                        }
+                    }
+                    
+                    // Finally, update the student record
+                    query = "UPDATE students SET gender = ?, date_of_birth = ?, class_id = ?, major_id = ?, term_id = ? WHERE user_id = ?";
                     ps = connection.prepareStatement(query);
-                    ps.setString(1, (String) profileData.get("academicMajor"));
-                    ps.setString(2, (String) profileData.get("gender"));
-                    ps.setString(3, (String) profileData.get("dateOfBirth"));
-                    ps.setString(4, (String) profileData.get("classId"));
-                    ps.setInt(5, userId);
+                    ps.setString(1, (String) profileData.get("gender"));
+                    ps.setString(2, (String) profileData.get("dateOfBirth"));
+                    ps.setString(3, (String) profileData.get("classId"));
+                    
+                    // Set the IDs (can be null)
+                    if (majorId != null) {
+                        ps.setInt(4, majorId);
+                    } else {
+                        ps.setNull(4, java.sql.Types.INTEGER);
+                    }
+                    
+                    if (termId != null) {
+                        ps.setInt(5, termId);
+                    } else {
+                        ps.setNull(5, java.sql.Types.INTEGER);
+                    }
+                    
+                    ps.setInt(6, userId);
                     break;
                     
                 case "lecturer":
