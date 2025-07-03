@@ -25,6 +25,9 @@ public class User {
     private String phoneNumber;
     private String address;
     
+    @Column
+    private String classId;
+    
     @Column(nullable = false)
     private boolean verified = false;
     
@@ -92,6 +95,14 @@ public class User {
     
     public void setAddress(String address) {
         this.address = address;
+    }
+    
+    public String getClassId() {
+        return classId;
+    }
+    
+    public void setClassId(String classId) {
+        this.classId = classId;
     }
     
     public boolean isVerified() {

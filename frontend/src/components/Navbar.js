@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 
 const Navbar = ({ toggleSidebar = () => {} }) => {
-  const { user } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Thêm kiểm tra role
+  const canSendNotifications = user && (user.role?.toLowerCase() === 'admin' || user.role?.toLowerCase() === 'lecturer');
   
   // Get the dashboard URL based on user role
   const getDashboardUrl = () => {
@@ -88,6 +92,25 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
               />
             </Link>
           )}
+          
+          {/* Send Notifications */}
+          {canSendNotifications && (
+            <Link 
+              to="/notifications/send"
+              className="text-blue-600 hover:text-blue-800 mx-3"
+              title="Send Notifications"
+            >
+              <i className="fas fa-paper-plane"></i>
+            </Link>
+          )}
+          
+          {/* Logout Button */}
+          <button
+            onClick={logout}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </nav>

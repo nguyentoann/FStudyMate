@@ -33,6 +33,7 @@ import QuizGamePage from "./pages/QuizGamePage";
 import VerifyOtp from "./pages/VerifyOtp";
 import CalendarPage from "./pages/CalendarPage";
 import NotificationPage from './pages/NotificationPage';
+import NotificationSender from './pages/NotificationSender';
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -325,8 +326,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    // Thêm route này vào trong Routes component, trước Route
-                    path="*"
+                    <Route path="/notifications/send" element={<NotificationSender />} />
                     <Route path="/course/:courseId" element={<Course />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
