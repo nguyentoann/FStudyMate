@@ -23,6 +23,9 @@ public class Feedback {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
     
+    @Column(name = "comment", columnDefinition = "TEXT")
+    private String comment;
+    
     @Column(name = "rating", nullable = false)
     private Integer rating = 5; // Default rating is 5
     
@@ -53,6 +56,9 @@ public class Feedback {
         }
         if (this.rating == null) {
             this.rating = 5; // Default rating if not provided
+        }
+        if (this.comment == null) {
+            this.comment = ""; // Default empty comment
         }
     }
     
@@ -93,6 +99,14 @@ public class Feedback {
     
     public void setContent(String content) {
         this.content = content;
+    }
+    
+    public String getComment() {
+        return comment;
+    }
+    
+    public void setComment(String comment) {
+        this.comment = comment;
     }
     
     public Integer getRating() {
@@ -146,6 +160,7 @@ public class Feedback {
         this.content = content;
         this.rating = rating;
         this.status = FeedbackStatus.PENDING;
+        this.comment = ""; // Default empty comment
     }
     
     public Feedback(Integer userId, String subject, String content) {
@@ -154,5 +169,6 @@ public class Feedback {
         this.content = content;
         this.rating = 5; // Default rating
         this.status = FeedbackStatus.PENDING;
+        this.comment = ""; // Default empty comment
     }
 } 

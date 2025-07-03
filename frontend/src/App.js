@@ -31,6 +31,8 @@ import LandingPage from "./pages/LandingPage";
 import QuizGamePage from "./pages/QuizGamePage";
 import VerifyOtp from "./pages/VerifyOtp";
 import CalendarPage from "./pages/CalendarPage";
+import FeedbackPage from "./pages/help/FeedbackPage";
+import FaqPage from "./pages/help/FaqPage";
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -296,6 +298,22 @@ function App() {
                   />
                   // Thêm route này vào trong Routes component, trước Route
                   path="*"
+                  <Route
+                    path="/help/faq"
+                    element={
+                      <ProtectedRoute>
+                        <FaqPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/help/feedback"
+                    element={
+                      <ProtectedRoute>
+                        <FeedbackPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/course/:courseId" element={<Course />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

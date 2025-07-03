@@ -6,10 +6,17 @@ import FeedbackForm from './FeedbackForm';
 const FeedbackList = () => {
   const { user } = useAuth();
   const [feedbackList, setFeedbackList] = useState([]);
+  const [filteredList, setFilteredList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingFeedback, setEditingFeedback] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  
+  // Filtering states
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchFeedback = async () => {
     try {
@@ -29,6 +36,7 @@ const FeedbackList = () => {
       }
       
       setFeedbackList(data);
+      applyFilters(data);
     } catch (err) {
       console.error('Error fetching feedback:', err);
       setError('Không thể tải phản hồi. Vui lòng thử lại.');
@@ -40,6 +48,55 @@ const FeedbackList = () => {
   useEffect(() => {
     fetchFeedback();
   }, [user]);
+
+  // Apply filters when filter criteria change
+  useEffect(() => {
+    applyFilters(feedbackList);
+  }, [statusFilter, sortField, sortDirection, searchQuery]);
+
+  const applyFilters = (data) => {
+    let result = [...data];
+    
+    // Apply status filter
+    if (statusFilter !== 'ALL') {
+      result = result.filter(item => item.status === statusFilter);
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(item => 
+        item.subject.toLowerCase().includes(query) || 
+        item.content.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      let valueA = a[sortField];
+      let valueB = b[sortField];
+      
+      // For date fields
+      if (sortField === 'createdAt' || sortField === 'updatedAt') {
+        valueA = new Date(valueA).getTime();
+        valueB = new Date(valueB).getTime();
+      }
+      
+      // For numeric fields
+      if (sortField === 'rating') {
+        valueA = Number(valueA);
+        valueB = Number(valueB);
+      }
+      
+      if (sortDirection === 'asc') {
+        return valueA > valueB ? 1 : -1;
+      } else {
+        return valueA < valueB ? 1 : -1;
+      }
+    });
+    
+    setFilteredList(result);
+  };
 
   const handleEdit = (feedback) => {
     setEditingFeedback(feedback);
@@ -54,6 +111,7 @@ const FeedbackList = () => {
         await FeedbackService.deleteFeedback(id);
         // Remove from list
         setFeedbackList(feedbackList.filter(feedback => feedback.id !== id));
+        setFilteredList(filteredList.filter(feedback => feedback.id !== id));
       } catch (err) {
         console.error('Error deleting feedback:', err);
         alert('Không thể xóa phản hồi. Vui lòng thử lại.');
@@ -98,6 +156,25 @@ const FeedbackList = () => {
     return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN');
   };
 
+  // Sort handler
+  const handleSort = (field) => {
+    if (field === sortField) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Default to descending for new field
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (field !== sortField) {
+      return <span className="text-gray-400">↕</span>;
+    }
+    return sortDirection === 'asc' ? '↑' : '↓';
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -124,6 +201,37 @@ const FeedbackList = () => {
         />
       )}
 
+      <div className="mb-6">
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search box */}
+            <div className="col-span-1 md:col-span-2">
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tiêu đề hoặc nội dung..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Status filter */}
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="PENDING">Đang chờ</option>
+                <option value="REVIEWED">Đã xem xét</option>
+                <option value="RESOLVED">Đã giải quyết</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-32">
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
@@ -132,99 +240,144 @@ const FeedbackList = () => {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
-      ) : feedbackList.length === 0 ? (
+      ) : filteredList.length === 0 ? (
         <div className="bg-gray-100 p-6 rounded-lg text-center">
-          <p className="text-gray-600">Không có phản hồi nào.</p>
+          <p className="text-gray-600">
+            {searchQuery || statusFilter !== 'ALL' ? 
+              'Không tìm thấy phản hồi nào phù hợp với tiêu chí tìm kiếm.' : 
+              'Không có phản hồi nào.'}
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
-          {feedbackList.map((feedback) => (
-            <div
-              key={feedback.id}
-              className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition duration-300"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold">{feedback.subject}</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(feedback.status)}`}>
-                  {getStatusText(feedback.status)}
-                </span>
-              </div>
-              
-              <p className="text-gray-700 mb-4 whitespace-pre-wrap">{feedback.content}</p>
-              
-              {/* Star rating display */}
-              <div className="flex items-center mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <span
-                    key={i}
-                    className={`text-xl ${
-                      i < feedback.rating ? 'text-yellow-400' : 'text-gray-300'
-                    }`}
-                  >
-                    ★
-                  </span>
-                ))}
-                <span className="ml-2 text-gray-600">({feedback.rating}/5)</span>
-              </div>
-              
-              <div className="flex justify-between items-center text-sm text-gray-500">
-                <div>
-                  <p>Tạo lúc: {formatDate(feedback.createdAt)}</p>
-                  {feedback.updatedAt && feedback.updatedAt !== feedback.createdAt && (
-                    <p>Cập nhật lúc: {formatDate(feedback.updatedAt)}</p>
-                  )}
-                </div>
-                
-                {(user && (user.id === feedback.userId || user.role === 'admin')) && (
-                  <div className="flex space-x-2">
-                    {user.id === feedback.userId && feedback.status === 'PENDING' && (
-                      <button
-                        onClick={() => handleEdit(feedback)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        Chỉnh sửa
-                      </button>
-                    )}
-                    
-                    {(user.id === feedback.userId || user.role === 'admin') && (
-                      <button
-                        onClick={() => handleDelete(feedback.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Xóa
-                      </button>
-                    )}
-                    
-                    {user.role === 'admin' && (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={async () => {
-                            await FeedbackService.updateFeedbackStatus(feedback.id, 'REVIEWED');
-                            fetchFeedback();
-                          }}
-                          className="text-blue-500 hover:text-blue-700"
-                          disabled={feedback.status === 'REVIEWED'}
+        <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('subject')}
+                >
+                  Tiêu đề {renderSortIcon('subject')}
+                </th>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('rating')}
+                >
+                  Đánh giá {renderSortIcon('rating')}
+                </th>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('status')}
+                >
+                  Trạng thái {renderSortIcon('status')}
+                </th>
+                <th 
+                  scope="col" 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('createdAt')}
+                >
+                  Ngày tạo {renderSortIcon('createdAt')}
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredList.map((feedback) => (
+                <tr key={feedback.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-gray-900">{feedback.subject}</div>
+                    <div className="text-sm text-gray-500 line-clamp-2">{feedback.content}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <span
+                          key={i}
+                          className={`text-lg ${
+                            i < feedback.rating ? 'text-yellow-400' : 'text-gray-300'
+                          }`}
                         >
-                          Đánh dấu đã xem
-                        </button>
-                        
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(feedback.status)}`}>
+                      {getStatusText(feedback.status)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {formatDate(feedback.createdAt)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => {
+                          const detailsDiv = document.getElementById(`feedback-details-${feedback.id}`);
+                          if (detailsDiv) {
+                            detailsDiv.classList.toggle('hidden');
+                          }
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        Chi tiết
+                      </button>
+                      
+                      {user.id === feedback.userId && feedback.status === 'PENDING' && (
                         <button
-                          onClick={async () => {
-                            await FeedbackService.updateFeedbackStatus(feedback.id, 'RESOLVED');
-                            fetchFeedback();
-                          }}
-                          className="text-green-500 hover:text-green-700"
-                          disabled={feedback.status === 'RESOLVED'}
+                          onClick={() => handleEdit(feedback)}
+                          className="text-blue-600 hover:text-blue-900"
                         >
-                          Đánh dấu đã giải quyết
+                          Sửa
                         </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+                      )}
+                      
+                      {(user.id === feedback.userId || user.role === 'admin') && (
+                        <button
+                          onClick={() => handleDelete(feedback.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Xóa
+                        </button>
+                      )}
+                      
+                      {user.role === 'admin' && (
+                        <>
+                          <button
+                            onClick={async () => {
+                              await FeedbackService.updateFeedbackStatus(feedback.id, 'REVIEWED');
+                              fetchFeedback();
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                            disabled={feedback.status !== 'PENDING'}
+                          >
+                            Xem xét
+                          </button>
+                          
+                          <button
+                            onClick={async () => {
+                              await FeedbackService.updateFeedbackStatus(feedback.id, 'RESOLVED');
+                              fetchFeedback();
+                            }}
+                            className="text-green-600 hover:text-green-900"
+                            disabled={feedback.status === 'RESOLVED'}
+                          >
+                            Giải quyết
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

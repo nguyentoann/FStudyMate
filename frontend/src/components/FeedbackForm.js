@@ -28,7 +28,8 @@ const FeedbackForm = ({ onSuccess, existingFeedback = null, onCancel }) => {
         const updateData = {
           subject,
           content,
-          rating
+          rating,
+          comment: existingFeedback.comment || ""
         };
         console.log('Updating feedback with data:', updateData);
         await FeedbackService.updateFeedback(existingFeedback.id, updateData);
@@ -39,7 +40,8 @@ const FeedbackForm = ({ onSuccess, existingFeedback = null, onCancel }) => {
           userId: user.id,
           subject,
           content,
-          rating
+          rating,
+          comment: ""
         };
         console.log('Creating new feedback with data:', newFeedback);
         console.log('User object:', user);
