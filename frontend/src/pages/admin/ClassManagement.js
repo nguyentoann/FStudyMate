@@ -5,6 +5,124 @@ import { API_URL } from '../../services/config';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DashboardLayout from '../../components/DashboardLayout';
 import './ClassManagement.css';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+// Drag item types
+const ItemTypes = {
+  STUDENT: 'student'
+};
+
+// Draggable Student component
+const DraggableStudent = ({ student, type, onRemove, onAdd }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: ItemTypes.STUDENT,
+    item: { student, sourceType: type },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging()
+    })
+  }));
+
+  return (
+    <div 
+      ref={drag} 
+      className={`student-item ${isDragging ? 'dragging' : ''}`}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
+      <div className="student-info">
+        <img 
+          src={student.profileImageUrl || '/images/default-avatar.svg'} 
+          alt={student.fullName} 
+          className="student-avatar" 
+        />
+        <div className="student-details">
+          <div className="student-name">{student.fullName}</div>
+          <div className="student-email">{student.email}</div>
+          <div className="student-id">ID: {student.studentId || student.id}</div>
+        </div>
+      </div>
+      {type === 'enrolled' ? (
+        <button 
+          className="remove-student-btn"
+          onClick={() => onRemove(student.id)}
+        >
+          Remove
+        </button>
+      ) : (
+        <button 
+          className="add-student-btn"
+          onClick={() => onAdd(student.id)}
+        >
+          +
+        </button>
+      )}
+    </div>
+  );
+};
+
+// Droppable Students List
+const DroppableStudentsList = ({ title, students, type, onDrop, onRemove, onAdd }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: ItemTypes.STUDENT,
+    drop: (item) => {
+      if (item.sourceType !== type) {
+        onDrop(item.student, type);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver()
+    })
+  }));
+
+  return (
+    <div 
+      ref={drop} 
+      className={`students-list-container ${isOver ? 'drop-target' : ''}`}
+    >
+      <h3>{title} ({students.length})</h3>
+      <div className={`${type}-students-list`}>
+        {students.length === 0 ? (
+          <p className="no-students-message">
+            {type === 'enrolled' ? 'No students enrolled in this class yet.' : 'No available students to assign.'}
+          </p>
+        ) : (
+          students.map(student => (
+            <DraggableStudent 
+              key={student.id} 
+              student={student} 
+              type={type}
+              onRemove={onRemove}
+              onAdd={onAdd}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Droppable Class component
+const DroppableClass = ({ classObj, onDrop }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: ItemTypes.STUDENT,
+    drop: (item) => onDrop(item.student, classObj.classId),
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver()
+    })
+  }));
+
+  return (
+    <div 
+      ref={drop} 
+      className={`other-class-item ${isOver ? 'drop-target' : ''}`}
+    >
+      <div className="class-name">{classObj.className}</div>
+      <div className="class-info">
+        {classObj.currentStudents}/{classObj.maxStudents} students
+      </div>
+    </div>
+  );
+};
 
 const ClassManagement = () => {
   const { user } = useAuth();
@@ -41,6 +159,7 @@ const ClassManagement = () => {
     isActive: true
   });
   const [isRemovingStudent, setIsRemovingStudent] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   useEffect(() => {
     fetchClasses();
@@ -440,49 +559,192 @@ const ClassManagement = () => {
     student.email?.toLowerCase().includes(studentSearchTerm.toLowerCase())
   );
   
-  // Render enrolled students section
-  const renderEnrolledStudents = () => {
-    if (loading) {
-      return <div className="loading-spinner">Loading...</div>;
+  // Handle drop event
+  const handleDrop = (student, targetType) => {
+    if (targetType === 'enrolled') {
+      handleAssignStudent(student.id);
+    } else if (targetType === 'available') {
+      handleRemoveStudent(student.id);
+    } else {
+      // This is a class ID, transfer student to another class
+      handleTransferStudent(student.id, targetType);
     }
-    
-    if (error) {
-      return <div className="error-message">{error}</div>;
+  };
+
+  // Handle transferring a student to another class
+  const handleTransferStudent = async (userId, targetClassId) => {
+    try {
+      setIsRemovingStudent(true);
+      
+      // First, find the student in the current lists
+      const studentToTransfer = [...students, ...availableStudents].find(s => s.id === userId);
+      
+      if (!studentToTransfer) {
+        console.error('Student not found for transfer');
+        return;
+      }
+      
+      console.log(`Transferring student ${userId} from ${selectedClass?.classId || 'unassigned'} to ${targetClassId}`);
+      
+      // Remove from current class if enrolled
+      if (students.some(s => s.id === userId)) {
+        await fetch(`${API_URL}/user/${userId}/assign-class`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ classId: null })
+        });
+      }
+      
+      // Assign to new class
+      const response = await fetch(`${API_URL}/user/${userId}/assign-class`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ classId: targetClassId })
+      });
+      
+      const responseData = await response.json();
+      
+      if (response.ok && responseData.success) {
+        // Update UI by removing student from current lists
+        if (students.some(s => s.id === userId)) {
+          setStudents(students.filter(s => s.id !== userId));
+          
+          // Update class count for current class
+          const updatedClass = { 
+            ...selectedClass, 
+            currentStudents: Math.max(0, selectedClass.currentStudents - 1) 
+          };
+          setSelectedClass(updatedClass);
+          
+          // Update classes list for current class
+          setClasses(classes.map(c => 
+            c.classId === updatedClass.classId ? updatedClass : c
+          ));
+        } else if (availableStudents.some(s => s.id === userId)) {
+          setAvailableStudents(availableStudents.filter(s => s.id !== userId));
+        }
+        
+        // Update target class count in classes list
+        setClasses(classes.map(c => 
+          c.classId === targetClassId 
+            ? { ...c, currentStudents: c.currentStudents + 1 } 
+            : c
+        ));
+        
+        // Show success message
+        setSuccessMessage(`Student ${studentToTransfer.fullName} transferred to ${targetClassId}`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setError(responseData.message || 'Failed to transfer student');
+        console.error('Failed to transfer student:', responseData);
+      }
+    } catch (err) {
+      setError('An error occurred while transferring student');
+      console.error('Error transferring student:', err);
+    } finally {
+      setIsRemovingStudent(false);
     }
-    
-    if (!students || students.length === 0) {
-      return (
-        <div className="no-students-message">
-          <p>No students enrolled in this class yet.</p>
-        </div>
-      );
-    }
+  };
+
+  // Render student management section
+  const renderStudentManagementSection = () => {
+    if (!selectedClass) return null;
     
     return (
-      <div className="enrolled-students-list">
-        {students.map(student => (
-          <div key={student.id} className="student-item">
-            <div className="student-info">
-              <img 
-                src={student.profileImageUrl || '/images/default-avatar.svg'} 
-                alt={student.fullName} 
-                className="student-avatar" 
-              />
-              <div className="student-details">
-                <div className="student-name">{student.fullName}</div>
-                <div className="student-email">{student.email}</div>
-                <div className="student-id">Student ID: {student.studentId || 'N/A'}</div>
+      <div className="student-management-section">
+        <h2>Students in {selectedClass.className}</h2>
+        
+        <div className="student-search-section">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Search students by name or email..."
+              value={studentSearchTerm}
+              onChange={(e) => setStudentSearchTerm(e.target.value)}
+              className="student-search-input"
+            />
+            {isSearchingStudents && (
+              <div className="search-spinner">
+                <LoadingSpinner size="small" />
+              </div>
+            )}
+          </div>
+          
+          {studentSearchResults.length > 0 && (
+            <div className="search-results-container">
+              <h4>Search Results</h4>
+              <div className="search-results-list">
+                {studentSearchResults.map(student => (
+                  <div key={student.id} className="student-search-item">
+                    <div className="student-avatar">
+                      {student.profileImageUrl ? (
+                        <img 
+                          src={student.profileImageUrl} 
+                          alt={student.fullName} 
+                          className="avatar-image"
+                        />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {student.fullName ? student.fullName.charAt(0).toUpperCase() : 'S'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="student-search-info">
+                      <div className="student-name">{student.fullName}</div>
+                      <div className="student-email">{student.email}</div>
+                    </div>
+                    <button 
+                      className="btn-primary btn-small" 
+                      onClick={() => handleAssignStudent(student.id)}
+                      disabled={isAddingStudent}
+                    >
+                      {isAddingStudent ? 'Adding...' : 'Add'}
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-            <button 
-              className="remove-student-btn"
-              onClick={() => handleRemoveStudent(student.id)}
-              disabled={isRemovingStudent}
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+          )}
+        </div>
+        
+        {loading && <LoadingSpinner />}
+        
+        <div className="students-grid-container">
+          <DroppableStudentsList
+            title="Enrolled Students"
+            students={filteredStudents}
+            type="enrolled"
+            onDrop={handleDrop}
+            onRemove={handleRemoveStudent}
+            onAdd={() => {}}
+          />
+          
+          <DroppableStudentsList
+            title="Available Students"
+            students={availableStudents}
+            type="available"
+            onDrop={handleDrop}
+            onRemove={() => {}}
+            onAdd={handleAssignStudent}
+          />
+        </div>
+
+        <h3>Other Classes</h3>
+        <div className="other-classes-container">
+          {classes
+            .filter(c => c.classId !== selectedClass.classId)
+            .map(classObj => (
+              <DroppableClass
+                key={classObj.classId}
+                classObj={classObj}
+                onDrop={handleDrop}
+              />
+            ))}
+        </div>
       </div>
     );
   };
@@ -493,6 +755,7 @@ const ClassManagement = () => {
         <h1>Class Management</h1>
         
         {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
         
         <div className="class-management-content">
           <div className="class-list-section">
@@ -701,100 +964,10 @@ const ClassManagement = () => {
                   </div>
                 </form>
               </>
-            ) : selectedClass && (
-              <div className="student-management-section">
-                <h2>Students in {selectedClass.className}</h2>
-                
-                <div className="student-search-section">
-                  <div className="search-box">
-                    <input
-                      type="text"
-                      placeholder="Search students by name or email..."
-                      value={studentSearchTerm}
-                      onChange={(e) => setStudentSearchTerm(e.target.value)}
-                      className="student-search-input"
-                    />
-                    {isSearchingStudents && (
-                      <div className="search-spinner">
-                        <LoadingSpinner size="small" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {studentSearchResults.length > 0 && (
-                    <div className="search-results-container">
-                      <h4>Search Results</h4>
-                      <div className="search-results-list">
-                        {studentSearchResults.map(student => (
-                          <div key={student.id} className="student-search-item">
-                            <div className="student-avatar">
-                              {student.profileImageUrl ? (
-                                <img 
-                                  src={student.profileImageUrl} 
-                                  alt={student.fullName} 
-                                  className="avatar-image"
-                                />
-                              ) : (
-                                <div className="avatar-placeholder">
-                                  {student.fullName ? student.fullName.charAt(0).toUpperCase() : 'S'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="student-search-info">
-                              <div className="student-name">{student.fullName}</div>
-                              <div className="student-email">{student.email}</div>
-                            </div>
-                            <button 
-                              className="btn-primary btn-small" 
-                              onClick={() => handleAssignStudent(student.id)}
-                              disabled={isAddingStudent}
-                            >
-                              {isAddingStudent ? 'Adding...' : 'Add'}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {loading && <LoadingSpinner />}
-                
-                <div className="students-container">
-                  <h3>Enrolled Students ({filteredStudents.length})</h3>
-                  {renderEnrolledStudents()}
-                  
-                  <h3>Available Students</h3>
-                  <div className="available-students-list">
-                    {availableStudents.length === 0 ? (
-                      <p className="no-students-message">No available students to assign.</p>
-                    ) : (
-                      availableStudents.map(student => (
-                        <div key={student.id} className="student-item">
-                          <div className="student-info">
-                            <img 
-                              src={student.profileImageUrl || '/images/default-avatar.svg'} 
-                              alt={student.fullName} 
-                              className="student-avatar" 
-                            />
-                            <div className="student-details">
-                              <div className="student-name">{student.fullName}</div>
-                              <div className="student-email">{student.email}</div>
-                              <div className="student-id">ID: {student.studentId || student.id}</div>
-                            </div>
-                          </div>
-                          <button 
-                            className="btn-primary add-student-btn" 
-                            onClick={() => handleAssignStudent(student.id)}
-                          >
-                            +
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
+            ) : (
+              <DndProvider backend={HTML5Backend}>
+                {renderStudentManagementSection()}
+              </DndProvider>
             )}
           </div>
         </div>
