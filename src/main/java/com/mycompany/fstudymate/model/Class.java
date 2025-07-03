@@ -21,14 +21,13 @@ public class Class {
     @Column(name = "class_name", nullable = false, length = 100)
     private String className;
 
-    @Column(name = "academic_year", nullable = false, length = 10)
-    private String academicYear;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "term_id", nullable = false)
+    private Term term;
 
-    @Column(name = "semester", nullable = false, length = 20)
-    private String semester;
-
-    @Column(name = "department", length = 100)
-    private String department;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "academic_major_id")
+    private AcademicMajor academicMajor;
 
     @Column(name = "max_students")
     private Integer maxStudents;

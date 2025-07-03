@@ -2,9 +2,13 @@ package com.mycompany.fstudymate.controller;
 
 import com.mycompany.fstudymate.model.Class;
 import com.mycompany.fstudymate.model.User;
+import com.mycompany.fstudymate.model.AcademicMajor;
+import com.mycompany.fstudymate.model.Term;
 import com.mycompany.fstudymate.service.ClassService;
 import com.mycompany.fstudymate.service.UserActivityService;
 import com.mycompany.fstudymate.repository.UserRepository;
+import com.mycompany.fstudymate.repository.AcademicMajorRepository;
+import com.mycompany.fstudymate.repository.TermRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +18,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.lang.reflect.Field;
 
 @RestController
 @RequestMapping("/api/classes")
@@ -25,6 +33,12 @@ public class ClassController {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private AcademicMajorRepository academicMajorRepository;
+    
+    @Autowired
+    private TermRepository termRepository;
     
     // Class Management Endpoints
     @GetMapping
@@ -52,7 +66,7 @@ public class ClassController {
         try {
             Optional<Class> classObj = classService.getClassById(classId);
             return classObj.map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
+                    .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -76,8 +90,9 @@ public class ClassController {
             Class updatedClass = classService.updateClass(classId, classDetails);
             if (updatedClass != null) {
                 return ResponseEntity.ok(updatedClass);
+            } else {
+                return ResponseEntity.notFound().build();
             }
-            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -88,7 +103,43 @@ public class ClassController {
         try {
             boolean deleted = classService.deleteClass(classId);
             if (deleted) {
-                return ResponseEntity.ok().build();
+                return ResponseEntity.noContent().build();
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    // Class Filtering Endpoints
+    @GetMapping("/term/{termId}")
+    public ResponseEntity<List<Class>> getClassesByTermId(@PathVariable Integer termId) {
+        try {
+            List<Class> classes = classService.getClassesByTermId(termId);
+            return ResponseEntity.ok(classes);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/term-name/{termName}")
+    public ResponseEntity<List<Class>> getClassesByTermName(@PathVariable String termName) {
+        try {
+            List<Class> classes = classService.getClassesByTermName(termName);
+            return ResponseEntity.ok(classes);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/academic-major/{majorId}")
+    public ResponseEntity<List<Class>> getClassesByAcademicMajor(@PathVariable Integer majorId) {
+        try {
+            Optional<AcademicMajor> majorOpt = academicMajorRepository.findById(majorId);
+            if (majorOpt.isPresent()) {
+                List<Class> classes = classService.getClassesByAcademicMajor(majorOpt.get());
+                return ResponseEntity.ok(classes);
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
@@ -96,33 +147,10 @@ public class ClassController {
         }
     }
     
-    // Class Filtering Endpoints
-    @GetMapping("/academic-year/{academicYear}")
-    public ResponseEntity<List<Class>> getClassesByAcademicYear(@PathVariable String academicYear) {
+    @GetMapping("/academic-major-name/{majorName}")
+    public ResponseEntity<List<Class>> getClassesByAcademicMajorName(@PathVariable String majorName) {
         try {
-            List<Class> classes = classService.getClassesByAcademicYear(academicYear);
-            return ResponseEntity.ok(classes);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-    
-    @GetMapping("/academic-year/{academicYear}/semester/{semester}")
-    public ResponseEntity<List<Class>> getClassesByAcademicYearAndSemester(
-            @PathVariable String academicYear,
-            @PathVariable String semester) {
-        try {
-            List<Class> classes = classService.getClassesByAcademicYearAndSemester(academicYear, semester);
-            return ResponseEntity.ok(classes);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-    
-    @GetMapping("/department/{department}")
-    public ResponseEntity<List<Class>> getClassesByDepartment(@PathVariable String department) {
-        try {
-            List<Class> classes = classService.getClassesByDepartment(department);
+            List<Class> classes = classService.getClassesByAcademicMajorName(majorName);
             return ResponseEntity.ok(classes);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -246,42 +274,70 @@ public class ClassController {
         }
     }
     
-    @GetMapping("/academic-years")
-    public ResponseEntity<List<String>> getAvailableAcademicYears() {
+    @GetMapping("/terms")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableTerms() {
         try {
-            List<String> academicYears = classService.getAllClasses().stream()
-                    .map(Class::getAcademicYear)
-                    .distinct()
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(academicYears);
+            List<Term> terms = termRepository.findAll();
+            List<Map<String, Object>> termsList = new ArrayList<>();
+            
+            for (Term term : terms) {
+                try {
+                    // Use direct field access with reflection to avoid getter method issues
+                    java.lang.reflect.Field idField = Term.class.getDeclaredField("id");
+                    java.lang.reflect.Field nameField = Term.class.getDeclaredField("name");
+                    idField.setAccessible(true);
+                    nameField.setAccessible(true);
+                    
+                    Integer id = (Integer) idField.get(term);
+                    String name = (String) nameField.get(term);
+                    
+                    Map<String, Object> termMap = new HashMap<>();
+                    termMap.put("id", id);
+                    termMap.put("name", name);
+                    termsList.add(termMap);
+                } catch (Exception e) {
+                    System.out.println("Error accessing Term fields: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
+            return ResponseEntity.ok(termsList);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-    
-    @GetMapping("/semesters")
-    public ResponseEntity<List<String>> getAvailableSemesters() {
-        try {
-            List<String> semesters = classService.getAllClasses().stream()
-                    .map(Class::getSemester)
-                    .distinct()
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(semesters);
-        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
     
     @GetMapping("/departments")
-    public ResponseEntity<List<String>> getAvailableDepartments() {
+    public ResponseEntity<List<Map<String, Object>>> getAvailableDepartments() {
         try {
-            List<String> departments = classService.getAllClasses().stream()
-                    .map(Class::getDepartment)
-                    .filter(dept -> dept != null && !dept.isEmpty())
-                    .distinct()
-                    .collect(Collectors.toList());
+            List<AcademicMajor> majors = academicMajorRepository.findAll();
+            List<Map<String, Object>> departments = new ArrayList<>();
+            
+            for (AcademicMajor major : majors) {
+                try {
+                    // Use direct field access with reflection to avoid getter method issues
+                    java.lang.reflect.Field idField = AcademicMajor.class.getDeclaredField("id");
+                    java.lang.reflect.Field nameField = AcademicMajor.class.getDeclaredField("name");
+                    idField.setAccessible(true);
+                    nameField.setAccessible(true);
+                    
+                    Integer id = (Integer) idField.get(major);
+                    String name = (String) nameField.get(major);
+                    
+                    Map<String, Object> dept = new HashMap<>();
+                    dept.put("id", id);
+                    dept.put("name", name);
+                    departments.add(dept);
+                } catch (Exception e) {
+                    System.out.println("Error accessing AcademicMajor fields: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
             return ResponseEntity.ok(departments);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }

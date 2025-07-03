@@ -429,10 +429,12 @@ CREATE TABLE `classes` (
   `homeroom_teacher_id` int(11) DEFAULT NULL,
   `is_active` bit(1) DEFAULT NULL,
   `max_students` int(11) DEFAULT NULL,
-  `semester` varchar(20) NOT NULL,
+  `term_id` int(11) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   `academic_major_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`class_id`)
+  PRIMARY KEY (`class_id`),
+  KEY `fk_classes_terms` (`term_id`),
+  CONSTRAINT `fk_classes_terms` FOREIGN KEY (`term_id`) REFERENCES `Terms` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

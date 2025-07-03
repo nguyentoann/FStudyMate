@@ -17,16 +17,20 @@ const ClassManagement = () => {
   const [error, setError] = useState('');
   const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
   const [searchTerm, setSearchTerm] = useState('');
-  const [academicYears, setAcademicYears] = useState([]);
-  const [semesters, setSemesters] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const [terms, setTerms] = useState([]);
+  const [academicMajors, setAcademicMajors] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [formData, setFormData] = useState({
     classId: '',
     className: '',
-    academicYear: '',
-    semester: '',
-    department: '',
+    term: {
+      id: '',
+      name: ''
+    },
+    academicMajor: {
+      id: '',
+      name: ''
+    },
     maxStudents: 50,
     homeroomTeacherId: '',
     isActive: true
@@ -34,9 +38,8 @@ const ClassManagement = () => {
   
   useEffect(() => {
     fetchClasses();
-    fetchAcademicYears();
-    fetchSemesters();
-    fetchDepartments();
+    fetchTerms();
+    fetchAcademicMajors();
     fetchTeachers();
   }, []);
   
@@ -59,42 +62,29 @@ const ClassManagement = () => {
     }
   };
   
-  const fetchAcademicYears = async () => {
+  const fetchTerms = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/academic-years`);
+      const response = await fetch(`${API_URL}/classes/terms`);
       
       if (response.ok) {
         const data = await response.json();
-        setAcademicYears(data);
+        setTerms(data);
       }
     } catch (err) {
-      console.error('Error fetching academic years:', err);
+      console.error('Error fetching terms:', err);
     }
   };
   
-  const fetchSemesters = async () => {
-    try {
-      const response = await fetch(`${API_URL}/classes/semesters`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSemesters(data);
-      }
-    } catch (err) {
-      console.error('Error fetching semesters:', err);
-    }
-  };
-  
-  const fetchDepartments = async () => {
+  const fetchAcademicMajors = async () => {
     try {
       const response = await fetch(`${API_URL}/classes/departments`);
       
       if (response.ok) {
         const data = await response.json();
-        setDepartments(data);
+        setAcademicMajors(data);
       }
     } catch (err) {
-      console.error('Error fetching departments:', err);
+      console.error('Error fetching academic majors:', err);
     }
   };
   
@@ -152,9 +142,8 @@ const ClassManagement = () => {
     setFormData({
       classId: classObj.classId,
       className: classObj.className,
-      academicYear: classObj.academicYear,
-      semester: classObj.semester,
-      department: classObj.department || '',
+      term: classObj.term || { id: '', name: '' },
+      academicMajor: classObj.academicMajor || { id: '', name: '' },
       maxStudents: classObj.maxStudents,
       homeroomTeacherId: classObj.homeroomTeacherId || '',
       isActive: classObj.isActive
@@ -169,9 +158,14 @@ const ClassManagement = () => {
     setFormData({
       classId: '',
       className: '',
-      academicYear: new Date().getFullYear().toString(),
-      semester: '',
-      department: '',
+      term: {
+        id: '',
+        name: ''
+      },
+      academicMajor: {
+        id: '',
+        name: ''
+      },
       maxStudents: 50,
       homeroomTeacherId: '',
       isActive: true
@@ -181,10 +175,25 @@ const ClassManagement = () => {
   
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    
+    if (name === 'academicMajorId') {
+      const selectedMajor = academicMajors.find(major => major.id === parseInt(value, 10));
+      setFormData({
+        ...formData,
+        academicMajor: selectedMajor || { id: '', name: '' }
+      });
+    } else if (name === 'termId') {
+      const selectedTerm = terms.find(term => term.id === parseInt(value, 10));
+      setFormData({
+        ...formData,
+        term: selectedTerm || { id: '', name: '' }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: type === 'checkbox' ? checked : value
+      });
+    }
   };
   
   const handleSubmit = async (e) => {
@@ -331,8 +340,8 @@ const ClassManagement = () => {
   };
   
   const filteredClasses = classes.filter(c => 
-    c.classId.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.className.toLowerCase().includes(searchTerm.toLowerCase())
+    (c.classId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.className?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false
   );
   
   return (
@@ -376,8 +385,8 @@ const ClassManagement = () => {
                   </div>
                   <div className="class-item-details">
                     <p><strong>ID:</strong> {classObj.classId}</p>
-                    <p><strong>Academic Year:</strong> {classObj.academicYear}</p>
-                    <p><strong>Semester:</strong> {classObj.semester}</p>
+                    <p><strong>Term:</strong> {classObj.term?.name || 'N/A'}</p>
+                    <p><strong>Department:</strong> {classObj.academicMajor?.name || 'N/A'}</p>
                     <p><strong>Students:</strong> {classObj.currentStudents}/{classObj.maxStudents}</p>
                   </div>
                 </div>
@@ -420,84 +429,52 @@ const ClassManagement = () => {
                 />
               </div>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="academicYear">Academic Year</label>
-                  <select
-                    id="academicYear"
-                    name="academicYear"
-                    value={formData.academicYear}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Select Year</option>
-                    {academicYears.length > 0 ? (
-                      academicYears.map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))
-                    ) : (
-                      <>
-                        <option value={(new Date().getFullYear() - 1).toString()}>
-                          {new Date().getFullYear() - 1}
-                        </option>
-                        <option value={new Date().getFullYear().toString()}>
-                          {new Date().getFullYear()}
-                        </option>
-                        <option value={(new Date().getFullYear() + 1).toString()}>
-                          {new Date().getFullYear() + 1}
-                        </option>
-                      </>
-                    )}
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="semester">Semester</label>
-                  <select
-                    id="semester"
-                    name="semester"
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Select Semester</option>
-                    {semesters.length > 0 ? (
-                      semesters.map(semester => (
-                        <option key={semester} value={semester}>{semester}</option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="Fall">Fall</option>
-                        <option value="Spring">Spring</option>
-                        <option value="Summer">Summer</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              </div>
-              
               <div className="form-group">
-                <label htmlFor="department">Department</label>
+                <label htmlFor="termId">Term</label>
                 <select
-                  id="department"
-                  name="department"
-                  value={formData.department}
+                  id="termId"
+                  name="termId"
+                  value={formData.term?.id || ''}
                   onChange={handleInputChange}
+                  required
                 >
-                  <option value="">Select Department</option>
-                  {departments.length > 0 ? (
-                    departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
+                  <option value="">Select Term</option>
+                  {terms.length > 0 ? (
+                    terms.map(term => (
+                      <option key={term.id} value={term.id}>{term.name}</option>
                     ))
                   ) : (
                     <>
-                      <option value="Computer Science">Computer Science</option>
-                      <option value="Mathematics">Mathematics</option>
-                      <option value="Physics">Physics</option>
-                      <option value="Chemistry">Chemistry</option>
-                      <option value="Biology">Biology</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="Business">Business</option>
+                      <option value="1">FALL2021</option>
+                      <option value="2">SPRING2022</option>
+                      <option value="3">SUMMER2022</option>
+                      <option value="4">FALL2022</option>
+                      <option value="5">SPRING2023</option>
+                      <option value="6">SUMMER2023</option>
+                      <option value="7">FALL2023</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="academicMajorId">Department</label>
+                <select
+                  id="academicMajorId"
+                  name="academicMajorId"
+                  value={formData.academicMajor?.id || ''}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Department</option>
+                  {academicMajors.length > 0 ? (
+                    academicMajors.map(major => (
+                      <option key={major.id} value={major.id}>{major.name}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="1">Computer Science</option>
+                      <option value="2">Mathematics</option>
+                      <option value="3">Physics</option>
                     </>
                   )}
                 </select>

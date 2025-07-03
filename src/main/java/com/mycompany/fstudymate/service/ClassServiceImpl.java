@@ -2,8 +2,12 @@ package com.mycompany.fstudymate.service;
 
 import com.mycompany.fstudymate.model.Class;
 import com.mycompany.fstudymate.model.User;
+import com.mycompany.fstudymate.model.AcademicMajor;
+import com.mycompany.fstudymate.model.Term;
 import com.mycompany.fstudymate.repository.ClassRepository;
 import com.mycompany.fstudymate.repository.UserRepository;
+import com.mycompany.fstudymate.repository.AcademicMajorRepository;
+import com.mycompany.fstudymate.repository.TermRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 @Service
 public class ClassServiceImpl implements ClassService {
@@ -20,6 +27,12 @@ public class ClassServiceImpl implements ClassService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private AcademicMajorRepository academicMajorRepository;
+    
+    @Autowired
+    private TermRepository termRepository;
     
     @Override
     public List<Class> getAllClasses() {
@@ -52,9 +65,8 @@ public class ClassServiceImpl implements ClassService {
             
             // Update fields
             classToUpdate.setClassName(classDetails.getClassName());
-            classToUpdate.setAcademicYear(classDetails.getAcademicYear());
-            classToUpdate.setSemester(classDetails.getSemester());
-            classToUpdate.setDepartment(classDetails.getDepartment());
+            classToUpdate.setTerm(classDetails.getTerm());
+            classToUpdate.setAcademicMajor(classDetails.getAcademicMajor());
             classToUpdate.setMaxStudents(classDetails.getMaxStudents());
             classToUpdate.setHomeroomTeacherId(classDetails.getHomeroomTeacherId());
             classToUpdate.setIsActive(classDetails.getIsActive());
@@ -86,18 +98,28 @@ public class ClassServiceImpl implements ClassService {
     }
     
     @Override
-    public List<Class> getClassesByAcademicYear(String academicYear) {
-        return classRepository.findByAcademicYear(academicYear);
+    public List<Class> getClassesByTerm(Term term) {
+        return classRepository.findByTerm(term);
     }
     
     @Override
-    public List<Class> getClassesByAcademicYearAndSemester(String academicYear, String semester) {
-        return classRepository.findByAcademicYearAndSemester(academicYear, semester);
+    public List<Class> getClassesByTermId(Integer termId) {
+        return classRepository.findByTermId(termId);
     }
     
     @Override
-    public List<Class> getClassesByDepartment(String department) {
-        return classRepository.findByDepartment(department);
+    public List<Class> getClassesByTermName(String termName) {
+        return classRepository.findByTermName(termName);
+    }
+    
+    @Override
+    public List<Class> getClassesByAcademicMajor(AcademicMajor academicMajor) {
+        return classRepository.findByAcademicMajor(academicMajor);
+    }
+    
+    @Override
+    public List<Class> getClassesByAcademicMajorName(String majorName) {
+        return classRepository.findByAcademicMajorName(majorName);
     }
     
     @Override
@@ -113,6 +135,40 @@ public class ClassServiceImpl implements ClassService {
     @Override
     public List<Class> searchClasses(String keyword) {
         return classRepository.searchClasses(keyword);
+    }
+    
+    @Override
+    public List<Map<String, Object>> getClassesWithDetails() {
+        List<Object[]> classesWithDetails = classRepository.findClassesWithDetails();
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (Object[] row : classesWithDetails) {
+            Class classObj = (Class) row[0];
+            AcademicMajor major = (AcademicMajor) row[1];
+            Term term = (Term) row[2];
+            
+            Map<String, Object> classMap = new HashMap<>();
+            classMap.put("classId", classObj.getClassId());
+            classMap.put("className", classObj.getClassName());
+            classMap.put("maxStudents", classObj.getMaxStudents());
+            classMap.put("currentStudents", classObj.getCurrentStudents());
+            classMap.put("homeroomTeacherId", classObj.getHomeroomTeacherId());
+            classMap.put("isActive", classObj.getIsActive());
+            
+            if (major != null) {
+                classMap.put("academicMajorId", major.getId());
+                classMap.put("academicMajorName", major.getName());
+            }
+            
+            if (term != null) {
+                classMap.put("termId", term.getId());
+                classMap.put("termName", term.getName());
+            }
+            
+            result.add(classMap);
+        }
+        
+        return result;
     }
     
     @Override
@@ -166,7 +222,7 @@ public class ClassServiceImpl implements ClassService {
             User user = userOpt.get();
             Class classObj = classOpt.get();
             
-            // Check if student is in this class
+            // Only update if the student is in this class
             if (user.getClassId() != null && user.getClassId().equals(classId)) {
                 user.setClassId(null);
                 userRepository.save(user);
@@ -174,9 +230,9 @@ public class ClassServiceImpl implements ClassService {
                 // Update class student count
                 classObj.setCurrentStudents(Math.max(0, classObj.getCurrentStudents() - 1));
                 classRepository.save(classObj);
-                
-                return true;
             }
+            
+            return true;
         }
         
         return false;
@@ -197,8 +253,9 @@ public class ClassServiceImpl implements ClassService {
         
         if (classOpt.isPresent()) {
             Class classObj = classOpt.get();
-            List<User> students = userRepository.findByClassId(classId);
-            classObj.setCurrentStudents(students.size());
+            int studentCount = userRepository.countByClassId(classId);
+            
+            classObj.setCurrentStudents(studentCount);
             classRepository.save(classObj);
             return true;
         }
