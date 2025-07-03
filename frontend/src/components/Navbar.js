@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 
 const Navbar = ({ toggleSidebar = () => {} }) => {
-  const { isAuthenticated, logout, user } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Thêm kiểm tra role
@@ -24,14 +23,14 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
       default: return '/dashboard';
     }
   };
-  
+
   return (
     <nav className="bg-indigo-600 text-white shadow-md py-2 px-4 fixed top-0 left-0 right-0 z-[95]">
       <div className="container mx-auto flex justify-between items-center">
         {/* Left side - Logo, Brand, and Hamburger */}
         <div className="flex items-center">
           {/* Hamburger Menu Button - visible on all screens */}
-          <button 
+          <button
             onClick={toggleSidebar}
             className="mr-4 p-1 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
             aria-label="Toggle sidebar"
@@ -82,6 +81,17 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
           {/* Notifications */}
           <NotificationBell />
           
+          {/* Send Notifications */}
+          {canSendNotifications && (
+            <Link 
+              to="/notifications/send"
+              className="text-white hover:text-gray-200"
+              title="Send Notifications"
+            >
+              <i className="fas fa-paper-plane"></i>
+            </Link>
+          )}
+          
           {/* User Profile */}
           {user && (
             <Link to="/profile" className="flex items-center space-x-2">
@@ -92,25 +102,6 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
               />
             </Link>
           )}
-          
-          {/* Send Notifications */}
-          {canSendNotifications && (
-            <Link 
-              to="/notifications/send"
-              className="text-blue-600 hover:text-blue-800 mx-3"
-              title="Send Notifications"
-            >
-              <i className="fas fa-paper-plane"></i>
-            </Link>
-          )}
-          
-          {/* Logout Button */}
-          <button
-            onClick={logout}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-          >
-            Logout
-          </button>
         </div>
       </div>
     </nav>
