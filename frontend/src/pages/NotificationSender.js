@@ -7,7 +7,7 @@ import { API_URL } from '../services/config';
 import { Link } from 'react-router-dom';
 
 const NotificationSender = () => {
-  const { user } = useAuth();
+  const { user, getAuthToken } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLecturer, setIsLecturer] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,11 +39,21 @@ const NotificationSender = () => {
     }
   }, [user]);
   
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    const token = getAuthToken();
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    };
+  };
+  
   // Fetch users
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/users`);
+      const response = await axios.get(`${API_URL}/users/all`, getAuthHeaders());
       // Filter users based on role if lecturer (only show students)
       if (user.role?.toLowerCase() === 'lecturer') {
         const students = response.data.filter(
@@ -55,7 +65,7 @@ const NotificationSender = () => {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setErrorMessage('Failed to load users');
+      setErrorMessage('Failed to load users: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -65,11 +75,11 @@ const NotificationSender = () => {
   const fetchClasses = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/classes`);
+      const response = await axios.get(`${API_URL}/classes/all`, getAuthHeaders());
       setClasses(response.data);
     } catch (error) {
       console.error('Error fetching classes:', error);
-      setErrorMessage('Failed to load classes');
+      setErrorMessage('Failed to load classes: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -98,6 +108,8 @@ const NotificationSender = () => {
         link: link || null
       };
       
+      const authHeaders = getAuthHeaders();
+      
       // Different API endpoints based on send option
       switch (sendOption) {
         case 'individual':
@@ -112,18 +124,18 @@ const NotificationSender = () => {
             response = await axios.post(`${API_URL}/notification-management/send-to-user`, {
               ...payload,
               recipientId: selectedRecipients[0]
-            });
+            }, authHeaders);
           } else {
             // Send to multiple users
             response = await axios.post(`${API_URL}/notification-management/send-to-users`, {
               ...payload,
               recipientIds: selectedRecipients
-            });
+            }, authHeaders);
           }
           break;
           
         case 'allStudents':
-          response = await axios.post(`${API_URL}/notification-management/send-to-all-students`, payload);
+          response = await axios.post(`${API_URL}/notification-management/send-to-all-students`, payload, authHeaders);
           break;
           
         case 'class':
@@ -132,11 +144,11 @@ const NotificationSender = () => {
             setLoading(false);
             return;
           }
-          response = await axios.post(`${API_URL}/notification-management/send-to-class/${selectedClass}`, payload);
+          response = await axios.post(`${API_URL}/notification-management/send-to-class/${selectedClass}`, payload, authHeaders);
           break;
           
         case 'all':
-          response = await axios.post(`${API_URL}/notification-management/send-to-all`, payload);
+          response = await axios.post(`${API_URL}/notification-management/send-to-all`, payload, authHeaders);
           break;
           
         default:
@@ -197,6 +209,12 @@ const NotificationSender = () => {
           {errorMessage && (
             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
               <p>{errorMessage}</p>
+              <button 
+                onClick={fetchUsers} 
+                className="mt-2 text-sm underline hover:text-red-800"
+              >
+                Try again
+              </button>
             </div>
           )}
           
@@ -288,7 +306,7 @@ const NotificationSender = () => {
                           className="mr-2"
                         />
                         <label htmlFor={`user-${user.id}`}>
-                          {user.fullName || user.username} ({user.role})
+                          {user.fullName || user.username || user.email} ({user.role})
                         </label>
                       </div>
                     ))
@@ -309,8 +327,8 @@ const NotificationSender = () => {
                 >
                   <option value="">Select a class</option>
                   {classes.map(cls => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
+                    <option key={cls.classId || cls.id} value={cls.classId || cls.id}>
+                      {cls.className || cls.name}
                     </option>
                   ))}
                 </select>
