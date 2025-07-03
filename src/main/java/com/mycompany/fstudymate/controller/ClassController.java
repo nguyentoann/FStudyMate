@@ -23,6 +23,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import javax.sql.DataSource;
 
 @RestController
 @RequestMapping("/api/classes")
@@ -39,6 +44,9 @@ public class ClassController {
     
     @Autowired
     private TermRepository termRepository;
+    
+    @Autowired
+    private DataSource dataSource;
     
     // Class Management Endpoints
     @GetMapping
@@ -235,21 +243,47 @@ public class ClassController {
     @GetMapping("/{classId}/students")
     public ResponseEntity<List<Map<String, Object>>> getStudentsByClass(@PathVariable String classId) {
         try {
-            List<User> students = userRepository.findByClassId(classId);
-            List<Map<String, Object>> studentDetails = students.stream()
-                    .map(student -> {
-                        Map<String, Object> details = new HashMap<>();
-                        details.put("id", student.getId());
-                        details.put("username", student.getUsername());
-                        details.put("fullName", student.getFullName());
-                        details.put("email", student.getEmail());
-                        details.put("role", student.getRole());
-                        return details;
-                    })
-                    .collect(Collectors.toList());
+            // Query both users and students tables to get complete student information
+            String query = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.profile_image_url, " +
+                          "s.student_id, s.gender, s.date_of_birth " +
+                          "FROM users u " +
+                          "JOIN students s ON u.id = s.user_id " +
+                          "WHERE s.class_id = ?";
+            
+            List<Map<String, Object>> studentDetails = new ArrayList<>();
+            Connection conn = null;
+            PreparedStatement ps = null;
+            ResultSet rs = null;
+            
+            try {
+                conn = dataSource.getConnection();
+                ps = conn.prepareStatement(query);
+                ps.setString(1, classId);
+                rs = ps.executeQuery();
+                
+                while (rs.next()) {
+                    Map<String, Object> details = new HashMap<>();
+                    details.put("id", rs.getInt("id"));
+                    details.put("username", rs.getString("username"));
+                    details.put("fullName", rs.getString("full_name"));
+                    details.put("email", rs.getString("email"));
+                    details.put("role", rs.getString("role"));
+                    details.put("profileImageUrl", rs.getString("profile_image_url"));
+                    details.put("studentId", rs.getString("student_id"));
+                    details.put("gender", rs.getString("gender"));
+                    details.put("dateOfBirth", rs.getString("date_of_birth"));
+                    
+                    studentDetails.add(details);
+                }
+            } finally {
+                if (rs != null) try { rs.close(); } catch (SQLException e) { /* ignored */ }
+                if (ps != null) try { ps.close(); } catch (SQLException e) { /* ignored */ }
+                if (conn != null) try { conn.close(); } catch (SQLException e) { /* ignored */ }
+            }
             
             return ResponseEntity.ok(studentDetails);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }

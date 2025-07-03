@@ -2,17 +2,17 @@ package dao;
 
 import connection.ConnectionPool;
 import connection.DBUtils;
+import model.User;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import model.User;
-import at.favre.lib.crypto.bcrypt.BCrypt;
-import java.util.Map;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import java.sql.DatabaseMetaData;
 
 public class UserDAO {
@@ -1539,5 +1539,216 @@ public class UserDAO {
         }
         
         return count;
+    }
+
+    /**
+     * Search users by name or username and role
+     * 
+     * @param searchTerm The search term
+     * @param role The role to filter by
+     * @return List of matching users
+     */
+    public List<Map<String, Object>> searchUsersByRole(String searchTerm, String role) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Map<String, Object>> users = new ArrayList<>();
+        
+        try {
+            String query = "SELECT id, username, full_name, email, role, profile_image_url " +
+                          "FROM users " +
+                          "WHERE (full_name LIKE ? OR username LIKE ?) AND UPPER(role) = UPPER(?) " +
+                          "ORDER BY full_name " +
+                          "LIMIT 20";
+            
+            ps = connection.prepareStatement(query);
+            String likePattern = "%" + searchTerm + "%";
+            ps.setString(1, likePattern);
+            ps.setString(2, likePattern);
+            ps.setString(3, role);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> user = new HashMap<>();
+                user.put("id", rs.getInt("id"));
+                user.put("username", rs.getString("username"));
+                user.put("fullName", rs.getString("full_name"));
+                user.put("email", rs.getString("email"));
+                user.put("role", rs.getString("role"));
+                user.put("profileImageUrl", rs.getString("profile_image_url"));
+                
+                // Load role-specific data
+                loadRoleSpecificData(connection, user, rs.getString("role"), rs.getInt("id"));
+                
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching users by role: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return users;
+    }
+    
+    /**
+     * Get users by role
+     * 
+     * @param role The role to filter by
+     * @return List of users with the specified role
+     */
+    public List<Map<String, Object>> getUsersByRole(String role) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Map<String, Object>> users = new ArrayList<>();
+        
+        try {
+            String query = "SELECT id, username, full_name, email, role, profile_image_url " +
+                          "FROM users " +
+                          "WHERE UPPER(role) = UPPER(?) " +
+                          "ORDER BY full_name";
+            
+            ps = connection.prepareStatement(query);
+            ps.setString(1, role);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> user = new HashMap<>();
+                user.put("id", rs.getInt("id"));
+                user.put("username", rs.getString("username"));
+                user.put("fullName", rs.getString("full_name"));
+                user.put("email", rs.getString("email"));
+                user.put("role", rs.getString("role"));
+                user.put("profileImageUrl", rs.getString("profile_image_url"));
+                
+                // Load role-specific data
+                loadRoleSpecificData(connection, user, rs.getString("role"), rs.getInt("id"));
+                
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by role: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return users;
+    }
+    
+    /**
+     * Get students who are not assigned to a class
+     * 
+     * @return List of unassigned students
+     */
+    public List<Map<String, Object>> getUnassignedStudents() {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Map<String, Object>> users = new ArrayList<>();
+        
+        try {
+            String query = "SELECT u.id, u.username, u.full_name, u.email, u.role, u.profile_image_url " +
+                          "FROM users u " +
+                          "JOIN students s ON u.id = s.user_id " +
+                          "WHERE s.class_id IS NULL OR s.class_id = '' " +
+                          "ORDER BY u.full_name";
+            
+            ps = connection.prepareStatement(query);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> user = new HashMap<>();
+                user.put("id", rs.getInt("id"));
+                user.put("username", rs.getString("username"));
+                user.put("fullName", rs.getString("full_name"));
+                user.put("email", rs.getString("email"));
+                user.put("role", rs.getString("role"));
+                user.put("profileImageUrl", rs.getString("profile_image_url"));
+                
+                // Load role-specific data
+                loadRoleSpecificData(connection, user, rs.getString("role"), rs.getInt("id"));
+                
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting unassigned students: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return users;
+    }
+
+    /**
+     * Update a student's class assignment
+     * 
+     * @param userId The user ID
+     * @param classId The class ID (can be null to remove assignment)
+     * @return true if successful, false otherwise
+     */
+    public boolean updateStudentClassAssignment(int userId, String classId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        boolean success = false;
+        
+        try {
+            // First, get the student_id for this user
+            String findStudentIdQuery = "SELECT student_id FROM students WHERE user_id = ?";
+            ps = connection.prepareStatement(findStudentIdQuery);
+            ps.setInt(1, userId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (!rs.next()) {
+                System.err.println("No student record found for user ID: " + userId);
+                return false;
+            }
+            
+            // Close the first query resources
+            rs.close();
+            ps.close();
+            
+            // Now update the class_id in the students table
+            String query = "UPDATE students SET class_id = ? WHERE user_id = ?";
+            ps = connection.prepareStatement(query);
+            
+            if (classId == null || classId.isEmpty()) {
+                ps.setNull(1, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(1, classId);
+            }
+            
+            ps.setInt(2, userId);
+            
+            int rowsAffected = ps.executeUpdate();
+            success = (rowsAffected > 0);
+            
+            System.out.println("Updated class assignment for user " + userId + " to class " + classId + ": " + success);
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating student class assignment: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return success;
     }
 } 

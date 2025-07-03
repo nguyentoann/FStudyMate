@@ -174,8 +174,23 @@ public class ClassServiceImpl implements ClassService {
     @Override
     @Transactional
     public boolean assignStudentToClass(Integer userId, String classId) {
+        System.out.println("Attempting to assign student " + userId + " to class " + classId);
+        
         Optional<User> userOpt = userRepository.findById(userId);
         Optional<Class> classOpt = classRepository.findById(classId);
+        
+        System.out.println("User exists: " + userOpt.isPresent());
+        System.out.println("Class exists: " + classOpt.isPresent());
+        
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            System.out.println("User details: id=" + user.getId() + ", name=" + user.getFullName() + ", role=" + user.getRole() + ", currentClassId=" + user.getClassId());
+        }
+        
+        if (classOpt.isPresent()) {
+            Class classObj = classOpt.get();
+            System.out.println("Class details: id=" + classObj.getClassId() + ", name=" + classObj.getClassName() + ", currentStudents=" + classObj.getCurrentStudents() + ", maxStudents=" + classObj.getMaxStudents());
+        }
         
         if (userOpt.isPresent() && classOpt.isPresent()) {
             User user = userOpt.get();
@@ -183,6 +198,7 @@ public class ClassServiceImpl implements ClassService {
             
             // Check if class has space
             if (classObj.getCurrentStudents() >= classObj.getMaxStudents()) {
+                System.out.println("Class is full: " + classObj.getCurrentStudents() + "/" + classObj.getMaxStudents());
                 return false;
             }
             
@@ -193,6 +209,7 @@ public class ClassServiceImpl implements ClassService {
                     Class previousClass = previousClassOpt.get();
                     previousClass.setCurrentStudents(previousClass.getCurrentStudents() - 1);
                     classRepository.save(previousClass);
+                    System.out.println("Removed student from previous class: " + user.getClassId());
                 }
             }
             
@@ -200,10 +217,14 @@ public class ClassServiceImpl implements ClassService {
             if (user.getClassId() == null || !user.getClassId().equals(classId)) {
                 user.setClassId(classId);
                 userRepository.save(user);
+                System.out.println("Updated student's class to: " + classId);
                 
                 // Update class student count
                 classObj.setCurrentStudents(classObj.getCurrentStudents() + 1);
                 classRepository.save(classObj);
+                System.out.println("Updated class student count to: " + classObj.getCurrentStudents());
+            } else {
+                System.out.println("Student already in this class");
             }
             
             return true;
