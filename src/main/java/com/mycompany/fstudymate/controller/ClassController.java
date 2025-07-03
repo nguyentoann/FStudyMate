@@ -2,14 +2,20 @@ package com.mycompany.fstudymate.controller;
 
 import com.mycompany.fstudymate.model.Class;
 import com.mycompany.fstudymate.model.User;
+import com.mycompany.fstudymate.model.ClassSchedule;
+import com.mycompany.fstudymate.model.Subject;
 import com.mycompany.fstudymate.service.ClassService;
 import com.mycompany.fstudymate.service.UserActivityService;
 import com.mycompany.fstudymate.repository.UserRepository;
+import com.mycompany.fstudymate.repository.ClassScheduleRepository;
+import com.mycompany.fstudymate.repository.SubjectRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +31,12 @@ public class ClassController {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private ClassScheduleRepository classScheduleRepository;
+    
+    @Autowired
+    private SubjectRepository subjectRepository;
     
     // Class Management Endpoints
     @GetMapping
@@ -139,6 +151,92 @@ public class ClassController {
         }
     }
     
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<List<Class>> getClassesByStudent(@PathVariable Integer studentId) {
+        try {
+            // Find the user by ID
+            Optional<User> user = userRepository.findById(studentId);
+            
+            if (user.isPresent() && user.get().getClassId() != null) {
+                // Get the class ID from the user
+                String classId = user.get().getClassId();
+                
+                // Find the class by ID
+                Optional<Class> classObj = classService.getClassById(classId);
+                
+                if (classObj.isPresent()) {
+                    return ResponseEntity.ok(List.of(classObj.get()));
+                }
+            }
+            
+            // Return empty list if user not found or has no class
+            return ResponseEntity.ok(List.of());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/{classId}/students")
+    public ResponseEntity<List<User>> getStudentsByClass(@PathVariable String classId) {
+        try {
+            // Get students by class ID
+            List<User> students = userRepository.findByClassId(classId);
+            return ResponseEntity.ok(students);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/{classId}/schedule")
+    public ResponseEntity<List<Map<String, Object>>> getClassSchedule(@PathVariable String classId) {
+        try {
+            // Truy vấn dữ liệu từ cơ sở dữ liệu
+            List<ClassSchedule> schedules = classScheduleRepository.findByClassIdAndIsActiveTrueOrderByDayOfWeekAscStartTimeAsc(classId);
+            
+            if (schedules.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+            
+            // Chuyển đổi từ ClassSchedule thành Map để trả về kết quả
+            List<Map<String, Object>> result = schedules.stream().map(schedule -> {
+                Map<String, Object> scheduleMap = new HashMap<>();
+                
+                // Convert day of week from integer to string
+                String dayOfWeekStr;
+                switch (schedule.getDayOfWeek()) {
+                    case 1: dayOfWeekStr = "Monday"; break;
+                    case 2: dayOfWeekStr = "Tuesday"; break;
+                    case 3: dayOfWeekStr = "Wednesday"; break;
+                    case 4: dayOfWeekStr = "Thursday"; break;
+                    case 5: dayOfWeekStr = "Friday"; break;
+                    case 6: dayOfWeekStr = "Saturday"; break;
+                    case 7: dayOfWeekStr = "Sunday"; break;
+                    default: dayOfWeekStr = "Unknown";
+                }
+                
+                scheduleMap.put("dayOfWeek", dayOfWeekStr);
+                scheduleMap.put("startTime", schedule.getStartTime().toString());
+                scheduleMap.put("endTime", schedule.getEndTime().toString());
+                scheduleMap.put("room", schedule.getRoom());
+                
+                // Thêm thông tin môn học
+                try {
+                    Optional<Subject> subject = subjectRepository.findById(schedule.getSubjectId());
+                    scheduleMap.put("subject", subject.isPresent() ? subject.get().getName() : "Unknown Subject");
+                } catch (Exception ex) {
+                    scheduleMap.put("subject", "Unknown Subject");
+                }
+                
+                return scheduleMap;
+            }).collect(Collectors.toList());
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            // Return error response instead of sample data
+            return ResponseEntity.status(500).body(Collections.emptyList());
+        }
+    }
+    
     @GetMapping("/available")
     public ResponseEntity<List<Class>> getAvailableClasses() {
         try {
@@ -204,28 +302,6 @@ public class ClassController {
         }
     }
     
-    @GetMapping("/{classId}/students")
-    public ResponseEntity<List<Map<String, Object>>> getStudentsByClass(@PathVariable String classId) {
-        try {
-            List<User> students = userRepository.findByClassId(classId);
-            List<Map<String, Object>> studentDetails = students.stream()
-                    .map(student -> {
-                        Map<String, Object> details = new HashMap<>();
-                        details.put("id", student.getId());
-                        details.put("username", student.getUsername());
-                        details.put("fullName", student.getFullName());
-                        details.put("email", student.getEmail());
-                        details.put("role", student.getRole());
-                        return details;
-                    })
-                    .collect(Collectors.toList());
-            
-            return ResponseEntity.ok(studentDetails);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-    
     @PostMapping("/{classId}/update-count")
     public ResponseEntity<Map<String, Object>> updateClassStudentCount(@PathVariable String classId) {
         try {
@@ -283,6 +359,121 @@ public class ClassController {
             return ResponseEntity.ok(departments);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    // Thêm lịch học mới cho lớp
+    @PostMapping("/{classId}/schedule")
+    public ResponseEntity<?> addClassSchedule(
+            @PathVariable String classId,
+            @RequestBody ClassSchedule classSchedule) {
+        try {
+            // Kiểm tra xem lớp học có tồn tại hay không
+            Optional<Class> classObj = classService.getClassById(classId);
+            if (!classObj.isPresent()) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Class not found");
+                return ResponseEntity.status(404).body(response);
+            }
+            
+            // Đặt classId cho lịch học
+            classSchedule.setClassId(classId);
+            
+            // Lưu lịch học mới
+            ClassSchedule savedSchedule = classScheduleRepository.save(classSchedule);
+            return ResponseEntity.ok(savedSchedule);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Failed to add schedule: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+    
+    // Cập nhật lịch học
+    @PutMapping("/schedule/{scheduleId}")
+    public ResponseEntity<?> updateClassSchedule(
+            @PathVariable Integer scheduleId,
+            @RequestBody ClassSchedule classSchedule) {
+        try {
+            // Kiểm tra xem lịch học có tồn tại hay không
+            Optional<ClassSchedule> existingSchedule = classScheduleRepository.findById(scheduleId);
+            if (!existingSchedule.isPresent()) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Schedule not found");
+                return ResponseEntity.status(404).body(response);
+            }
+            
+            // Cập nhật lịch học
+            ClassSchedule scheduleToUpdate = existingSchedule.get();
+            scheduleToUpdate.setSubjectId(classSchedule.getSubjectId());
+            scheduleToUpdate.setLecturerId(classSchedule.getLecturerId());
+            scheduleToUpdate.setDayOfWeek(classSchedule.getDayOfWeek());
+            scheduleToUpdate.setStartTime(classSchedule.getStartTime());
+            scheduleToUpdate.setEndTime(classSchedule.getEndTime());
+            scheduleToUpdate.setRoom(classSchedule.getRoom());
+            scheduleToUpdate.setBuilding(classSchedule.getBuilding());
+            scheduleToUpdate.setSemester(classSchedule.getSemester());
+            scheduleToUpdate.setAcademicYear(classSchedule.getAcademicYear());
+            scheduleToUpdate.setIsActive(classSchedule.getIsActive());
+            
+            // Lưu lịch học đã cập nhật
+            ClassSchedule updatedSchedule = classScheduleRepository.save(scheduleToUpdate);
+            return ResponseEntity.ok(updatedSchedule);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Failed to update schedule: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+    
+    // Xóa lịch học
+    @DeleteMapping("/schedule/{scheduleId}")
+    public ResponseEntity<?> deleteClassSchedule(@PathVariable Integer scheduleId) {
+        try {
+            // Kiểm tra xem lịch học có tồn tại hay không
+            Optional<ClassSchedule> existingSchedule = classScheduleRepository.findById(scheduleId);
+            if (!existingSchedule.isPresent()) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Schedule not found");
+                return ResponseEntity.status(404).body(response);
+            }
+            
+            // Xóa lịch học
+            classScheduleRepository.deleteById(scheduleId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Schedule deleted successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Failed to delete schedule: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+    
+    // Lấy danh sách môn học cho việc chọn lịch học
+    @GetMapping("/subjects")
+    public ResponseEntity<?> getAllSubjects() {
+        try {
+            List<Subject> subjects = subjectRepository.findAll();
+            return ResponseEntity.ok(subjects);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Failed to get subjects: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+    
+    // Lấy danh sách giảng viên cho việc chọn lịch học
+    @GetMapping("/lecturers")
+    public ResponseEntity<?> getAllLecturers() {
+        try {
+            List<User> lecturers = userRepository.findByRole("LECTURER");
+            return ResponseEntity.ok(lecturers);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Failed to get lecturers: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
         }
     }
 } 

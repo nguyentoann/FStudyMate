@@ -24,50 +24,54 @@ const ClassesPage = () => {
   const fetchUserClasses = async () => {
     try {
       setLoading(true);
-      // Nếu là giảng viên, lấy các lớp mà giảng viên đó dạy
-      if (user.role === 'lecturer') {
-        const response = await fetch(`${API_URL}/classes/teacher/${user.id}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setClasses(data);
-        } else {
-          setError('Failed to fetch classes');
-        }
-      } 
-      // Nếu là sinh viên, lấy lớp mà sinh viên đó thuộc về
-      else if (user.role === 'student') {
-        // Thử lấy tất cả các lớp và tìm lớp mà sinh viên này thuộc về
-        const response = await fetch(`${API_URL}/classes`);
-        
-        if (response.ok) {
-          const allClasses = await response.json();
-          // Lọc các lớp có sinh viên này
-          const studentClasses = [];
+      setError('');
+      
+      // Get user's role from auth context
+      if (user && user.role) {
+        // If user is a lecturer, fetch classes they teach
+        if (user.role === 'lecturer') {
+          const response = await fetch(`${API_URL}/classes/teacher/${user.id}`);
           
-          // Kiểm tra từng lớp xem sinh viên có thuộc lớp đó không
-          for (const classObj of allClasses) {
-            try {
-              const studentsResponse = await fetch(`${API_URL}/classes/${classObj.classId}/students`);
-              if (studentsResponse.ok) {
-                const students = await studentsResponse.json();
-                if (students.some(student => student.id === user.id)) {
-                  studentClasses.push(classObj);
-                }
-              }
-            } catch (err) {
-              console.error(`Error checking students for class ${classObj.classId}:`, err);
-            }
+          if (response.ok) {
+            const data = await response.json();
+            setClasses(data);
+          } else {
+            setError('Failed to fetch lecturer classes. Please try again later.');
+            setClasses([]);
           }
+        } 
+        // If user is a student, fetch classes they're enrolled in
+        else if (user.role === 'student') {
+          const response = await fetch(`${API_URL}/classes/student/${user.id}`);
           
-          setClasses(studentClasses);
+          if (response.ok) {
+            const data = await response.json();
+            setClasses(data);
+          } else {
+            setError('Failed to fetch student classes. Please try again later.');
+            setClasses([]);
+          }
         } else {
-          setError('Failed to fetch classes');
+          // For admin or other roles, fetch all classes
+          const response = await fetch(`${API_URL}/classes`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            setClasses(data);
+          } else {
+            setError('Failed to fetch classes. Please try again later.');
+            setClasses([]);
+          }
         }
+      } else {
+        // If no user or role
+        setError('User information not available. Please log in again.');
+        setClasses([]);
       }
     } catch (err) {
-      setError('An error occurred while fetching classes');
-      console.error(err);
+      console.error('Error fetching classes:', err);
+      setError('An error occurred while fetching classes. Please try again later.');
+      setClasses([]);
     } finally {
       setLoading(false);
     }
@@ -82,11 +86,13 @@ const ClassesPage = () => {
         const data = await response.json();
         setClassmates(data);
       } else {
-        setError('Failed to fetch classmates');
+        setError('Failed to fetch classmates. Please try again later.');
+        setClassmates([]);
       }
     } catch (err) {
-      setError('An error occurred while fetching classmates');
-      console.error(err);
+      console.error('Error fetching classmates:', err);
+      setError('An error occurred while fetching classmates. Please try again later.');
+      setClassmates([]);
     } finally {
       setLoading(false);
     }
@@ -101,10 +107,12 @@ const ClassesPage = () => {
         const data = await response.json();
         setSchedule(data);
       } else {
+        setError('Failed to fetch class schedule. Please try again later.');
         setSchedule([]);
       }
     } catch (err) {
       console.error('Error fetching class schedule:', err);
+      setError('An error occurred while fetching the class schedule. Please try again later.');
       setSchedule([]);
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { API_URL } from '../../services/config';
+import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DashboardLayout from '../../components/DashboardLayout';
 import './ClassManagement.css';
@@ -9,6 +10,7 @@ import './ClassManagement.css';
 const ClassManagement = () => {
   const { user } = useAuth();
   const { darkMode } = useTheme();
+  const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [students, setStudents] = useState([]);
@@ -564,7 +566,15 @@ const ClassManagement = () => {
             
             {selectedClass && (
               <div className="student-management-section">
-                <h2>Students in {selectedClass.className}</h2>
+                <div className="section-header">
+                  <h2>Students in {selectedClass.className}</h2>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => navigate(`/admin/classes/${selectedClass.classId}/schedule`)}
+                  >
+                    Manage Class Schedule
+                  </button>
+                </div>
                 
                 {loading && <LoadingSpinner />}
                 

@@ -43,6 +43,7 @@ import QuizDetails from "./pages/QuizDetails";
 import "./styles/globals.css";
 import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
+import ClassScheduleManagement from "./pages/admin/ClassScheduleManagement";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -301,6 +302,14 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={["admin"]}>
                         <ClassManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/classes/:classId/schedule"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <ClassScheduleManagement />
                       </ProtectedRoute>
                     }
                   />
