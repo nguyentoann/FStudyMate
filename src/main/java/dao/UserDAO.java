@@ -135,7 +135,10 @@ public class UserDAO {
             
             switch (role) {
                 case "student":
-                    query = "SELECT academic_major, gender, date_of_birth, class_id FROM students WHERE user_id = ?";
+                query = "SELECT a.name AS academic_major, s.gender, s.date_of_birth, s.class_id " +
+                "FROM students s " +
+                "JOIN academic_majors a ON s.academic_major_id = a.id " +
+                "WHERE s.user_id = ?";
                     ps = connection.prepareStatement(query);
                     ps.setInt(1, userId);
                     rs = ps.executeQuery();
@@ -216,7 +219,10 @@ public class UserDAO {
             
             switch (role) {
                 case "student":
-                    query = "SELECT student_id, academic_major, gender, date_of_birth, class_id FROM students WHERE user_id = ?";
+                query = "SELECT s.student_id, a.name AS academic_major, s.gender, s.date_of_birth, s.class_id " +
+                "FROM students s " +
+                "JOIN academic_majors a ON s.academic_major_id = a.id " +
+                "WHERE s.user_id = ?";
                     ps = connection.prepareStatement(query);
                     ps.setInt(1, userId);
                     rs = ps.executeQuery();
@@ -1223,7 +1229,11 @@ public class UserDAO {
         List<String> classIds = new ArrayList<>();
         
         try {
-            String query = "SELECT DISTINCT class_id FROM students WHERE class_id IS NOT NULL AND class_id != '' ORDER BY class_id";
+            String query = "SELECT DISTINCT c.class_name " +
+                       "FROM students s " +
+                       "JOIN classes c ON s.class_id = c.class_id " +
+                       "WHERE s.class_id IS NOT NULL AND s.class_id != '' " +
+                       "ORDER BY c.class_name";
             ps = connection.prepareStatement(query);
             rs = ps.executeQuery();
             
