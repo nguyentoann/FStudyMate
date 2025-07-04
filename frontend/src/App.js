@@ -44,6 +44,7 @@ import QuizHistory from "./pages/QuizHistory";
 import QuizDetails from "./pages/QuizDetails";
 import "./styles/globals.css";
 import Course from "./pages/Course";
+import ClassManagement from "./pages/admin/ClassManagement";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -52,6 +53,8 @@ import Course from "./pages/Course";
 
 // Thêm import cho trang MyCourses
 import MyCoursesPage from "./pages/MyCourses";
+// Thêm import cho trang Classes
+import ClassesPage from "./pages/ClassesPage";
 
 function App() {
   useEffect(() => {
@@ -284,6 +287,22 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <MyCoursesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/classes"
+                    element={
+                      <ProtectedRoute>
+                        <ClassesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/classes"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <ClassManagement />
                       </ProtectedRoute>
                     }
                   />
