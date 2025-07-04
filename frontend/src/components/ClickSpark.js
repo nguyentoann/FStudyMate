@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import "./ClickSpark.css";
 
 const ClickSpark = ({
@@ -9,12 +9,17 @@ const ClickSpark = ({
   duration = 400,           // How long the animation lasts in ms (increase for slower effect)
   easing = "ease-out",      // Animation easing function
   extraScale = 1.0,         // Additional scaling factor for the effect (increase for larger overall effect)
+  performanceMode = true,   // When true, reduces GPU usage by optimizing rendering
   children
 }) => {
   const canvasRef = useRef(null);
   const sparksRef = useRef([]);     
-  const startTimeRef = useRef(null); 
+  const startTimeRef = useRef(null);
+  const animationIdRef = useRef(null);
+  const isPageVisibleRef = useRef(true);
+  const [isActive, setIsActive] = useState(false);
 
+  // Handle canvas resizing
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -48,6 +53,24 @@ const ClickSpark = ({
     };
   }, []);
 
+  // Handle page visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      isPageVisibleRef.current = document.visibilityState === 'visible';
+      
+      // If page becomes visible again and we have sparks, restart animation
+      if (isPageVisibleRef.current && sparksRef.current.length > 0 && !animationIdRef.current) {
+        startAnimation();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const easeFunc = useCallback(
     (t) => {
       switch (easing) {
@@ -64,19 +87,37 @@ const ClickSpark = ({
     [easing]
   );
 
-  useEffect(() => {
+  // Start animation function
+  const startAnimation = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
     const ctx = canvas.getContext("2d");
-
-    let animationId;
+    let lastFrameTime = 0;
+    const targetFPS = performanceMode ? 30 : 60; // Lower FPS in performance mode
+    const frameInterval = 1000 / targetFPS;
 
     const draw = (timestamp) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp; 
+      // Skip frames in performance mode
+      const deltaTime = timestamp - lastFrameTime;
+      if (performanceMode && deltaTime < frameInterval) {
+        animationIdRef.current = requestAnimationFrame(draw);
+        return;
       }
+      
+      lastFrameTime = timestamp;
+      
+      // Clear the canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // If page is not visible or no sparks, don't render
+      if (!isPageVisibleRef.current || sparksRef.current.length === 0) {
+        animationIdRef.current = null;
+        setIsActive(false);
+        return;
+      }
 
+      // Process and render sparks
       sparksRef.current = sparksRef.current.filter((spark) => {
         const elapsed = timestamp - spark.startTime;
         if (elapsed >= duration) {
@@ -96,12 +137,17 @@ const ClickSpark = ({
         const x2 = spark.x + (distance + lineLength) * Math.cos(spark.angle);
         const y2 = spark.y + (distance + lineLength) * Math.sin(spark.angle);
 
-        // Create gradient for each spark
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, `${spark.color}ff`);
-        gradient.addColorStop(1, `${spark.color}00`);
-
-        ctx.strokeStyle = gradient;
+        // Create gradient for each spark (only in high quality mode)
+        if (!performanceMode) {
+          const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+          gradient.addColorStop(0, `${spark.color}ff`);
+          gradient.addColorStop(1, `${spark.color}00`);
+          ctx.strokeStyle = gradient;
+        } else {
+          // Use solid color in performance mode
+          ctx.strokeStyle = spark.color;
+        }
+        
         ctx.globalAlpha = opacity;
         ctx.lineWidth = width;
         ctx.beginPath();
@@ -113,27 +159,28 @@ const ClickSpark = ({
         return true;
       });
 
-      animationId = requestAnimationFrame(draw);
+      // Continue animation only if there are sparks
+      if (sparksRef.current.length > 0) {
+        animationIdRef.current = requestAnimationFrame(draw);
+      } else {
+        animationIdRef.current = null;
+        setIsActive(false);
+      }
     };
 
-    animationId = requestAnimationFrame(draw);
+    animationIdRef.current = requestAnimationFrame(draw);
+  }, [duration, easeFunc, extraScale, sparkRadius, sparkSize, performanceMode]);
 
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [
-    sparkColor,
-    sparkSize,
-    sparkRadius,
-    sparkCount,
-    duration,
-    easeFunc,
-    extraScale,
-  ]);
-
+  // Handle clicks
   const handleClick = (e) => {
+    // Skip if in performance mode and already have active sparks
+    if (performanceMode && sparksRef.current.length > 20) {
+      return;
+    }
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -159,7 +206,23 @@ const ClickSpark = ({
     }));
 
     sparksRef.current.push(...newSparks);
+    
+    // Start animation if not already running
+    if (!animationIdRef.current) {
+      setIsActive(true);
+      startAnimation();
+    }
   };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div 
@@ -172,7 +235,7 @@ const ClickSpark = ({
     >
       <canvas
         ref={canvasRef}
-        className="click-spark-canvas"
+        className={`click-spark-canvas ${isActive ? 'active' : ''}`}
         style={{
           width: "100%",
           height: "100%",

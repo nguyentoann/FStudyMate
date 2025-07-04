@@ -177,7 +177,7 @@ const LandingPage = () => {
                 </svg>
               </div>
               <img
-                src="https://toandz.ddns.net/fstudy/img/landing.png"
+                src="http://toandz.ddns.net/fstudy/img/landing.png"
                 alt="Student learning"
                 className="relative z-10 w-full max-w-[450px] mx-auto animate-float"
               />
