@@ -7,7 +7,7 @@ import axios from 'axios';
 import { PUBLIC_URL, API_URL } from '../services/config';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('login');
@@ -31,59 +31,71 @@ const Login = () => {
   };
 
   // Check if email exists
-  const checkEmailExists = async (email) => {
-    if (!email || !emailValid) return;
-    
+  const checkIdentifierExists = async (value) => {
+    if (!value) return;
+  
+    const isEmail = value.includes('@');
+    const endpoint = isEmail
+      ? `/validation/email?email=${encodeURIComponent(value)}`
+      : `/validation/username?username=${encodeURIComponent(value)}`;
+  
     setCheckingEmail(true);
     try {
-      // Call the API to check if email exists
-      const response = await fetch(`${API_URL.replace('/api', '')}/validation/email?email=${encodeURIComponent(email)}`, {
+      const response = await fetch(`${API_URL.replace('/api', '')}${endpoint}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      }).catch(() => {
-        // Fallback to simulated check if API fails
-        return new Promise(resolve => 
-          setTimeout(() => resolve({ 
-            ok: true,
-            json: () => Promise.resolve({ exists: email === 'admin@example.com' || email === 'test@example.com' })
-          }), 600)
-        );
-      });
-      
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(() =>
+        new Promise((resolve) =>
+          setTimeout(() =>
+            resolve({
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  exists: value === 'admin@example.com' || value === 'testuser',
+                }),
+            }), 600
+          )
+        )
+      );
+  
       const data = await response.json();
       setEmailExists(data.exists);
     } catch (error) {
-      console.error('Error checking email:', error);
-      // Fallback to simulated check
-      setEmailExists(email === 'admin@example.com' || email === 'test@example.com');
+      console.error('Error checking identifier:', error);
+      setEmailExists(value === 'admin@example.com' || value === 'testuser');
     } finally {
       setCheckingEmail(false);
     }
   };
+  
 
   // Create debounced version of the check function
-  const debouncedCheckEmail = debounce(checkEmailExists, 500);
+  const debouncedCheckEmail = debounce(checkIdentifierExists, 500);
 
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     
     if (name === 'email') {
-      setEmail(value);
-      
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const isValid = emailRegex.test(value);
-      setEmailValid(isValid);
-      
-      // Reset email exists status when typing
-      setEmailExists(null);
-      
-      // Check if email exists in the system if it's valid
-      if (isValid) {
-        debouncedCheckEmail(value);
+      setIdentifier(value);
+    
+      if (value.includes('@')) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isValidEmail = emailRegex.test(value);
+        setEmailValid(isValidEmail);
+    
+        setEmailExists(null);
+    
+        if (isValidEmail) {
+          debouncedCheckEmail(value);
+        }
+      } else {
+        // It's a username, skip email validation
+        setEmailValid(true);
+        setEmailExists(null);
       }
-    } else if (name === 'password') {
+    }
+     else if (name === 'password') {
       setPassword(value);
     }
   };
@@ -96,7 +108,7 @@ const Login = () => {
       const value = e.target.value;
       
       if (name === 'email') {
-        setEmail(value);
+        setIdentifier(value);
         
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -120,21 +132,26 @@ const Login = () => {
     e.preventDefault();
     setError('');
     
-    // Check if the form is valid before submitting
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isEmailValid = emailRegex.test(email);
-    setEmailValid(isEmailValid);
+    const isEmail = emailRegex.test(identifier);
     
-    if (!isEmailValid) {
-      setError('Please enter a valid email address');
+    if (!identifier) {
+      setError('Please enter your email or username');
       return;
     }
     
-    if (emailExists === false) {
-      setError('This email is not registered');
-      return;
+    // If it's an email, we check existence
+    if (isEmail) {
+      setEmailValid(true);
+      if (emailExists === false) {
+        setError('This email is not registered');
+        return;
+      }
+    } else {
+      setEmailValid(true); // Treat usernames as valid
     }
     
+    // Password required
     if (!password) {
       setError('Please enter your password');
       return;
@@ -143,7 +160,7 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await login(email, password);
+      const response = await login(identifier, password); 
       // Use navigate to redirect based on role
       if (response.data && response.data.role) {
         navigate('/dashboard');
@@ -254,7 +271,7 @@ const Login = () => {
                 className="min-h-[85px]"
               >
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
+                  Email or Username
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -263,10 +280,10 @@ const Login = () => {
                     </svg>
                   </div>
                   <motion.input
-                    type="email"
+                    type="text"
                     id="email"
                     name="email"
-                    value={email}
+                    value={identifier}
                     onChange={handleChange}
                     onPaste={handlePaste}
                     className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${!emailValid || emailExists === false ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
@@ -274,7 +291,7 @@ const Login = () => {
                     required
                     whileFocus={{ scale: 1.01 }}
                   />
-                  {email && (
+                  {identifier && emailValid && emailExists === true && (
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       {!emailValid ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -297,7 +314,7 @@ const Login = () => {
                     </div>
                   )}
                 </div>
-                {email && !emailValid && (
+                {identifier && !emailValid && (
                   <p className="text-sm text-red-600 mt-1">Please enter a valid email address.</p>
                 )}
                 {emailValid && emailExists === false && (
