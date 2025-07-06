@@ -31,10 +31,10 @@ const QuizGame = ({ questions = [], onComplete = () => {}, onExit = () => {}, ga
     }
     
     // Setup audio
-    bgMusicRef.current = new Audio('https://toandz.ddns.net/fstudy/sound/bg.mp3');
+    bgMusicRef.current = new Audio('http://toandz.ddns.net/fstudy/sound/bg.mp3');
     bgMusicRef.current.loop = true;
     
-    eatingSoundRef.current = new Audio('https://toandz.ddns.net/fstudy/sound/eating.mp3');
+    eatingSoundRef.current = new Audio('http://toandz.ddns.net/fstudy/sound/eating.mp3');
     // Preload the eating sound
     eatingSoundRef.current.load();
     
@@ -235,7 +235,7 @@ const QuizGame = ({ questions = [], onComplete = () => {}, onExit = () => {}, ga
           );
           
           // Play sound - use a more direct approach
-          const eatSound = new Audio('https://toandz.ddns.net/fstudy/sound/eating.mp3');
+          const eatSound = new Audio('http://toandz.ddns.net/fstudy/sound/eating.mp3');
           eatSound.volume = 1.0;
           eatSound.play()
             .then(() => console.log("Sound played successfully"))
@@ -266,7 +266,7 @@ const QuizGame = ({ questions = [], onComplete = () => {}, onExit = () => {}, ga
       {!gameStarted ? (
         <div className="game-start-screen flex flex-col items-center justify-center p-8 bg-gradient-to-b from-blue-400 to-purple-500 rounded-lg shadow-lg text-white h-[60vh]">
           <img 
-            src="https://toandz.ddns.net/fstudy/img/dragon.gif" 
+            src="http://toandz.ddns.net/fstudy/img/dragon.gif" 
             alt="Dragon Character" 
             className="w-32 h-32 object-contain mb-6"
           />
@@ -351,7 +351,7 @@ const QuizGame = ({ questions = [], onComplete = () => {}, onExit = () => {}, ga
             style={{ left: `calc(${characterPosition}% - 48px)` }}
           >
             <img 
-              src="https://toandz.ddns.net/fstudy/img/dragon.gif" 
+              src="http://toandz.ddns.net/fstudy/img/dragon.gif" 
               alt="Dragon Character" 
               className="w-full h-full object-contain transform scale-150"
             />

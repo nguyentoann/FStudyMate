@@ -156,16 +156,16 @@ const AdminDashboard = () => {
           )}
         </div>
         <div className="p-4">
-          {storageInfo ? (
+          {storageInfo && Object.keys(storageInfo).length > 0 ? (
             <div>
               {/* Storage usage summary */}
               <div className="mb-6">
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-gray-600">
-                    Storage Usage ({storageInfo.usedSpace.toFixed(1)} GB / {storageInfo.totalSpace} GB)
+                    Storage Usage ({storageInfo.usedSpace ? storageInfo.usedSpace.toFixed(1) : '0'} GB / {storageInfo.totalSpace ? storageInfo.totalSpace.toFixed(1) : '0'} GB)
                   </span>
                   <span className="text-sm font-medium text-indigo-600">
-                    {storageInfo.usagePercentage.toFixed(1)}%
+                    {storageInfo.usagePercentage ? storageInfo.usagePercentage.toFixed(1) : '0'}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -174,7 +174,7 @@ const AdminDashboard = () => {
                       storageInfo.usagePercentage > 85 ? 'bg-red-500' : 
                       storageInfo.usagePercentage > 70 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
-                    style={{ width: `${storageInfo.usagePercentage}%` }}
+                    style={{ width: `${Math.min(storageInfo.usagePercentage || 0, 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -183,59 +183,63 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-blue-50 p-3 rounded-md">
                   <div className="text-blue-800 text-xs">Images</div>
-                  <div className="font-semibold">{storageInfo.files.images}</div>
+                  <div className="font-semibold">{storageInfo.files?.images || 0}</div>
                 </div>
                 <div className="bg-purple-50 p-3 rounded-md">
                   <div className="text-purple-800 text-xs">Videos</div>
-                  <div className="font-semibold">{storageInfo.files.videos}</div>
+                  <div className="font-semibold">{storageInfo.files?.videos || 0}</div>
                 </div>
                 <div className="bg-amber-50 p-3 rounded-md">
                   <div className="text-amber-800 text-xs">Documents</div>
-                  <div className="font-semibold">{storageInfo.files.documents}</div>
+                  <div className="font-semibold">{storageInfo.files?.documents || 0}</div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-md">
                   <div className="text-gray-800 text-xs">Other Files</div>
-                  <div className="font-semibold">{storageInfo.files.other}</div>
+                  <div className="font-semibold">{storageInfo.files?.other || 0}</div>
                 </div>
               </div>
               
               {/* Samba share information */}
-              <h3 className="text-md font-medium text-gray-700 mb-3">Samba Shares</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Share Name</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {storageInfo.shares.map((share, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-sm font-medium text-gray-900">
-                          {share.name}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-500">
-                          {share.size} GB
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-500">
-                          {share.files}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div 
-                              className="bg-indigo-500 h-1.5 rounded-full"
-                              style={{ width: `${(share.size / storageInfo.totalSpace * 100)}%` }}
-                            ></div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {storageInfo.shares && storageInfo.shares.length > 0 && (
+                <>
+                  <h3 className="text-md font-medium text-gray-700 mb-3">Samba Shares</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Share Name</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {storageInfo.shares.map((share, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                              {share.name}
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-500">
+                              {share.size ? share.size.toFixed(1) : '0'} GB
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-500">
+                              {share.files}
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className="bg-indigo-500 h-1.5 rounded-full"
+                                  style={{ width: `${storageInfo.totalSpace && storageInfo.totalSpace > 0 ? Math.min(((share.size || 0) / storageInfo.totalSpace * 100), 100).toFixed(1) : 0}%` }}
+                                ></div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-4">

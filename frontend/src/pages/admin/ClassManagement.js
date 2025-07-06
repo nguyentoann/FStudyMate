@@ -102,7 +102,7 @@ const DroppableStudentsList = ({ title, students, type, onDrop, onRemove, onAdd 
 };
 
 // Droppable Class component
-const DroppableClass = ({ classObj, onDrop }) => {
+const DroppableClass = ({ classObj, onDrop, students }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ItemTypes.STUDENT,
     drop: (item) => onDrop(item.student, classObj.classId),
@@ -110,6 +110,10 @@ const DroppableClass = ({ classObj, onDrop }) => {
       isOver: !!monitor.isOver()
     })
   }));
+
+  // Display up to 5 student avatars
+  const studentPreviews = students?.slice(0, 5) || [];
+  const isLoading = students === undefined;
 
   return (
     <div 
@@ -120,6 +124,39 @@ const DroppableClass = ({ classObj, onDrop }) => {
       <div className="class-info">
         {classObj.currentStudents}/{classObj.maxStudents} students
       </div>
+      {isLoading ? (
+        <div className="student-avatars-preview">
+          <div className="avatar-loading">Loading...</div>
+        </div>
+      ) : studentPreviews.length > 0 ? (
+        <div className="student-avatars-preview">
+          {studentPreviews.map((student) => (
+            <div 
+              key={student.id} 
+              className="preview-avatar"
+              style={{ 
+                zIndex: 5 - studentPreviews.indexOf(student),
+                marginLeft: studentPreviews.indexOf(student) > 0 ? '-10px' : '0'
+              }}
+            >
+              <img 
+                src={student.profileImageUrl || '/images/default-avatar.svg'} 
+                alt={student.fullName || 'Student'} 
+                title={student.fullName || 'Student'}
+              />
+            </div>
+          ))}
+          {classObj.currentStudents > 5 && (
+            <div className="preview-avatar more-indicator">
+              <span>+{classObj.currentStudents - 5}</span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="student-avatars-preview">
+          <div className="no-students">No students</div>
+        </div>
+      )}
     </div>
   );
 };
@@ -129,7 +166,7 @@ const ClassManagement = () => {
   const { darkMode } = useTheme();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [students, setStudents] = useState([]);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [availableStudents, setAvailableStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -160,6 +197,7 @@ const ClassManagement = () => {
   });
   const [isRemovingStudent, setIsRemovingStudent] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [otherClassesStudents, setOtherClassesStudents] = useState({});
   
   useEffect(() => {
     fetchClasses();
@@ -239,7 +277,7 @@ const ClassManagement = () => {
         console.log('Students data:', data);
         
         // No need to transform the data as the API now returns the correct format
-        setStudents(data);
+        setEnrolledStudents(data);
       } else {
         const errorText = await response.text();
         console.error('Failed to fetch students:', errorText);
@@ -282,7 +320,7 @@ const ClassManagement = () => {
       if (response.ok) {
         const data = await response.json();
         // Filter out students who are already in this class
-        const filteredResults = data.filter(s => !students.some(cs => cs.id === s.id));
+        const filteredResults = data.filter(s => !enrolledStudents.some(cs => cs.id === s.id));
         setStudentSearchResults(filteredResults);
       } else {
         setError('Failed to search students');
@@ -329,7 +367,7 @@ const ClassManagement = () => {
   
   const handleCreateNewClass = () => {
     setSelectedClass(null);
-    setStudents([]);
+    setEnrolledStudents([]);
     setFormData({
       classId: '',
       className: '',
@@ -365,10 +403,10 @@ const ClassManagement = () => {
         term: selectedTerm || { id: '', name: '' }
       });
     } else {
-      setFormData({
-        ...formData,
-        [name]: type === 'checkbox' ? checked : value
-      });
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
     }
   };
   
@@ -435,7 +473,7 @@ const ClassManagement = () => {
       if (response.ok) {
         setClasses(classes.filter(c => c.classId !== selectedClass.classId));
         setSelectedClass(null);
-        setStudents([]);
+        setEnrolledStudents([]);
         handleCreateNewClass();
         alert('Class deleted successfully');
       } else {
@@ -505,7 +543,7 @@ const ClassManagement = () => {
       console.log(`Removing student ${userId} from class ${selectedClass.classId}...`);
       
       // Find the student before removal to add back to available list
-      const studentToRemove = students.find(s => s.id === userId);
+      const studentToRemove = enrolledStudents.find(s => s.id === userId);
       
       // Use the direct user update endpoint with null classId
       const response = await fetch(`${API_URL}/user/${userId}/assign-class`, {
@@ -522,14 +560,14 @@ const ClassManagement = () => {
       
       if (response.ok && responseData.success) {
         // Remove the student from the enrolled students list
-        setStudents(students.filter(student => student.id !== userId));
+        setEnrolledStudents(enrolledStudents.filter(student => student.id !== userId));
         
         // Add the student back to available students if we have their data
         if (studentToRemove) {
           setAvailableStudents([...availableStudents, studentToRemove]);
         } else {
           // If we don't have the full student data, refresh the available students
-          fetchAvailableStudents();
+        fetchAvailableStudents();
         }
         
         // Update class count
@@ -553,7 +591,7 @@ const ClassManagement = () => {
     c.className?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false
   );
 
-  const filteredStudents = students.filter(student => 
+  const filteredStudents = enrolledStudents.filter(student => 
     !studentSearchTerm || 
     student.fullName?.toLowerCase().includes(studentSearchTerm.toLowerCase()) || 
     student.email?.toLowerCase().includes(studentSearchTerm.toLowerCase())
@@ -577,7 +615,7 @@ const ClassManagement = () => {
       setIsRemovingStudent(true);
       
       // First, find the student in the current lists
-      const studentToTransfer = [...students, ...availableStudents].find(s => s.id === userId);
+      const studentToTransfer = [...enrolledStudents, ...availableStudents].find(s => s.id === userId);
       
       if (!studentToTransfer) {
         console.error('Student not found for transfer');
@@ -587,7 +625,7 @@ const ClassManagement = () => {
       console.log(`Transferring student ${userId} from ${selectedClass?.classId || 'unassigned'} to ${targetClassId}`);
       
       // Remove from current class if enrolled
-      if (students.some(s => s.id === userId)) {
+      if (enrolledStudents.some(s => s.id === userId)) {
         await fetch(`${API_URL}/user/${userId}/assign-class`, {
           method: 'POST',
           headers: {
@@ -610,8 +648,8 @@ const ClassManagement = () => {
       
       if (response.ok && responseData.success) {
         // Update UI by removing student from current lists
-        if (students.some(s => s.id === userId)) {
-          setStudents(students.filter(s => s.id !== userId));
+        if (enrolledStudents.some(s => s.id === userId)) {
+          setEnrolledStudents(enrolledStudents.filter(s => s.id !== userId));
           
           // Update class count for current class
           const updatedClass = { 
@@ -649,6 +687,42 @@ const ClassManagement = () => {
       setIsRemovingStudent(false);
     }
   };
+
+  // Fetch students for other classes
+  useEffect(() => {
+    const fetchOtherClassesStudents = async () => {
+      if (!classes.length) return;
+      
+      try {
+        const studentsMap = {};
+        
+        // Fetch students for each class except the selected one
+        for (const classObj of classes) {
+          if (selectedClass && classObj.classId === selectedClass.classId) continue;
+          
+          try {
+            const response = await fetch(`${API_URL}/classes/${classObj.classId}/students`);
+            if (response.ok) {
+              const data = await response.json();
+              studentsMap[classObj.classId] = data;
+            } else {
+              console.warn(`Failed to fetch students for class ${classObj.classId}: ${response.status}`);
+              studentsMap[classObj.classId] = [];
+            }
+          } catch (err) {
+            console.error(`Error fetching students for class ${classObj.classId}:`, err);
+            studentsMap[classObj.classId] = [];
+          }
+        }
+        
+        setOtherClassesStudents(studentsMap);
+      } catch (err) {
+        console.error('Failed to fetch students for other classes:', err);
+      }
+    };
+
+    fetchOtherClassesStudents();
+  }, [classes, selectedClass]);
 
   // Render student management section
   const renderStudentManagementSection = () => {
@@ -742,6 +816,7 @@ const ClassManagement = () => {
                 key={classObj.classId}
                 classObj={classObj}
                 onDrop={handleDrop}
+                students={otherClassesStudents[classObj.classId] || []}
               />
             ))}
         </div>
@@ -826,50 +901,50 @@ const ClassManagement = () => {
             
             {activeTab === 'details' ? (
               <>
-                <h2>{formMode === 'create' ? 'Create New Class' : 'Edit Class'}</h2>
-                
-                <form onSubmit={handleSubmit} className="class-form">
-                  <div className="form-group">
-                    <label htmlFor="classId">Class ID</label>
-                    <input
-                      type="text"
-                      id="classId"
-                      name="classId"
-                      value={formData.classId}
-                      onChange={handleInputChange}
-                      required
-                      disabled={formMode === 'edit'}
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="className">Class Name</label>
-                    <input
-                      type="text"
-                      id="className"
-                      name="className"
-                      value={formData.className}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="form-group">
+            <h2>{formMode === 'create' ? 'Create New Class' : 'Edit Class'}</h2>
+            
+            <form onSubmit={handleSubmit} className="class-form">
+              <div className="form-group">
+                <label htmlFor="classId">Class ID</label>
+                <input
+                  type="text"
+                  id="classId"
+                  name="classId"
+                  value={formData.classId}
+                  onChange={handleInputChange}
+                  required
+                  disabled={formMode === 'edit'}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="className">Class Name</label>
+                <input
+                  type="text"
+                  id="className"
+                  name="className"
+                  value={formData.className}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+                <div className="form-group">
                     <label htmlFor="termId">Term</label>
-                    <select
+                  <select
                       id="termId"
                       name="termId"
                       value={formData.term?.id || ''}
-                      onChange={handleInputChange}
-                      required
-                    >
+                    onChange={handleInputChange}
+                    required
+                  >
                       <option value="">Select Term</option>
                       {terms.length > 0 ? (
                         terms.map(term => (
                           <option key={term.id} value={term.id}>{term.name}</option>
-                        ))
-                      ) : (
-                        <>
+                      ))
+                    ) : (
+                      <>
                           <option value="1">FALL2021</option>
                           <option value="2">SPRING2022</option>
                           <option value="3">SUMMER2022</option>
@@ -877,92 +952,92 @@ const ClassManagement = () => {
                           <option value="5">SPRING2023</option>
                           <option value="6">SUMMER2023</option>
                           <option value="7">FALL2023</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                  
-                  <div className="form-group">
+                      </>
+                    )}
+                  </select>
+                </div>
+                
+                <div className="form-group">
                     <label htmlFor="academicMajorId">Department</label>
-                    <select
+                  <select
                       id="academicMajorId"
                       name="academicMajorId"
                       value={formData.academicMajor?.id || ''}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Department</option>
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Department</option>
                       {academicMajors.length > 0 ? (
                         academicMajors.map(major => (
                           <option key={major.id} value={major.id}>{major.name}</option>
-                        ))
-                      ) : (
-                        <>
+                    ))
+                  ) : (
+                    <>
                           <option value="1">Computer Science</option>
                           <option value="2">Mathematics</option>
                           <option value="3">Physics</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="maxStudents">Maximum Students</label>
-                    <input
-                      type="number"
-                      id="maxStudents"
-                      name="maxStudents"
-                      value={formData.maxStudents}
-                      onChange={handleInputChange}
-                      min="1"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="homeroomTeacherId">Homeroom Teacher</label>
-                    <select
-                      id="homeroomTeacherId"
-                      name="homeroomTeacherId"
-                      value={formData.homeroomTeacherId}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Teacher</option>
-                      {teachers.map(teacher => (
-                        <option key={teacher.id} value={teacher.id}>
-                          {teacher.fullName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="form-group checkbox-group">
-                    <label>
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        checked={formData.isActive}
-                        onChange={handleInputChange}
-                      />
-                      Active
-                    </label>
-                  </div>
-                  
-                  <div className="form-actions">
-                    {formMode === 'edit' && (
-                      <button 
-                        type="button" 
-                        className="btn-danger" 
-                        onClick={handleDeleteClass}
-                      >
-                        Delete Class
-                      </button>
-                    )}
-                    
-                    <button type="submit" className="btn-primary">
-                      {formMode === 'create' ? 'Create Class' : 'Update Class'}
-                    </button>
-                  </div>
-                </form>
+                    </>
+                  )}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="maxStudents">Maximum Students</label>
+                <input
+                  type="number"
+                  id="maxStudents"
+                  name="maxStudents"
+                  value={formData.maxStudents}
+                  onChange={handleInputChange}
+                  min="1"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="homeroomTeacherId">Homeroom Teacher</label>
+                <select
+                  id="homeroomTeacherId"
+                  name="homeroomTeacherId"
+                  value={formData.homeroomTeacherId}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Teacher</option>
+                  {teachers.map(teacher => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleInputChange}
+                  />
+                  Active
+                </label>
+              </div>
+              
+              <div className="form-actions">
+                {formMode === 'edit' && (
+                  <button 
+                    type="button" 
+                    className="btn-danger" 
+                    onClick={handleDeleteClass}
+                  >
+                    Delete Class
+                  </button>
+                )}
+                
+                <button type="submit" className="btn-primary">
+                  {formMode === 'create' ? 'Create Class' : 'Update Class'}
+                </button>
+              </div>
+            </form>
               </>
             ) : (
               <DndProvider backend={HTML5Backend}>

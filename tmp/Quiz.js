@@ -77,7 +77,7 @@ const TeacherAvatar = () => {
       {/* Teacher body (static image) */}
       <div className="absolute bottom-0 right-0 w-40">
         <img 
-          src="https://toandz.ddns.net/fstudy/img/teacher_body.png" 
+          src="http://toandz.ddns.net/fstudy/img/teacher_body.png" 
           alt="Teacher Body" 
           className="w-full"
         />
@@ -92,7 +92,7 @@ const TeacherAvatar = () => {
         }}
       >
         <img 
-          src="https://toandz.ddns.net/fstudy/img/teacher_head.png" 
+          src="http://toandz.ddns.net/fstudy/img/teacher_head.png" 
           alt="Teacher Head" 
           className="w-full"
         />

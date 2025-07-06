@@ -304,7 +304,7 @@ const QuizComponent = ({ maMon, maDe }) => {
   // Mouse tracking state
   const [outOfBounds, setOutOfBounds] = useState(false);
   const quizContainerRef = useRef(null);
-  const alertSoundRef = useRef(new Audio('https://toandz.ddns.net/fstudy/sound/quack.mp3'));
+  const alertSoundRef = useRef(new Audio('http://toandz.ddns.net/fstudy/sound/quack.mp3'));
   
   // Add state for copy alert
   const [showCopyAlert, setShowCopyAlert] = useState(false);
