@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { PUBLIC_URL, OPEN_URL, EMERGENCY_URL, API_URL } from '../services/config';
+import { motion } from 'framer-motion';
+import axios from 'axios';
 
 // Add API emergency URL
 const API_EMERGENCY_URL = `${API_URL}/emergency`;
@@ -29,18 +31,233 @@ const Register = () => {
     // Outsource student fields
     organization: ''
   });
+  
   const [error, setError] = useState('');
   const [debug, setDebug] = useState('');
+  const [activeTab, setActiveTab] = useState('signup');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Validation states
+  const [emailValid, setEmailValid] = useState(true);
+  const [phoneValid, setPhoneValid] = useState(true);
+  const [emailTaken, setEmailTaken] = useState(false);
+  const [usernameTaken, setUsernameTaken] = useState(false);
+  const [phoneTaken, setPhoneTaken] = useState(false);
+  const [dobValid, setDobValid] = useState(true);
+  
+  // Validation loading states
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [checkingPhone, setCheckingPhone] = useState(false);
+  
   const { register } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
 
+  // Add debounce function for API calls
+  const debounce = (func, delay) => {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => func.apply(this, args), delay);
+    };
+  };
+
+  // Test API connection
+  const testApiConnection = async () => {
+    try {
+      console.log('Testing API connection...');
+      const response = await fetch(`${API_URL.replace('/api', '')}/validation/test`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await response.json();
+      console.log('API test response:', data);
+      return data;
+    } catch (error) {
+      console.error('API test error:', error);
+      return { status: 'error', message: error.message };
+    }
+  };
+
+  // Call the test function when component mounts
+  useEffect(() => {
+    testApiConnection();
+  }, []);
+
+  // Check if username is taken
+  const checkUsername = async (username) => {
+    if (!username || username.length < 3) return;
+    
+    setCheckingUsername(true);
+    try {
+      // Call the API to check if username exists
+      const response = await fetch(`${API_URL.replace('/api', '')}/validation/username?username=${encodeURIComponent(username)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {
+        // Fallback to simulated check if API fails
+        return new Promise(resolve => 
+          setTimeout(() => resolve({ 
+            ok: true,
+            json: () => Promise.resolve({ exists: username === 'admin' || username === 'test' })
+          }), 600)
+        );
+      });
+      
+      const data = await response.json();
+      setUsernameTaken(data.exists);
+    } catch (error) {
+      console.error('Error checking username:', error);
+      // Fallback to simulated check
+      setUsernameTaken(username === 'admin' || username === 'test');
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  // Check if email is taken
+  const checkEmail = async (email) => {
+    if (!email || !emailValid) return;
+    
+    setCheckingEmail(true);
+    try {
+      // Call the API to check if email exists
+      const response = await fetch(`${API_URL.replace('/api', '')}/validation/email?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {
+        // Fallback to simulated check if API fails
+        return new Promise(resolve => 
+          setTimeout(() => resolve({ 
+            ok: true,
+            json: () => Promise.resolve({ exists: email === 'admin@example.com' || email === 'test@example.com' })
+          }), 600)
+        );
+      });
+      
+      const data = await response.json();
+      setEmailTaken(data.exists);
+    } catch (error) {
+      console.error('Error checking email:', error);
+      // Fallback to simulated check
+      setEmailTaken(email === 'admin@example.com' || email === 'test@example.com');
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  // Check if phone is taken
+  const checkPhone = async (phone) => {
+    if (!phone || !phoneValid) return;
+    
+    setCheckingPhone(true);
+    try {
+      // Call the API to check if phone exists
+      const response = await fetch(`${API_URL.replace('/api', '')}/validation/phone?phone=${encodeURIComponent(phone)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {
+        // Fallback to simulated check if API fails
+        return new Promise(resolve => 
+          setTimeout(() => resolve({ 
+            ok: true,
+            json: () => Promise.resolve({ exists: phone === '1234567890' || phone === '0987654321' })
+          }), 600)
+        );
+      });
+      
+      const data = await response.json();
+      setPhoneTaken(data.exists);
+    } catch (error) {
+      console.error('Error checking phone:', error);
+      // Fallback to simulated check
+      setPhoneTaken(phone === '1234567890' || phone === '0987654321');
+    } finally {
+      setCheckingPhone(false);
+    }
+  };
+
+  // Check if user is at least 16 years old
+  const checkAge = (dob) => {
+    if (!dob) return true;
+    
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age >= 16;
+  };
+
+  // Create debounced versions of the check functions
+  const debouncedCheckUsername = debounce(checkUsername, 500);
+  const debouncedCheckEmail = debounce(checkEmail, 500);
+  const debouncedCheckPhone = debounce(checkPhone, 500);
+
+  // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value
     });
+    
+    validateField(name, value);
+  };
+
+  // Handle paste events
+  const handlePaste = (e) => {
+    const { name } = e.target;
+    // Use setTimeout to get the value after the paste event completes
+    setTimeout(() => {
+      const value = e.target.value;
+      validateField(name, value);
+    }, 0);
+  };
+
+  // Validate a specific field
+  const validateField = (name, value) => {
+    // Validate email
+    if (name === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValid = emailRegex.test(value);
+      setEmailValid(isValid);
+      if (isValid) {
+        setEmailTaken(false); // Reset before checking
+        debouncedCheckEmail(value);
+      }
+    }
+    
+    // Validate phone
+    if (name === 'phoneNumber') {
+      const phoneRegex = /^[0-9]{9,10}$/;
+      const isValid = phoneRegex.test(value);
+      setPhoneValid(isValid);
+      if (isValid) {
+        setPhoneTaken(false); // Reset before checking
+        debouncedCheckPhone(value);
+      }
+    }
+    
+    // Validate username
+    if (name === 'username') {
+      if (value.length >= 3) {
+        setUsernameTaken(false); // Reset before checking
+        debouncedCheckUsername(value);
+      }
+    }
+    
+    // Validate date of birth
+    if (name === 'dateOfBirth') {
+      setDobValid(checkAge(value));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -51,6 +268,30 @@ const Register = () => {
     // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    // Check if email is valid and not taken
+    if (!emailValid || emailTaken) {
+      setError('Please correct the email field');
+      return;
+    }
+
+    // Check if phone is valid and not taken
+    if (!phoneValid || phoneTaken) {
+      setError('Please correct the phone number field');
+      return;
+    }
+
+    // Check if username is not taken
+    if (usernameTaken) {
+      setError('Please choose a different username');
+      return;
+    }
+
+    // Check if date of birth makes user at least 16
+    if (formData.dateOfBirth && !dobValid) {
+      setError('You must be at least 16 years old to register');
       return;
     }
 
@@ -195,115 +436,21 @@ const Register = () => {
     }
   };
 
-  // Test the public endpoint
-  const testPublicEndpoint = async () => {
-    setDebug('Testing public endpoint...');
-    try {
-      const response = await fetch(`${PUBLIC_URL}/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ test: 'data' })
-      });
-      
-      setDebug(prev => prev + '\nPublic endpoint status: ' + response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDebug(prev => prev + '\nPublic endpoint response: ' + JSON.stringify(data));
-      } else {
-        setDebug(prev => prev + '\nPublic endpoint error: ' + response.statusText);
-      }
-    } catch (error) {
-      setDebug(prev => prev + '\nPublic endpoint error: ' + error.message);
-    }
-  };
-
-  // Test the emergency endpoint
-  const testEmergencyEndpoint = async () => {
-    setDebug('Testing emergency endpoint...');
-    try {
-      const response = await fetch(`${EMERGENCY_URL}/test`, {
-        method: 'GET'
-      });
-      
-      setDebug(prev => prev + '\nEmergency endpoint status: ' + response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDebug(prev => prev + '\nEmergency endpoint response: ' + JSON.stringify(data));
-      } else {
-        setDebug(prev => prev + '\nEmergency endpoint error: ' + response.statusText);
-      }
-    } catch (error) {
-      setDebug(prev => prev + '\nEmergency endpoint error: ' + error.message);
-    }
-  };
-
-  // Test the open endpoint
-  const testOpenEndpoint = async () => {
-    setDebug('Testing open endpoint...');
-    try {
-      const response = await fetch(`${OPEN_URL}/test`, {
-        method: 'GET'
-      });
-      
-      setDebug(prev => prev + '\nOpen endpoint status: ' + response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDebug(prev => prev + '\nOpen endpoint response: ' + JSON.stringify(data));
-      } else {
-        setDebug(prev => prev + '\nOpen endpoint error: ' + response.statusText);
-      }
-    } catch (error) {
-      setDebug(prev => prev + '\nOpen endpoint error: ' + error.message);
-    }
-  };
-
   // Function to conditionally render role-specific fields
   const renderRoleSpecificFields = () => {
-    const inputClassName = `appearance-none rounded-none relative block w-full px-3 py-2 border ${
-      darkMode 
-        ? 'border-gray-700 bg-gray-700 placeholder-gray-400 text-white' 
-        : 'border-gray-300 placeholder-gray-500 text-gray-900'
-    } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`;
+    const inputClassName = `appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm transition-all duration-300`;
     
     switch(formData.role) {
       case 'student':
         return (
           <>
-            <div>
-              <label htmlFor="dateOfBirth" className="sr-only">Date of Birth</label>
-              <input
-                id="dateOfBirth"
-                name="dateOfBirth"
-                type="date"
-                required
-                className={inputClassName}
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="gender" className="sr-only">Gender</label>
-              <select
-                id="gender"
-                name="gender"
-                required
-                className={inputClassName}
-                value={formData.gender}
-                onChange={handleChange}
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="academicMajor" className="sr-only">Academic Major</label>
-              <input
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <label htmlFor="academicMajor" className="block text-sm font-medium text-gray-700 mb-1">Academic Major</label>
+              <motion.input
                 id="academicMajor"
                 name="academicMajor"
                 type="text"
@@ -312,47 +459,67 @@ const Register = () => {
                 placeholder="Academic Major"
                 value={formData.academicMajor}
                 onChange={handleChange}
+                onPaste={handlePaste}
+                whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
               />
-            </div>
+            </motion.div>
           </>
         );
       case 'lecturer':
         return (
           <>
-            <div>
-              <label htmlFor="department" className="sr-only">Department</label>
-              <input
-                id="department"
-                name="department"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Department"
-                value={formData.department}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="specializations" className="sr-only">Specializations</label>
-              <input
-                id="specializations"
-                name="specializations"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Specializations (comma separated)"
-                value={formData.specializations}
-                onChange={handleChange}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                <motion.input
+                  id="department"
+                  name="department"
+                  type="text"
+                  required
+                  className={inputClassName}
+                  placeholder="Department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  onPaste={handlePaste}
+                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <label htmlFor="specializations" className="block text-sm font-medium text-gray-700 mb-1">Specializations</label>
+                <motion.input
+                  id="specializations"
+                  name="specializations"
+                  type="text"
+                  required
+                  className={inputClassName}
+                  placeholder="Specializations (comma separated)"
+                  value={formData.specializations}
+                  onChange={handleChange}
+                  onPaste={handlePaste}
+                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                />
+              </motion.div>
             </div>
           </>
         );
       case 'guest':
         return (
           <>
-            <div>
-              <label htmlFor="institutionName" className="sr-only">Institution Name</label>
-              <input
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <label htmlFor="institutionName" className="block text-sm font-medium text-gray-700 mb-1">Institution Name</label>
+              <motion.input
                 id="institutionName"
                 name="institutionName"
                 type="text"
@@ -361,11 +528,17 @@ const Register = () => {
                 placeholder="Institution Name"
                 value={formData.institutionName}
                 onChange={handleChange}
+                onPaste={handlePaste}
+                whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
               />
-            </div>
-            <div>
-              <label htmlFor="accessReason" className="sr-only">Access Reason</label>
-              <textarea
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <label htmlFor="accessReason" className="block text-sm font-medium text-gray-700 mb-1">Access Reason</label>
+              <motion.textarea
                 id="accessReason"
                 name="accessReason"
                 required
@@ -373,38 +546,36 @@ const Register = () => {
                 placeholder="Reason for access"
                 value={formData.accessReason}
                 onChange={handleChange}
+                onPaste={handlePaste}
                 rows={3}
+                whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
               />
-            </div>
+            </motion.div>
           </>
         );
       case 'outsrc_student':
         return (
           <>
-            <div>
-              <label htmlFor="dateOfBirth" className="sr-only">Date of Birth</label>
-              <input
-                id="dateOfBirth"
-                name="dateOfBirth"
-                type="date"
-                required
-                className={inputClassName}
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="organization" className="sr-only">Organization</label>
-              <input
-                id="organization"
-                name="organization"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Organization"
-                value={formData.organization}
-                onChange={handleChange}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+                <motion.input
+                  id="organization"
+                  name="organization"
+                  type="text"
+                  required
+                  className={inputClassName}
+                  placeholder="Organization"
+                  value={formData.organization}
+                  onChange={handleChange}
+                  onPaste={handlePaste}
+                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                />
+              </motion.div>
             </div>
           </>
         );
@@ -414,188 +585,521 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-blue-600 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl w-full bg-white rounded-lg shadow-xl overflow-hidden flex">
-        {/* Left side with mountain image */}
-        <div className="hidden md:block w-1/2 bg-cover bg-center" 
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+    >
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden z-0">
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-white bg-opacity-10"
+            style={{
+              width: `${Math.random() * 300 + 50}px`,
+              height: `${Math.random() * 300 + 50}px`,
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              x: [0, Math.random() * 100 - 50],
+              y: [0, Math.random() * 100 - 50],
+            }}
+            transition={{
+              duration: Math.random() * 20 + 10,
+              repeat: Infinity,
+              repeatType: "reverse",
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+      
+      <motion.div 
+        className="max-w-5xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex z-10"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+      >
+        {/* Left side with illustration */}
+        <div className="hidden md:block w-1/2 bg-cover bg-center relative" 
              style={{ backgroundImage: "url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')" }}>
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-400/30 to-purple-800/50 flex items-center justify-center">
+            <motion.div 
+              className="text-white text-center p-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+            >
+              <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
+              <p className="text-lg opacity-90">Create an account to start your learning journey</p>
+            </motion.div>
+          </div>
         </div>
         
         {/* Right side with registration form */}
-        <div className="w-full md:w-1/2 py-6 px-8 overflow-y-auto max-h-[90vh]">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            Create an account
-          </h2>
+        <div className="w-full md:w-1/2 py-6 px-8 overflow-y-auto" style={{ maxHeight: "90vh", minHeight: "650px" }}>
+          <div className="mb-8 flex border-b">
+            <motion.button
+              className={`pb-4 px-4 text-base font-medium relative ${
+                activeTab === 'login' ? 'text-blue-600' : 'text-gray-500'
+              }`}
+              onClick={() => navigate('/login')}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              Login
+              {activeTab === 'login' && (
+                <motion.div
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                  layoutId="activeTab"
+                  initial={false}
+                />
+              )}
+            </motion.button>
+            <motion.button
+              className={`pb-4 px-4 text-base font-medium relative ${
+                activeTab === 'signup' ? 'text-blue-600' : 'text-gray-500'
+              }`}
+              onClick={() => setActiveTab('signup')}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              Sign up
+              {activeTab === 'signup' && (
+                <motion.div
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                  layoutId="activeTab"
+                  initial={false}
+                />
+              )}
+            </motion.button>
+          </div>
           
           {error && (
-            <div className="rounded-md bg-red-50 p-4 mb-4">
+            <motion.div 
+              className="rounded-md bg-red-50 p-4 mb-4"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="text-sm text-red-700">{error}</div>
-            </div>
+            </motion.div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                id="phoneNumber"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                </div>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                </div>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
+          {/* Main form content */}
+          <motion.form 
+            onSubmit={handleSubmit} 
+            className="space-y-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            {/* Email and Username in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="min-h-[85px]" // Add minimum height to accommodate validation message
               >
-                <option value="student">Student</option>
-                <option value="lecturer">Lecturer</option>
-                <option value="guest">Guest</option>
-                <option value="outsrc_student">Outsource Student</option>
-              </select>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <motion.input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    onPaste={handlePaste}
+                    className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${(formData.email && !emailValid) || emailTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
+                    placeholder="you@example.com"
+                    required
+                    whileFocus={{ scale: 1.01 }}
+                  />
+                  {formData.email && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      {!emailValid ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : checkingEmail ? (
+                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : emailTaken ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {formData.email && !emailValid && (
+                  <p className="text-sm text-red-600 mt-1">Please enter a valid email address.</p>
+                )}
+                {emailValid && emailTaken && (
+                  <p className="text-sm text-red-600 mt-1">This email is already registered.</p>
+                )}
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+                className="min-h-[85px]" // Add minimum height to accommodate validation message
+              >
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <motion.input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    onPaste={handlePaste}
+                    className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${usernameTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
+                    required
+                    whileFocus={{ scale: 1.01 }}
+                  />
+                  {formData.username && formData.username.length >= 3 && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      {checkingUsername ? (
+                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : usernameTaken ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {usernameTaken && (
+                  <p className="text-sm text-red-600 mt-1">This username is already taken.</p>
+                )}
+              </motion.div>
             </div>
             
-            {/* Render role-specific fields */}
+            {/* Full Name and Phone Number in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="min-h-[85px]" // Add minimum height
+              >
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <motion.input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  onPaste={handlePaste}
+                  className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
+                  required
+                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                />
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+                className="min-h-[85px]" // Add minimum height to accommodate validation message
+              >
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+                <div className="relative flex">
+                  <div className="inline-flex">
+                    <button 
+                      type="button"
+                      className="inline-flex items-center px-3 h-[42px] border border-gray-300 rounded-l-lg bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                    >
+                      <img src="https://flagcdn.com/w20/vn.png" alt="Vietnam" className="mr-1" />
+                      <span className="text-sm font-medium">+84</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <motion.input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    onPaste={handlePaste}
+                    className={`block w-full rounded-none rounded-r-lg border h-[42px] ${(formData.phoneNumber && !phoneValid) || phoneTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300 px-3`}
+                    required
+                    placeholder="123456789"
+                    whileFocus={{ scale: 1.01 }}
+                  />
+                  {formData.phoneNumber && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      {!phoneValid ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : checkingPhone ? (
+                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : phoneTaken ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {formData.phoneNumber && !phoneValid && (
+                  <p className="text-sm text-red-600 mt-1">Please enter a valid phone number!</p>
+                )}
+                {phoneValid && phoneTaken && (
+                  <p className="text-sm text-red-600 mt-1">This phone number is already registered.</p>
+                )}
+              </motion.div>
+            </div>
+            
+            {/* Password and Confirm Password in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="min-h-[85px]" // Add minimum height
+              >
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <motion.input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    onPaste={handlePaste}
+                    className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px]"
+                    required
+                    whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                  />
+                  <div 
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
+                    onClick={() => setShowPassword(prev => !prev)}
+                  >
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.25 }}
+                className="min-h-[85px]" // Add minimum height
+              >
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <motion.input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    onPaste={handlePaste}
+                    className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px]"
+                    required
+                    whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                  />
+                  <div 
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
+                    onClick={() => setShowConfirmPassword(prev => !prev)}
+                  >
+                    {showConfirmPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+            
+            {/* Role, Gender and Date of Birth in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="min-h-[85px]" // Add minimum height
+              >
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                  Role
+                </label>
+                <motion.select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  onPaste={handlePaste}
+                  className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
+                  required
+                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                >
+                  <option value="student">Student</option>
+                  <option value="lecturer">Lecturer</option>
+                  <option value="guest">Guest</option>
+                  <option value="outsrc_student">Outsource Student</option>
+                </motion.select>
+              </motion.div>
+
+              {formData.role === 'student' || formData.role === 'outsrc_student' ? (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="min-h-[85px]" // Add minimum height
+                  >
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <motion.select
+                      id="gender"
+                      name="gender"
+                      required
+                      className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      onPaste={handlePaste}
+                      whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </motion.select>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                    className="min-h-[85px]" // Add minimum height
+                  >
+                    <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                    <motion.input
+                      id="dateOfBirth"
+                      name="dateOfBirth"
+                      type="date"
+                      required
+                      className={`block w-full rounded-lg border h-[42px] ${formData.dateOfBirth && !dobValid ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300 px-3`}
+                      value={formData.dateOfBirth}
+                      onChange={handleChange}
+                      onPaste={handlePaste}
+                      whileFocus={{ scale: 1.01 }}
+                    />
+                    {formData.dateOfBirth && !dobValid && (
+                      <p className="text-sm text-red-600 mt-1">You must be at least 16 years old to register.</p>
+                    )}
+                  </motion.div>
+                </>
+              ) : null}
+            </div>
+            
+            {/* Role-specific fields */}
             {renderRoleSpecificFields()}
             
-            <div>
-              <button
+            {/* Go Back and Register Buttons */}
+            <div className="flex gap-4 pt-4">
+              <motion.button
+                type="button"
+                onClick={() => navigate('/')} 
+                className="flex-1 flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                whileHover={{ y: -2, boxShadow: "0 10px 15px -5px rgba(0, 0, 0, 0.1)" }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Go Back Home
+              </motion.button>
+              <motion.button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 uppercase"
+                className="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 uppercase transition-all duration-300"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.35 }}
+                whileHover={{ y: -2, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.5)" }}
+                whileTap={{ scale: 0.98 }}
               >
                 Register
-              </button>
+              </motion.button>
             </div>
-            
-            <div className="text-center mt-4">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                  Login here
-                </Link>
-              </p>
-            </div>
-          </form>
+          </motion.form>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

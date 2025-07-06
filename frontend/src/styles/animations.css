@@ -1,0 +1,160 @@
+/* Animations CSS for Login and Register pages */
+
+/* Form Input Focus Animation */
+.input-focus-animation {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input-focus-animation:focus {
+  transform: scale(1.01);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Button Hover Animation */
+.btn-hover-animation {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.btn-hover-animation:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+}
+
+.btn-hover-animation:active {
+  transform: scale(0.98);
+}
+
+/* Tab Animation */
+.tab-animation {
+  position: relative;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.tab-animation:hover {
+  transform: translateY(-2px);
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3b82f6;
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+/* Floating Background Elements Animation */
+@keyframes float {
+  0% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+}
+
+.floating-element {
+  animation: float 15s ease-in-out infinite;
+}
+
+.floating-element:nth-child(2) {
+  animation-delay: 2s;
+  animation-duration: 17s;
+}
+
+.floating-element:nth-child(3) {
+  animation-delay: 4s;
+  animation-duration: 20s;
+}
+
+.floating-element:nth-child(4) {
+  animation-delay: 6s;
+  animation-duration: 22s;
+}
+
+.floating-element:nth-child(5) {
+  animation-delay: 8s;
+  animation-duration: 18s;
+}
+
+/* Page Transition Animation */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Form Shake Animation for Error */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.error-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+/* Success Animation */
+@keyframes success-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.success-pulse {
+  animation: success-pulse 1.5s infinite;
+}
+
+/* Gradient Background Animation */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient {
+  background: linear-gradient(-45deg, #3b82f6, #6366f1, #8b5cf6, #3b82f6);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+} 

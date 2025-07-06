@@ -13,15 +13,60 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, 
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000", "*"}, 
             allowedHeaders = "*", 
             methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}, 
-            allowCredentials = "true",
+            allowCredentials = "false",
             exposedHeaders = {"Content-Type", "Authorization"})
 public class AuthController {
 
     @Autowired
     private AuthService authService;
+    
+    @Autowired
+    private UserRepository userRepository;
+
+    @GetMapping("/check-username")
+    public ResponseEntity<?> checkUsername(@RequestParam String username) {
+        try {
+            // Check if username exists in database
+            boolean exists = userRepository.findByUsername(username).isPresent();
+            
+            // Return result
+            return ResponseEntity.ok(Map.of("exists", exists));
+        } catch (Exception e) {
+            System.out.println("Error checking username: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        try {
+            // Check if email exists in database
+            boolean exists = userRepository.findByEmail(email).isPresent();
+            
+            // Return result
+            return ResponseEntity.ok(Map.of("exists", exists));
+        } catch (Exception e) {
+            System.out.println("Error checking email: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/check-phone")
+    public ResponseEntity<?> checkPhone(@RequestParam String phone) {
+        try {
+            // Check if phone exists in database
+            boolean exists = userRepository.findByPhoneNumber(phone).isPresent();
+            
+            // Return result
+            return ResponseEntity.ok(Map.of("exists", exists));
+        } catch (Exception e) {
+            System.out.println("Error checking phone: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {

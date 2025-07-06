@@ -68,7 +68,7 @@ const ChatBox = () => {
         // Force scroll to bottom immediately when opening chat
         setTimeout(() => {
     scrollToBottom();
-        }, 1000);
+        }, 7000);
       }
     }
   }, [activeConversation?.userId]);
@@ -520,7 +520,7 @@ const ChatBox = () => {
         <div className="mt-2">
           <audio 
             controls 
-            className="w-full max-w-[280px]" 
+            className="max-w-[280px]" 
             preload="metadata"
             style={{ borderRadius: '8px', backgroundColor: 'white' }}
           >

@@ -36,8 +36,8 @@ const LandingFooter = () => {
           </div>
           <div>
             <h4 className="text-[18px] font-semibold mb-4">Contact Us</h4>
-            <p className="text-sm mb-2">📧 Email: your.email@example.com</p>
-            <p className="text-sm mb-2">📱 Phone: +84 000 000 000</p>
+            <p className="text-sm mb-2">📧 Email: cuutoan.nguyen@gmail.com</p>
+            <p className="text-sm mb-2">📱 Phone: +84 374 230 377</p>
             <p className="text-sm">📍 FPT University Campuses</p>
           </div>
         </div>

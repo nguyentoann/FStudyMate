@@ -8,7 +8,13 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.mycompany.fstudymate", "dao", "service", "connection", "model"})
+@ComponentScan(basePackages = {
+    "com.mycompany.fstudymate", 
+    "dao", 
+    "service", 
+    "connection", 
+    "model"
+})
 public class FStudyMateApplication {
 
     public static void main(String[] args) {

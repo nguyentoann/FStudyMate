@@ -63,6 +63,7 @@ public class WebConfig implements WebMvcConfigurer {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("*"); // Allow all origins
         config.addAllowedHeader("*");
         config.addExposedHeader("Authorization");
         config.addExposedHeader("Content-Disposition");
@@ -73,6 +74,7 @@ public class WebConfig implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", config);
         source.registerCorsConfiguration("/api/video-call/**", config);
         source.registerCorsConfiguration("/api/chat/**", config);
+        source.registerCorsConfiguration("/public/**", config);
         
         logger.info("CORS filter bean created with allowCredentials=true");
         return new CorsFilter(source);

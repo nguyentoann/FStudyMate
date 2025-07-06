@@ -19,6 +19,7 @@
     "draft-js-import-markdown": "^1.4.1",
     "draftjs-to-markdown": "^0.6.0",
     "file-loader": "^6.2.0",
+    "framer-motion": "^12.23.0",
     "gsap": "^3.13.0",
     "katex": "^0.16.22",
     "meshline": "^3.3.1",

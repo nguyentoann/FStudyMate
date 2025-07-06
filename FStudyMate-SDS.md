@@ -515,4 +515,3 @@ Key WebRTC configuration:
   ],
   iceCandidatePoolSize: 10
 }
-``` 

@@ -1,9 +1,9 @@
-/*!999999\- enable the sandbox mode */ 
+/*!999999\- enable the sandbox mode */
 -- MariaDB dump 10.19  Distrib 10.11.8-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: toandz.ddns.net    Database: fstudymate
 -- ------------------------------------------------------
--- Server version	10.9.3-MariaDB
+-- Server version       10.9.3-MariaDB
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -67,7 +67,7 @@ CREATE TABLE `Lessons` (
   KEY `LecturerId` (`LecturerId`),
   CONSTRAINT `Lessons_ibfk_1` FOREIGN KEY (`SubjectId`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE,
   CONSTRAINT `Lessons_ibfk_2` FOREIGN KEY (`LecturerId`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -158,7 +158,7 @@ CREATE TABLE `QuizTaken` (
   KEY `idx_start_time` (`start_time`),
   CONSTRAINT `fk_quiztaken_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_quiztaken_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -288,7 +288,7 @@ CREATE TABLE `chat_files` (
   PRIMARY KEY (`id`),
   KEY `idx_chat_files_uploader` (`uploader_id`),
   CONSTRAINT `chat_files_ibfk_1` FOREIGN KEY (`uploader_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -311,7 +311,7 @@ CREATE TABLE `chat_groups` (
   KEY `idx_chat_groups_class_id` (`class_id`),
   KEY `idx_chat_groups_creator_id` (`creator_id`),
   CONSTRAINT `chat_groups_creator_fk` FOREIGN KEY (`creator_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -330,7 +330,7 @@ CREATE TABLE `chat_message_files` (
   UNIQUE KEY `idx_unique_message_file` (`message_id`,`file_id`,`message_type`),
   KEY `idx_message_files_file_id` (`file_id`),
   CONSTRAINT `chat_message_files_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `chat_files` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -421,19 +421,22 @@ DROP TABLE IF EXISTS `classes`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `classes` (
   `class_id` varchar(20) NOT NULL,
-  `academic_year` varchar(10) NOT NULL,
   `class_name` varchar(100) NOT NULL,
   `created_at` datetime(6) NOT NULL,
   `current_students` int(11) DEFAULT NULL,
-  `department` varchar(100) DEFAULT NULL,
   `homeroom_teacher_id` int(11) DEFAULT NULL,
   `is_active` bit(1) DEFAULT NULL,
   `max_students` int(11) DEFAULT NULL,
-  `term_id` int(11) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   `academic_major_id` int(11) DEFAULT NULL,
+  `term_id` int(11) DEFAULT NULL,
+  `academic_year` varchar(10) NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `semester` varchar(20) NOT NULL,
   PRIMARY KEY (`class_id`),
-  KEY `fk_classes_terms` (`term_id`),
+  KEY `FKjk3y1x3tcra9gcqaytf6n9mn1` (`academic_major_id`),
+  KEY `idx_term_id` (`term_id`),
+  CONSTRAINT `FKjk3y1x3tcra9gcqaytf6n9mn1` FOREIGN KEY (`academic_major_id`) REFERENCES `academic_majors` (`id`),
   CONSTRAINT `fk_classes_terms` FOREIGN KEY (`term_id`) REFERENCES `Terms` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -513,7 +516,7 @@ CREATE TABLE `feedback` (
   KEY `idx_feedback_user_id` (`user_id`),
   KEY `idx_feedback_visibility` (`is_visible`),
   CONSTRAINT `feedback_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -535,7 +538,7 @@ CREATE TABLE `group_chat_messages` (
   KEY `idx_group_chat_messages_sender_id` (`sender_id`),
   CONSTRAINT `group_chat_messages_ibfk_1` FOREIGN KEY (`group_id`) REFERENCES `chat_groups` (`id`) ON DELETE CASCADE,
   CONSTRAINT `group_chat_messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=120 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=128 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -558,7 +561,7 @@ CREATE TABLE `group_members` (
   CONSTRAINT `group_members_added_by_fk` FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `group_members_group_fk` FOREIGN KEY (`group_id`) REFERENCES `chat_groups` (`id`) ON DELETE CASCADE,
   CONSTRAINT `group_members_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -594,6 +597,45 @@ CREATE TABLE `lecturers` (
   PRIMARY KEY (`lecturer_id`),
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `lecturers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `notification_recipients`
+--
+
+DROP TABLE IF EXISTS `notification_recipients`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `notification_recipients` (
+  `notification_id` bigint(20) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`notification_id`,`user_id`),
+  KEY `FKce9mdpy7u99n8tn3s2iflds4t` (`user_id`),
+  CONSTRAINT `FKce9mdpy7u99n8tn3s2iflds4t` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `FKiuf5qgbttjq6ry57u1dni7qn4` FOREIGN KEY (`notification_id`) REFERENCES `notifications` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `notifications`
+--
+
+DROP TABLE IF EXISTS `notifications`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `notifications` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `class_id` varchar(255) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `message` text NOT NULL,
+  `notification_type` enum('ALL','CLASS','GROUP') NOT NULL,
+  `is_read` bit(1) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK13vcnq3ukas06ho1yrbc5lrb5` (`sender_id`),
+  CONSTRAINT `FK13vcnq3ukas06ho1yrbc5lrb5` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -680,7 +722,7 @@ CREATE TABLE `personal_schedules` (
   KEY `idx_start_time` (`start_time`),
   KEY `idx_type` (`type`),
   CONSTRAINT `fk_personal_schedules_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -732,12 +774,11 @@ DROP TABLE IF EXISTS `students`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `students` (
-  `student_id` varchar(20) NOT NULL,
+  `student_id` varchar(20) DEFAULT NULL,
   `user_id` int(11) DEFAULT NULL,
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('Male','Female','Other') DEFAULT NULL,
   `class_id` varchar(20) DEFAULT NULL,
-  `academic_major` varchar(100) DEFAULT NULL,
   `major_id` int(11) DEFAULT NULL,
   `term_id` int(11) DEFAULT NULL,
   `academic_major_id` int(11) DEFAULT NULL,
@@ -773,7 +814,7 @@ CREATE TABLE `user_activity_details` (
   `session_id` int(11) DEFAULT NULL,
   `updated_at` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -824,8 +865,6 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `verified` tinyint(1) DEFAULT 0,
-  `class_id` varchar(255) DEFAULT NULL,
-  `password` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
@@ -841,4 +880,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-03 10:20:47
+-- Dump completed on 2025-07-06 20:13:47

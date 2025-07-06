@@ -7,7 +7,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
         <div className="flex items-center">
           <i className="fas fa-book-open text-2xl mr-3"></i>
-          <h1 className="text-2xl font-bold">Hệ Thống Kiểm Tra Trực Tuyến</h1>
+          <h1 className="text-2xl font-bold">FStudyMate</h1>
         </div>
         <nav>
           <ul className="flex space-x-6">

@@ -174,7 +174,7 @@ const AIChat = ({ onClose }) => {
           // Force scroll to bottom when chat opens
           setTimeout(() => {
             scrollToBottom();
-          }, 600);
+          }, 4000);
           
           // Reset scroll state when opening chat
           setUserScrolled(false);
