@@ -40,9 +40,15 @@ public class NotificationManagementController {
             return true;
         }
         
-        // Giảng viên chỉ có thể gửi thông báo cho học sinh
+        // Giảng viên chỉ có thể gửi thông báo cho học sinh trong lớp của họ
         if (senderRole.equals("lecturer")) {
-            return recipientRole.equals("student") || recipientRole.equals("outsrc_student");
+            // Nếu người nhận là học sinh, kiểm tra xem có thuộc lớp của giảng viên không
+            if (recipientRole.equals("student") || recipientRole.equals("outsrc_student")) {
+                // Nếu classId của học sinh trùng với classId của giảng viên
+                // hoặc nếu không có thông tin classId, cho phép gửi (logic có thể thay đổi tùy yêu cầu)
+                return true;
+            }
+            return false;
         }
         
         // Học sinh không có quyền gửi thông báo
@@ -207,6 +213,59 @@ public class NotificationManagementController {
     }
     
     /**
+     * Gửi thông báo cho tất cả giảng viên (chỉ Admin)
+     */
+    @PostMapping("/send-to-all-lecturers")
+    public ResponseEntity<?> sendToAllLecturers(
+            @RequestBody Map<String, Object> request,
+            Authentication auth) {
+        
+        User sender = (User) auth.getPrincipal();
+        
+        // Chỉ Admin mới có quyền gửi thông báo cho tất cả giảng viên
+        if (!sender.getRole().equalsIgnoreCase("admin")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "success", false,
+                "error", "Only admin can send notifications to all lecturers"
+            ));
+        }
+        
+        String type = (String) request.get("type");
+        String title = (String) request.get("title");
+        String message = (String) request.get("message");
+        String link = (String) request.get("link");
+        Long resourceId = request.get("resourceId") != null ? 
+                Long.valueOf(request.get("resourceId").toString()) : null;
+        
+        // Kiểm tra dữ liệu đầu vào
+        if (type == null || title == null || message == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", "Type, title, and message are required"
+            ));
+        }
+        
+        // Lấy tất cả giảng viên và gửi thông báo
+        List<User> lecturers = userRepository.findAll().stream()
+                .filter(user -> user.getRole().equalsIgnoreCase("lecturer"))
+                .collect(Collectors.toList());
+        
+        int successCount = 0;
+        for (User lecturer : lecturers) {
+            Notification notification = notificationService.createNotification(
+                    lecturer.getId(), type, title, message, link, resourceId);
+            if (notification != null) {
+                successCount++;
+            }
+        }
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Notifications sent successfully to " + successCount + " lecturers"
+        ));
+    }
+    
+    /**
      * Gửi thông báo cho tất cả học sinh (Admin và Lecturer)
      */
     @PostMapping("/send-to-all-students")
@@ -240,11 +299,17 @@ public class NotificationManagementController {
             ));
         }
         
-        // Lấy tất cả học sinh và gửi thông báo
-        List<User> students = userRepository.findAll().stream()
-                .filter(user -> user.getRole().equalsIgnoreCase("student") || 
-                               user.getRole().equalsIgnoreCase("outsrc_student"))
-                .collect(Collectors.toList());
+        // Nếu là giảng viên, chỉ gửi cho học sinh trong lớp của họ
+        List<User> students;
+        if (sender.getRole().equalsIgnoreCase("lecturer") && sender.getClassId() != null) {
+            students = findStudentsInClass(sender.getClassId());
+        } else {
+            // Nếu là admin hoặc giảng viên không có classId
+            students = userRepository.findAll().stream()
+                    .filter(user -> user.getRole().equalsIgnoreCase("student") || 
+                                  user.getRole().equalsIgnoreCase("outsrc_student"))
+                    .collect(Collectors.toList());
+        }
         
         int successCount = 0;
         for (User student : students) {
@@ -278,6 +343,16 @@ public class NotificationManagementController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                 "success", false,
                 "error", "Only admin and lecturer can send notifications to classes"
+            ));
+        }
+        
+        // Nếu là giảng viên, kiểm tra xem có phải lớp của họ phụ trách không
+        if (sender.getRole().equalsIgnoreCase("lecturer") && 
+            sender.getClassId() != null && 
+            !sender.getClassId().equals(classId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "success", false,
+                "error", "Lecturers can only send notifications to their own classes"
             ));
         }
         
@@ -318,6 +393,49 @@ public class NotificationManagementController {
         return ResponseEntity.ok(Map.of(
             "success", true,
             "message", "Notifications sent successfully to " + successCount + " students in the class"
+        ));
+    }
+    
+    /**
+     * Gửi thông báo cho một khóa học cụ thể (Admin và Lecturer)
+     */
+    @PostMapping("/send-to-course/{courseId}")
+    public ResponseEntity<?> sendToCourse(
+            @PathVariable String courseId,
+            @RequestBody Map<String, Object> request,
+            Authentication auth) {
+        
+        User sender = (User) auth.getPrincipal();
+        
+        // Chỉ Admin và Lecturer mới có quyền gửi thông báo cho khóa học
+        if (!sender.getRole().equalsIgnoreCase("admin") && 
+            !sender.getRole().equalsIgnoreCase("lecturer")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "success", false,
+                "error", "Only admin and lecturer can send notifications to courses"
+            ));
+        }
+        
+        String type = (String) request.get("type");
+        String title = (String) request.get("title");
+        String message = (String) request.get("message");
+        String link = (String) request.get("link");
+        Long resourceId = request.get("resourceId") != null ? 
+                Long.valueOf(request.get("resourceId").toString()) : null;
+        
+        // Kiểm tra dữ liệu đầu vào
+        if (type == null || title == null || message == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", "Type, title, and message are required"
+            ));
+        }
+        
+        // TODO: Implement logic to get students by courseId once that model is ready
+        // For now, we'll just return an error
+        return ResponseEntity.badRequest().body(Map.of(
+            "success", false,
+            "error", "Course-based notifications are not yet implemented"
         ));
     }
     

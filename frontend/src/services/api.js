@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_URL } from './config';
+import { getAuthToken } from '../utils/AuthUtils';
 
 // Add DEBUG flag to easily enable/disable logging - SET TO FALSE WHEN DONE DEBUGGING
 const DEBUG_QUIZ_SUBMISSIONS = false;
@@ -7,12 +8,12 @@ const DEBUG_QUIZ_SUBMISSIONS = false;
 // Setup request interceptor to add auth token to all requests
 axios.interceptors.request.use(
   config => {
-    // Get session ID from localStorage to use as authentication token
-    const sessionId = localStorage.getItem('sessionId');
+    // Get auth token using the shared utility function
+    const token = getAuthToken();
     
-    if (sessionId && config.url.includes(API_URL)) {
-      // Add session ID as authorization header
-      config.headers['Authorization'] = `Bearer ${sessionId}`;
+    if (token && config.url.includes(API_URL)) {
+      // Add token as authorization header
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     
     return config;

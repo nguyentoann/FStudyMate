@@ -14,8 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
@@ -135,5 +137,61 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public int deleteOldNotifications(int days) {
         return notificationRepository.deleteOldNotifications(days);
+    }
+    
+    @Override
+    public List<Notification> sendNotificationToRole(String role, String type, String title, String message, String link, Long resourceId) {
+        List<User> users = userRepository.findAll().stream()
+                .filter(user -> user.getRole().equalsIgnoreCase(role))
+                .collect(Collectors.toList());
+        
+        List<Notification> notifications = new ArrayList<>();
+        for (User user : users) {
+            Notification notification = createNotification(
+                    user.getId(), type, title, message, link, resourceId);
+            if (notification != null) {
+                notifications.add(notification);
+            }
+        }
+        
+        logger.info("Sent notification to {} users with role '{}'", notifications.size(), role);
+        return notifications;
+    }
+    
+    @Override
+    public List<Notification> sendNotificationToClass(String classId, String type, String title, String message, String link, Long resourceId) {
+        List<User> users = userRepository.findByClassId(classId).stream()
+                .filter(user -> user.getRole().equalsIgnoreCase("student") || 
+                              user.getRole().equalsIgnoreCase("outsrc_student"))
+                .collect(Collectors.toList());
+        
+        List<Notification> notifications = new ArrayList<>();
+        for (User user : users) {
+            Notification notification = createNotification(
+                    user.getId(), type, title, message, link, resourceId);
+            if (notification != null) {
+                notifications.add(notification);
+            }
+        }
+        
+        logger.info("Sent notification to {} students in class '{}'", notifications.size(), classId);
+        return notifications;
+    }
+    
+    @Override
+    public List<Notification> sendNotificationToAll(String type, String title, String message, String link, Long resourceId) {
+        List<User> allUsers = userRepository.findAll();
+        
+        List<Notification> notifications = new ArrayList<>();
+        for (User user : allUsers) {
+            Notification notification = createNotification(
+                    user.getId(), type, title, message, link, resourceId);
+            if (notification != null) {
+                notifications.add(notification);
+            }
+        }
+        
+        logger.info("Sent notification to all {} users", notifications.size());
+        return notifications;
     }
 } 

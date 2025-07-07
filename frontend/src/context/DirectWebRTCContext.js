@@ -4,6 +4,7 @@ import { API_URL } from '../services/config';
 import { inspectAuthState, fixTokenStorage, isValidToken } from '../utils/AuthUtils';
 import { makeApiCall, getAuthMethod } from '../utils/ApiUtils';
 import { useStabilizedContext } from '../hooks/useStabilizedContext';
+import { getAuthToken } from '../utils/AuthUtils';
 
 // Debug flag to control logging - set to false to disable verbose logs
 // Change to true when troubleshooting CORS or video call issues
@@ -57,12 +58,6 @@ export const DirectWebRTCProvider = ({ children }) => {
       }
     ],
     iceCandidatePoolSize: 10
-  };
-  
-  // Function to get authentication data (session-based authentication)
-  const getAuthToken = () => {
-    // Use the utility function instead
-    return getAuthMethod();
   };
   
   // Function to verify login status before making calls

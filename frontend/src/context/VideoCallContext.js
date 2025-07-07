@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { useAuth } from './AuthContext';
 import { API_URL } from '../services/config';
 import SimplePeer from 'simple-peer';
-import { inspectAuthState, fixTokenStorage, isValidToken } from '../utils/AuthUtils';
+import { inspectAuthState, fixTokenStorage, isValidToken, getAuthToken } from '../utils/AuthUtils';
 import { makeApiCall, getAuthMethod } from '../utils/ApiUtils';
 
 // Ensure process is defined for simple-peer
@@ -40,12 +40,6 @@ export const VideoCallProvider = ({ children }) => {
   const connectionRef = useRef();
   const signalPollingRef = useRef();
   
-  // Function to get authentication data (session-based authentication)
-  const getAuthToken = () => {
-    // Use the utility function instead
-    return getAuthMethod();
-  };
-
   // Function to verify login status before making calls
   const verifyLoginStatus = () => {
     console.log('[CALL-FLOW] Verifying login status before call');

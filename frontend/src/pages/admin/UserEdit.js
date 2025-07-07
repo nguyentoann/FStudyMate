@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { API_URL } from '../../services/config';
+import { getAuthToken } from '../../utils/AuthUtils';
 
 const UserEdit = () => {
   const { userId } = useParams();
@@ -30,10 +31,12 @@ const UserEdit = () => {
   const fetchUserData = async () => {
     setLoading(true);
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/admin/users/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -103,10 +106,12 @@ const UserEdit = () => {
           break;
       }
 
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/admin/users/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload),
       });

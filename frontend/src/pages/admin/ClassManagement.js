@@ -5,6 +5,7 @@ import { API_URL } from '../../services/config';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DashboardLayout from '../../components/DashboardLayout';
 import './ClassManagement.css';
+import { getAuthToken } from '../../utils/AuthUtils';
 
 const ClassManagement = () => {
   const { user } = useAuth();
@@ -32,6 +33,13 @@ const ClassManagement = () => {
     isActive: true
   });
   
+  const [filters, setFilters] = useState({
+    academicYear: '',
+    semester: '',
+    department: '',
+    searchTerm: ''
+  });
+  
   useEffect(() => {
     fetchClasses();
     fetchAcademicYears();
@@ -43,7 +51,12 @@ const ClassManagement = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/classes`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -61,7 +74,12 @@ const ClassManagement = () => {
   
   const fetchAcademicYears = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/academic-years`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/classes/academic-years`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -74,7 +92,12 @@ const ClassManagement = () => {
   
   const fetchSemesters = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/semesters`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/classes/semesters`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -87,7 +110,12 @@ const ClassManagement = () => {
   
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${API_URL}/classes/departments`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/classes/departments`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -100,7 +128,12 @@ const ClassManagement = () => {
   
   const fetchTeachers = async () => {
     try {
-      const response = await fetch(`${API_URL}/users?role=LECTURER`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/users?role=LECTURER`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -114,7 +147,12 @@ const ClassManagement = () => {
   const fetchStudentsByClass = async (classId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/classes/${classId}/students`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/classes/${classId}/students`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -132,7 +170,12 @@ const ClassManagement = () => {
   
   const fetchAvailableStudents = async () => {
     try {
-      const response = await fetch(`${API_URL}/users?role=STUDENT&unassigned=true`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/users?role=STUDENT&unassigned=true`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -192,6 +235,7 @@ const ClassManagement = () => {
     
     try {
       setLoading(true);
+      const token = getAuthToken();
       
       const url = formMode === 'create' 
         ? `${API_URL}/classes` 
@@ -202,7 +246,8 @@ const ClassManagement = () => {
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(formData)
       });
@@ -241,9 +286,13 @@ const ClassManagement = () => {
     
     try {
       setLoading(true);
+      const token = getAuthToken();
       
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (response.ok) {
@@ -251,6 +300,7 @@ const ClassManagement = () => {
         setSelectedClass(null);
         setStudents([]);
         handleCreateNewClass();
+        setError('');
         alert('Class deleted successfully');
       } else {
         const errorData = await response.json();
@@ -268,65 +318,51 @@ const ClassManagement = () => {
     if (!selectedClass) return;
     
     try {
-      setLoading(true);
-      
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}/students/${userId}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (response.ok) {
-        // Refresh student lists
+        // Refresh student list
         fetchStudentsByClass(selectedClass.classId);
         fetchAvailableStudents();
-        
-        // Update class count
-        const updatedClass = { ...selectedClass, currentStudents: selectedClass.currentStudents + 1 };
-        setSelectedClass(updatedClass);
-        setClasses(classes.map(c => c.classId === updatedClass.classId ? updatedClass : c));
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to assign student');
+        setError(errorData.message || 'Failed to assign student to class');
       }
     } catch (err) {
       setError('An error occurred while assigning student');
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
   
   const handleRemoveStudent = async (userId) => {
     if (!selectedClass) return;
     
-    if (!window.confirm('Are you sure you want to remove this student from the class?')) {
-      return;
-    }
-    
     try {
-      setLoading(true);
-      
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/classes/${selectedClass.classId}/students/${userId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (response.ok) {
-        // Refresh student lists
+        // Refresh student list
         fetchStudentsByClass(selectedClass.classId);
         fetchAvailableStudents();
-        
-        // Update class count
-        const updatedClass = { ...selectedClass, currentStudents: Math.max(0, selectedClass.currentStudents - 1) };
-        setSelectedClass(updatedClass);
-        setClasses(classes.map(c => c.classId === updatedClass.classId ? updatedClass : c));
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to remove student');
+        setError(errorData.message || 'Failed to remove student from class');
       }
     } catch (err) {
       setError('An error occurred while removing student');
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
   

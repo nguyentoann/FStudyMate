@@ -154,11 +154,76 @@ export const isValidSession = () => {
 export const fixTokenStorage = fixSessionStorage;
 export const isValidToken = isValidSession;
 
+/**
+ * Get the authentication token from local or session storage
+ * 
+ * @returns {string|null} Authentication token or null if not found
+ */
+export const getAuthToken = () => {
+  // Lấy thông tin user từ localStorage hoặc sessionStorage
+  const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+  
+  if (!userData) {
+    return null;
+  }
+  
+  try {
+    const user = JSON.parse(userData);
+    return user.token || null;
+  } catch (error) {
+    console.error('Error parsing auth token:', error);
+    return null;
+  }
+};
+
+/**
+ * Get the current user from local or session storage
+ * 
+ * @returns {object|null} User object or null if not found
+ */
+export const getCurrentUser = () => {
+  const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+  
+  if (!userData) {
+    return null;
+  }
+  
+  try {
+    return JSON.parse(userData);
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    return null;
+  }
+};
+
+/**
+ * Check if the current user has the specified role
+ * 
+ * @param {string|array} roles - Role or array of roles to check
+ * @returns {boolean} True if user has one of the specified roles
+ */
+export const hasRole = (roles) => {
+  const user = getCurrentUser();
+  
+  if (!user || !user.role) {
+    return false;
+  }
+  
+  if (Array.isArray(roles)) {
+    return roles.some(role => user.role.toLowerCase() === role.toLowerCase());
+  }
+  
+  return user.role.toLowerCase() === roles.toLowerCase();
+};
+
 export default {
   inspectAuthState,
   fixSessionStorage,
   fixTokenStorage, // alias for backward compatibility
   setDebugSessionData,
   isValidSession,
-  isValidToken // alias for backward compatibility
+  isValidToken, // alias for backward compatibility
+  getAuthToken,
+  getCurrentUser,
+  hasRole
 }; 

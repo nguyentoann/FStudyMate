@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import { format } from 'date-fns';
 import ChatButton from '../../components/ChatButton';
 import { API_URL } from '../../services/config';
+import { getAuthToken } from '../../utils/AuthUtils';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -29,10 +30,12 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/admin/users`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -52,11 +55,13 @@ const UserManagement = () => {
 
   const fetchClassStats = async () => {
     try {
+      const token = getAuthToken();
       // Fetch class statistics
       const statsResponse = await fetch(`${API_URL}/admin/class-stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -72,6 +77,7 @@ const UserManagement = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -94,10 +100,12 @@ const UserManagement = () => {
     }
     
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 

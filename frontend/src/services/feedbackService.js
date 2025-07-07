@@ -1,10 +1,6 @@
 import axios from 'axios';
 import { API_URL } from './config';
-
-// Helper function to get auth token from storage
-const getAuthToken = () => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-};
+import { getAuthToken } from '../utils/AuthUtils';
 
 // Create axios instance with default config
 const axiosInstance = axios.create({

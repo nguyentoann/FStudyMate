@@ -105,4 +105,42 @@ public interface NotificationService {
      * @return Number of notifications deleted
      */
     int deleteOldNotifications(int days);
+    
+    /**
+     * Send notification to all users with a specific role
+     * 
+     * @param role The role to target (e.g., "student", "lecturer")
+     * @param type Type of notification
+     * @param title Notification title
+     * @param message Notification message
+     * @param link Optional link
+     * @param resourceId Optional resource ID
+     * @return List of created notifications
+     */
+    List<Notification> sendNotificationToRole(String role, String type, String title, String message, String link, Long resourceId);
+    
+    /**
+     * Send notification to all students in a specific class
+     * 
+     * @param classId The class ID
+     * @param type Type of notification
+     * @param title Notification title
+     * @param message Notification message
+     * @param link Optional link
+     * @param resourceId Optional resource ID
+     * @return List of created notifications
+     */
+    List<Notification> sendNotificationToClass(String classId, String type, String title, String message, String link, Long resourceId);
+    
+    /**
+     * Send notification to all users
+     * 
+     * @param type Type of notification
+     * @param title Notification title
+     * @param message Notification message
+     * @param link Optional link
+     * @param resourceId Optional resource ID
+     * @return List of created notifications
+     */
+    List<Notification> sendNotificationToAll(String type, String title, String message, String link, Long resourceId);
 } 
