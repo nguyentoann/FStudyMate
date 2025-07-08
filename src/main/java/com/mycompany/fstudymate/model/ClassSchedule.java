@@ -42,12 +42,9 @@ public class ClassSchedule {
 
     @Column(name = "building", length = 50)
     private String building;
-
-    @Column(name = "semester", nullable = false, length = 20)
-    private String semester;
-
-    @Column(name = "academic_year", nullable = false, length = 10)
-    private String academicYear;
+    
+    @Column(name = "term_id", nullable = false)
+    private Integer termId;
 
     @Column(name = "is_active")
     private Boolean isActive = true;

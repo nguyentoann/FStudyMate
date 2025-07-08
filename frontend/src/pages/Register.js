@@ -476,17 +476,17 @@ const Register = () => {
               >
                 <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
                 <motion.input
-                  id="department"
-                  name="department"
-                  type="text"
-                  required
-                  className={inputClassName}
-                  placeholder="Department"
-                  value={formData.department}
-                  onChange={handleChange}
+                id="department"
+                name="department"
+                type="text"
+                required
+                className={inputClassName}
+                placeholder="Department"
+                value={formData.department}
+                onChange={handleChange}
                   onPaste={handlePaste}
                   whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-                />
+              />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -495,17 +495,17 @@ const Register = () => {
               >
                 <label htmlFor="specializations" className="block text-sm font-medium text-gray-700 mb-1">Specializations</label>
                 <motion.input
-                  id="specializations"
-                  name="specializations"
-                  type="text"
-                  required
-                  className={inputClassName}
-                  placeholder="Specializations (comma separated)"
-                  value={formData.specializations}
-                  onChange={handleChange}
+                id="specializations"
+                name="specializations"
+                type="text"
+                required
+                className={inputClassName}
+                placeholder="Specializations (comma separated)"
+                value={formData.specializations}
+                onChange={handleChange}
                   onPaste={handlePaste}
                   whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-                />
+              />
               </motion.div>
             </div>
           </>
@@ -564,17 +564,17 @@ const Register = () => {
               >
                 <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
                 <motion.input
-                  id="organization"
-                  name="organization"
-                  type="text"
-                  required
-                  className={inputClassName}
-                  placeholder="Organization"
-                  value={formData.organization}
-                  onChange={handleChange}
+                id="organization"
+                name="organization"
+                type="text"
+                required
+                className={inputClassName}
+                placeholder="Organization"
+                value={formData.organization}
+                onChange={handleChange}
                   onPaste={handlePaste}
                   whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-                />
+              />
               </motion.div>
             </div>
           </>
@@ -706,26 +706,26 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height to accommodate validation message
               >
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
+                Email
+              </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
                   <motion.input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
                     onPaste={handlePaste}
                     className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${(formData.email && !emailValid) || emailTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
-                    placeholder="you@example.com"
-                    required
+                  placeholder="you@example.com"
+                  required
                     whileFocus={{ scale: 1.01 }}
-                  />
+                />
                   {formData.email && (
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       {!emailValid ? (
@@ -746,9 +746,9 @@ const Register = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
-                    </div>
+              </div>
                   )}
-                </div>
+            </div>
                 {formData.email && !emailValid && (
                   <p className="text-sm text-red-600 mt-1">Please enter a valid email address.</p>
                 )}
@@ -764,25 +764,25 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height to accommodate validation message
               >
                 <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
+                Username
+              </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
                   <motion.input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
                     onPaste={handlePaste}
                     className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${usernameTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
-                    required
+                  required
                     whileFocus={{ scale: 1.01 }}
-                  />
+                />
                   {formData.username && formData.username.length >= 3 && (
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       {checkingUsername ? (
@@ -799,7 +799,7 @@ const Register = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
-                    </div>
+              </div>
                   )}
                 </div>
                 {usernameTaken && (
@@ -817,21 +817,21 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height
               >
                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
+                Full Name
+              </label>
                 <motion.input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
+                type="text"
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
                   onPaste={handlePaste}
                   className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
-                  required
+                required
                   whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-                />
+              />
               </motion.div>
-              
+            
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -839,8 +839,8 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height to accommodate validation message
               >
                 <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
+                Phone Number
+              </label>
                 <div className="relative flex">
                   <div className="inline-flex">
                     <button 
@@ -855,14 +855,14 @@ const Register = () => {
                     </button>
                   </div>
                   <motion.input
-                    type="tel"
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
                     onPaste={handlePaste}
                     className={`block w-full rounded-none rounded-r-lg border h-[42px] ${(formData.phoneNumber && !phoneValid) || phoneTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300 px-3`}
-                    required
+                required
                     placeholder="123456789"
                     whileFocus={{ scale: 1.01 }}
                   />
@@ -907,23 +907,23 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height
               >
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
+                Password
+              </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                  </div>
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
                   <motion.input
                     type={showPassword ? "text" : "password"}
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
                     onPaste={handlePaste}
                     className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px]"
-                    required
+                  required
                     whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
                   />
                   <div 
@@ -940,8 +940,8 @@ const Register = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     )}
-                  </div>
-                </div>
+              </div>
+            </div>
               </motion.div>
               
               <motion.div
@@ -951,23 +951,23 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height
               >
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm Password
-                </label>
+                Confirm Password
+              </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                  </div>
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
                   <motion.input
                     type={showConfirmPassword ? "text" : "password"}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
                     onPaste={handlePaste}
                     className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px]"
-                    required
+                  required
                     whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
                   />
                   <div 
@@ -984,7 +984,7 @@ const Register = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     )}
-                  </div>
+              </div>
                 </div>
               </motion.div>
             </div>
@@ -998,22 +998,22 @@ const Register = () => {
                 className="min-h-[85px]" // Add minimum height
               >
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                  Role
-                </label>
+                Role
+              </label>
                 <motion.select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
                   onPaste={handlePaste}
                   className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
-                  required
+                required
                   whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-                >
-                  <option value="student">Student</option>
-                  <option value="lecturer">Lecturer</option>
-                  <option value="guest">Guest</option>
-                  <option value="outsrc_student">Outsource Student</option>
+              >
+                <option value="student">Student</option>
+                <option value="lecturer">Lecturer</option>
+                <option value="guest">Guest</option>
+                <option value="outsrc_student">Outsource Student</option>
                 </motion.select>
               </motion.div>
 
@@ -1097,7 +1097,7 @@ const Register = () => {
               </motion.button>
             </div>
           </motion.form>
-        </div>
+            </div>
       </motion.div>
     </motion.div>
   );

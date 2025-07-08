@@ -7,7 +7,7 @@ import axios from 'axios';
 import { PUBLIC_URL, API_URL } from '../services/config';
 
 const Login = () => {
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('login');
@@ -16,8 +16,14 @@ const Login = () => {
   const [emailExists, setEmailExists] = useState(null); // null = not checked, true = exists, false = doesn't exist
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [usernameValid, setUsernameValid] = useState(null); // null = not checked, true = exists, false = not found
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [login, setLogin] = useState('');
+  const [loginValid, setLoginValid] = useState(null); // null = not checked, true = exists, false = not found
+  const [checkingLogin, setCheckingLogin] = useState(false);
 
-  const { login } = useAuth();
+  const { login: loginFn } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
 
@@ -31,100 +37,99 @@ const Login = () => {
   };
 
   // Check if email exists
-  const checkIdentifierExists = async (value) => {
-    if (!value) return;
-  
-    const isEmail = value.includes('@');
-    const endpoint = isEmail
-      ? `/validation/email?email=${encodeURIComponent(value)}`
-      : `/validation/username?username=${encodeURIComponent(value)}`;
-  
+  const checkEmailExists = async (email) => {
+    if (!email || !emailValid) return;
+    
     setCheckingEmail(true);
     try {
-      const response = await fetch(`${API_URL.replace('/api', '')}${endpoint}`, {
+      // Call the API to check if email exists
+      const response = await fetch(`${API_URL.replace('/api', '')}/validation/email?email=${encodeURIComponent(email)}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }).catch(() =>
-        new Promise((resolve) =>
-          setTimeout(() =>
-            resolve({
-              ok: true,
-              json: () =>
-                Promise.resolve({
-                  exists: value === 'admin@example.com' || value === 'testuser',
-                }),
-            }), 600
-          )
-        )
-      );
-  
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {
+        // Fallback to simulated check if API fails
+        return new Promise(resolve => 
+          setTimeout(() => resolve({ 
+            ok: true,
+            json: () => Promise.resolve({ exists: email === 'admin@example.com' || email === 'test@example.com' })
+          }), 600)
+        );
+      });
+      
       const data = await response.json();
       setEmailExists(data.exists);
     } catch (error) {
-      console.error('Error checking identifier:', error);
-      setEmailExists(value === 'admin@example.com' || value === 'testuser');
+      console.error('Error checking email:', error);
+      // Fallback to simulated check
+      setEmailExists(email === 'admin@example.com' || email === 'test@example.com');
     } finally {
       setCheckingEmail(false);
     }
   };
-  
 
   // Create debounced version of the check function
-  const debouncedCheckEmail = debounce(checkIdentifierExists, 500);
+  const debouncedCheckEmail = debounce(checkEmailExists, 500);
+
+  // Check if username exists
+  const checkUsernameExists = async (username) => {
+    if (!username) {
+      setUsernameValid(null);
+      return;
+    }
+    setCheckingUsername(true);
+    try {
+      const response = await fetch(`${API_URL.replace('/api', '')}/validation/username?username=${encodeURIComponent(username)}`);
+      const data = await response.json();
+      setUsernameValid(data.exists);
+    } catch (error) {
+      setUsernameValid(false);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+  const debouncedCheckUsername = debounce(checkUsernameExists, 500);
+
+  const checkLoginExists = async (value) => {
+    if (!value) {
+      setLoginValid(null);
+      return;
+    }
+    setCheckingLogin(true);
+    try {
+      // Try username
+      const usernameRes = await fetch(`${API_URL.replace('/api', '')}/validation/username?username=${encodeURIComponent(value)}`);
+      const usernameData = await usernameRes.json();
+      // Try email
+      const emailRes = await fetch(`${API_URL.replace('/api', '')}/validation/email?email=${encodeURIComponent(value)}`);
+      const emailData = await emailRes.json();
+      setLoginValid(usernameData.exists || emailData.exists);
+    } catch (error) {
+      setLoginValid(false);
+    } finally {
+      setCheckingLogin(false);
+    }
+  };
+  const debouncedCheckLogin = debounce(checkLoginExists, 500);
 
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'email') {
-      setIdentifier(value);
-    
-      if (value.includes('@')) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const isValidEmail = emailRegex.test(value);
-        setEmailValid(isValidEmail);
-    
-        setEmailExists(null);
-    
-        if (isValidEmail) {
-          debouncedCheckEmail(value);
-        }
-      } else {
-        // It's a username, skip email validation
-        setEmailValid(true);
-        setEmailExists(null);
-      }
-    }
-     else if (name === 'password') {
+    if (name === 'login') {
+      setLogin(value);
+      setLoginValid(null);
+      debouncedCheckLogin(value);
+    } else if (name === 'password') {
       setPassword(value);
     }
   };
 
   // Handle paste events
   const handlePaste = (e) => {
-    const { name } = e.target;
-    // Use setTimeout to get the value after the paste event completes
     setTimeout(() => {
       const value = e.target.value;
-      
-      if (name === 'email') {
-        setIdentifier(value);
-        
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const isValid = emailRegex.test(value);
-        setEmailValid(isValid);
-        
-        // Reset email exists status when pasting
-        setEmailExists(null);
-        
-        // Check if email exists in the system if it's valid
-        if (isValid) {
-          debouncedCheckEmail(value);
-        }
-      } else if (name === 'password') {
-        setPassword(value);
-      }
+      setLogin(value);
+      setLoginValid(null);
+      debouncedCheckLogin(value);
     }, 0);
   };
 
@@ -132,26 +137,16 @@ const Login = () => {
     e.preventDefault();
     setError('');
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isEmail = emailRegex.test(identifier);
-    
-    if (!identifier) {
-      setError('Please enter your email or username');
+    if (!login) {
+      setError('Please enter your username or email');
       return;
     }
     
-    // If it's an email, we check existence
-    if (isEmail) {
-      setEmailValid(true);
-      if (emailExists === false) {
-        setError('This email is not registered');
-        return;
-      }
-    } else {
-      setEmailValid(true); // Treat usernames as valid
+    if (loginValid === false) {
+      setError('This username or email is not registered');
+      return;
     }
     
-    // Password required
     if (!password) {
       setError('Please enter your password');
       return;
@@ -160,7 +155,8 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await login(identifier, password); 
+      // Pass login as both username and email, let backend decide
+      const response = await loginFn(login, password); // loginFn should handle username/email
       // Use navigate to redirect based on role
       if (response.data && response.data.role) {
         navigate('/dashboard');
@@ -213,7 +209,7 @@ const Login = () => {
             duration: 12,
           }}
         />
-      </div>
+            </div>
 
       <div className="z-10 w-full max-w-md">
         <motion.div 
@@ -229,13 +225,13 @@ const Login = () => {
             >
               Login
             </button>
-            <button
+              <button
               className={`w-1/2 py-4 text-center font-medium ${activeTab === 'signup' ? 'bg-blue-600 text-white' : darkMode ? 'text-gray-300' : 'text-gray-700'}`}
               onClick={() => navigate('/register')}
-            >
+              >
               Sign Up
-            </button>
-          </div>
+              </button>
+            </div>
           
           <div className="p-8">
             <motion.h2 
@@ -267,85 +263,80 @@ const Login = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
                 className="min-h-[85px]"
               >
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email or Username
+                <label htmlFor="login" className="block text-sm font-medium text-gray-700 mb-1">
+                  Username or Email
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    {/* User icon SVG */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
                   <motion.input
                     type="text"
-                    id="email"
-                    name="email"
-                    value={identifier}
+                    id="login"
+                    name="login"
+                    value={login}
                     onChange={handleChange}
                     onPaste={handlePaste}
-                    className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${!emailValid || emailExists === false ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
-                    placeholder="you@example.com"
+                    className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${login && loginValid === false ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : loginValid === true ? 'border-green-300 focus:border-green-500 focus:ring-green-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
+                    placeholder="Username or email"
                     required
                     whileFocus={{ scale: 1.01 }}
                   />
-                  {identifier && emailValid && emailExists === true && (
+                  {login && (
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      {!emailValid ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : checkingEmail ? (
+                      {checkingLogin ? (
                         <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                      ) : emailExists === true ? (
+                      ) : loginValid === true ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                      ) : emailExists === false ? (
+                      ) : loginValid === false ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                </svg>
                       ) : null}
-                    </div>
+              </div>
                   )}
-                </div>
-                {identifier && !emailValid && (
-                  <p className="text-sm text-red-600 mt-1">Please enter a valid email address.</p>
-                )}
-                {emailValid && emailExists === false && (
-                  <p className="text-sm text-red-600 mt-1">This email is not registered.</p>
+            </div>
+                {login && loginValid === false && (
+                  <p className="text-sm text-red-600 mt-1">This username or email is not registered.</p>
                 )}
               </motion.div>
               
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.4 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
                 className="min-h-[85px]"
               >
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   Password
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
+                </svg>
+              </div>
                   <motion.input
                     type={showPassword ? "text" : "password"}
-                    id="password"
-                    name="password"
+                id="password"
+                name="password"
                     value={password}
                     onChange={handleChange}
                     onPaste={handlePaste}
                     className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-[42px] transition-all duration-300"
-                    required
+                required
                     whileFocus={{ scale: 1.01 }}
                   />
                   <button 
@@ -364,7 +355,7 @@ const Login = () => {
                       </svg>
                     )}
                   </button>
-                </div>
+            </div>
               </motion.div>
               
               <motion.div 
@@ -373,18 +364,18 @@ const Login = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.4 }}
               >
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                    Remember me
-                  </label>
-                </div>
-                
+                Remember me
+              </label>
+            </div>
+
                 <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
                   Forgot password?
                 </Link>
@@ -408,7 +399,7 @@ const Login = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.4 }}
               >
-                <Link 
+                <Link
                   to="/" 
                   className="text-sm text-blue-600 hover:text-blue-800 flex justify-center items-center"
                 >
@@ -419,7 +410,7 @@ const Login = () => {
                 </Link>
               </motion.div>
             </motion.form>
-          </div>
+            </div>
         </motion.div>
       </div>
     </div>

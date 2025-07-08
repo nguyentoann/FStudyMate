@@ -1,5 +1,6 @@
 package com.mycompany.fstudymate.model;
 
+import com.mycompany.fstudymate.converter.ScheduleTypeConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,7 +35,8 @@ public class PersonalSchedule {
     private LocalDateTime endTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @Convert(converter = ScheduleTypeConverter.class)
+    @Column(name = "type", nullable = false, length = 50)
     private ScheduleType type;
 
     @Column(name = "location", length = 255)
@@ -62,7 +64,17 @@ public class PersonalSchedule {
     private LocalDateTime updatedAt;
 
     public enum ScheduleType {
-        CLASS, EXAM, ASSIGNMENT, MEETING, PERSONAL, OTHER
+        CLASS, EXAM, ASSIGNMENT, MEETING, PERSONAL, OTHER;
+        
+        // Case-insensitive valueOf method
+        public static ScheduleType fromString(String value) {
+            for (ScheduleType type : ScheduleType.values()) {
+                if (type.name().equalsIgnoreCase(value)) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("No enum constant " + ScheduleType.class.getName() + "." + value);
+        }
     }
 
     @PrePersist

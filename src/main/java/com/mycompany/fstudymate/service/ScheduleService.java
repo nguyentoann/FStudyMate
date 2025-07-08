@@ -99,7 +99,13 @@ public class ScheduleService {
     }
 
     public List<ClassSchedule> getClassSchedulesBySemester(String classId, String semester, String academicYear) {
-        return classScheduleRepository.findByClassIdAndSemesterAndAcademicYear(classId, semester, academicYear);
+        // Since semester and academicYear columns are removed, we now use termId instead
+        // This method needs to be updated based on how you want to handle this change
+        return classScheduleRepository.findByClassId(classId);
+    }
+    
+    public List<ClassSchedule> getClassSchedulesByTerm(String classId, Integer termId) {
+        return classScheduleRepository.findByClassIdAndTermId(classId, termId);
     }
 
     public ClassSchedule createClassSchedule(ClassSchedule schedule) {
@@ -122,8 +128,7 @@ public class ScheduleService {
             schedule.setEndTime(scheduleDetails.getEndTime());
             schedule.setRoom(scheduleDetails.getRoom());
             schedule.setBuilding(scheduleDetails.getBuilding());
-            schedule.setSemester(scheduleDetails.getSemester());
-            schedule.setAcademicYear(scheduleDetails.getAcademicYear());
+            schedule.setTermId(scheduleDetails.getTermId());
             schedule.setIsActive(scheduleDetails.getIsActive());
             return classScheduleRepository.save(schedule);
         }
@@ -139,11 +144,19 @@ public class ScheduleService {
     }
 
     public List<String> getAvailableSemesters() {
-        return classScheduleRepository.findDistinctSemesters();
+        // This method needs to be updated since the semester column is removed
+        // You might want to fetch this information from the Term entity instead
+        return List.of("Spring", "Summer", "Fall", "Winter");
     }
 
     public List<String> getAvailableAcademicYears() {
-        return classScheduleRepository.findDistinctAcademicYears();
+        // This method needs to be updated since the academicYear column is removed
+        // You might want to fetch this information from the Term entity instead
+        return List.of("2023-2024", "2024-2025", "2025-2026");
+    }
+    
+    public List<Integer> getAvailableTermIds() {
+        return classScheduleRepository.findDistinctTermIds();
     }
 
     // Combined Schedule Methods

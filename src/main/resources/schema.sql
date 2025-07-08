@@ -1,9 +1,9 @@
-/*!999999\- enable the sandbox mode */
+/*!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.8-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: toandz.ddns.net    Database: fstudymate
 -- ------------------------------------------------------
--- Server version       10.9.3-MariaDB
+-- Server version	10.9.3-MariaDB
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -379,6 +379,7 @@ CREATE TABLE `class_schedules` (
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `term_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_subject_id` (`subject_id`),
   KEY `idx_class_id` (`class_id`),
@@ -430,9 +431,6 @@ CREATE TABLE `classes` (
   `updated_at` datetime(6) NOT NULL,
   `academic_major_id` int(11) DEFAULT NULL,
   `term_id` int(11) DEFAULT NULL,
-  `academic_year` varchar(10) NOT NULL,
-  `department` varchar(100) DEFAULT NULL,
-  `semester` varchar(20) NOT NULL,
   PRIMARY KEY (`class_id`),
   KEY `FKjk3y1x3tcra9gcqaytf6n9mn1` (`academic_major_id`),
   KEY `idx_term_id` (`term_id`),
@@ -491,7 +489,7 @@ CREATE TABLE `events` (
   KEY `idx_start_date` (`start_date`),
   KEY `idx_event_type` (`event_type`),
   CONSTRAINT `fk_events_organizer` FOREIGN KEY (`organizer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -708,7 +706,7 @@ CREATE TABLE `personal_schedules` (
   `description` text DEFAULT NULL,
   `start_time` datetime NOT NULL,
   `end_time` datetime NOT NULL,
-  `type` enum('class','exam','assignment','meeting','personal','other') NOT NULL DEFAULT 'other',
+  `type` varchar(50) NOT NULL,
   `location` varchar(255) DEFAULT NULL,
   `color` varchar(7) DEFAULT '#3B82F6',
   `is_recurring` tinyint(1) DEFAULT 0,
@@ -722,7 +720,7 @@ CREATE TABLE `personal_schedules` (
   KEY `idx_start_time` (`start_time`),
   KEY `idx_type` (`type`),
   CONSTRAINT `fk_personal_schedules_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -742,31 +740,6 @@ CREATE TABLE `role_permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `schedule_reminders`
---
-
-DROP TABLE IF EXISTS `schedule_reminders`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `schedule_reminders` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `schedule_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `reminder_time` datetime NOT NULL,
-  `is_sent` tinyint(1) DEFAULT 0,
-  `sent_at` timestamp NULL DEFAULT NULL,
-  `reminder_type` enum('email','notification','both') NOT NULL DEFAULT 'notification',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_schedule_id` (`schedule_id`),
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_reminder_time` (`reminder_time`),
-  CONSTRAINT `fk_schedule_reminders_schedule` FOREIGN KEY (`schedule_id`) REFERENCES `personal_schedules` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_schedule_reminders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `students`
 --
 
@@ -774,14 +747,13 @@ DROP TABLE IF EXISTS `students`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `students` (
-  `student_id` varchar(20) DEFAULT NULL,
+  `student_id` varchar(20) NOT NULL,
   `user_id` int(11) DEFAULT NULL,
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('Male','Female','Other') DEFAULT NULL,
   `class_id` varchar(20) DEFAULT NULL,
   `major_id` int(11) DEFAULT NULL,
   `term_id` int(11) DEFAULT NULL,
-  `academic_major_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`student_id`),
   UNIQUE KEY `user_id` (`user_id`),
   KEY `idx_students_class_id` (`class_id`),
@@ -843,7 +815,7 @@ CREATE TABLE `user_sessions` (
   KEY `idx_user_session_last_activity` (`last_activity`),
   KEY `idx_user_session_user_id` (`user_id`),
   CONSTRAINT `user_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1641 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1647 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -865,10 +837,12 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `verified` tinyint(1) DEFAULT 0,
+  `class_id` varchar(255) DEFAULT NULL,
+  `password` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=3216 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3219 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -880,4 +854,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-06 20:13:47
+-- Dump completed on 2025-07-08 16:52:59

@@ -33,6 +33,7 @@ const Calendar = () => {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
+      console.log(`Fetching schedules for user ID: ${user.id}`);
       const [personalResponse, classResponse] = await Promise.all([
         fetch(`${API_URL}/schedule/personal/${user.id}`),
         fetch(`${API_URL}/schedule/class/${user.classId || 'default'}`)
@@ -40,12 +41,19 @@ const Calendar = () => {
 
       if (personalResponse.ok) {
         const personalData = await personalResponse.json();
+        console.log(`Received ${personalData.length} personal schedules:`, personalData);
         setPersonalSchedules(personalData);
+      } else {
+        console.error(`Error fetching personal schedules: ${personalResponse.status} ${personalResponse.statusText}`);
+        const errorText = await personalResponse.text();
+        console.error(`Response body: ${errorText}`);
       }
 
       if (classResponse.ok) {
         const classData = await classResponse.json();
         setClassSchedules(classData);
+      } else {
+        console.error(`Error fetching class schedules: ${classResponse.status} ${classResponse.statusText}`);
       }
     } catch (err) {
       setError('Failed to fetch schedules');

@@ -14,10 +14,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/schedule")
 public class ScheduleController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ScheduleController.class);
 
     @Autowired
     private ScheduleService scheduleService;
@@ -29,9 +33,13 @@ public class ScheduleController {
     @GetMapping("/personal/{userId}")
     public ResponseEntity<List<PersonalSchedule>> getUserPersonalSchedules(@PathVariable Integer userId) {
         try {
+            logger.info("Fetching personal schedules for user ID: {}", userId);
             List<PersonalSchedule> schedules = scheduleService.getUserPersonalSchedules(userId);
+            logger.info("Found {} personal schedules for user ID: {}", schedules.size(), userId);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            logger.error("Error fetching personal schedules for user ID: {}", userId, e);
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -45,6 +53,7 @@ public class ScheduleController {
             List<PersonalSchedule> schedules = scheduleService.getUserSchedulesByDateRange(userId, startDate, endDate);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -57,6 +66,7 @@ public class ScheduleController {
             List<PersonalSchedule> schedules = scheduleService.getUserSchedulesByType(userId, type);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -67,6 +77,7 @@ public class ScheduleController {
             PersonalSchedule createdSchedule = scheduleService.createPersonalSchedule(schedule);
             return ResponseEntity.ok(createdSchedule);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -77,6 +88,7 @@ public class ScheduleController {
             Optional<PersonalSchedule> schedule = scheduleService.getPersonalScheduleById(id);
             return schedule.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -92,6 +104,7 @@ public class ScheduleController {
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -105,6 +118,7 @@ public class ScheduleController {
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -115,6 +129,7 @@ public class ScheduleController {
             List<PersonalSchedule> schedules = scheduleService.getUpcomingSchedules(userId, 5);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -126,6 +141,7 @@ public class ScheduleController {
             List<ClassSchedule> schedules = scheduleService.getClassSchedules(classId);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -136,6 +152,7 @@ public class ScheduleController {
             List<ClassSchedule> schedules = scheduleService.getLecturerSchedules(lecturerId);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -146,19 +163,20 @@ public class ScheduleController {
             List<ClassSchedule> schedules = scheduleService.getSubjectSchedules(subjectId);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    @GetMapping("/class/{classId}/semester")
-    public ResponseEntity<List<ClassSchedule>> getClassSchedulesBySemester(
+    @GetMapping("/class/{classId}/term/{termId}")
+    public ResponseEntity<List<ClassSchedule>> getClassSchedulesByTerm(
             @PathVariable String classId,
-            @RequestParam String semester,
-            @RequestParam String academicYear) {
+            @PathVariable Integer termId) {
         try {
-            List<ClassSchedule> schedules = scheduleService.getClassSchedulesBySemester(classId, semester, academicYear);
+            List<ClassSchedule> schedules = scheduleService.getClassSchedulesByTerm(classId, termId);
             return ResponseEntity.ok(schedules);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -169,6 +187,7 @@ public class ScheduleController {
             ClassSchedule createdSchedule = scheduleService.createClassSchedule(schedule);
             return ResponseEntity.ok(createdSchedule);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -179,6 +198,7 @@ public class ScheduleController {
             Optional<ClassSchedule> schedule = scheduleService.getClassScheduleById(id);
             return schedule.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -194,6 +214,7 @@ public class ScheduleController {
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -207,26 +228,18 @@ public class ScheduleController {
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    @GetMapping("/semesters")
-    public ResponseEntity<List<String>> getAvailableSemesters() {
+    @GetMapping("/terms")
+    public ResponseEntity<List<Integer>> getAvailableTermIds() {
         try {
-            List<String> semesters = scheduleService.getAvailableSemesters();
-            return ResponseEntity.ok(semesters);
+            List<Integer> termIds = scheduleService.getAvailableTermIds();
+            return ResponseEntity.ok(termIds);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @GetMapping("/academic-years")
-    public ResponseEntity<List<String>> getAvailableAcademicYears() {
-        try {
-            List<String> academicYears = scheduleService.getAvailableAcademicYears();
-            return ResponseEntity.ok(academicYears);
-        } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -241,6 +254,7 @@ public class ScheduleController {
             Map<String, Object> weeklySchedule = scheduleService.getWeeklySchedule(userId, classId, weekStart);
             return ResponseEntity.ok(weeklySchedule);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -253,6 +267,7 @@ public class ScheduleController {
             Map<String, Object> todaySchedule = scheduleService.getTodaySchedule(userId, classId);
             return ResponseEntity.ok(todaySchedule);
         } catch (Exception e) {
+            e.printStackTrace(); // Add this to log the exception
             return ResponseEntity.internalServerError().build();
         }
     }
