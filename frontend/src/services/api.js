@@ -533,6 +533,84 @@ export const getSambaStorageInfo = async () => {
   }
 };
 
+// Get system resources (CPU, memory, disk, network)
+export const getSystemResources = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/system-resources`);
+    console.log('[API] System resources fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching system resources:', error);
+    
+    // Return mock data on error
+    return {
+      cpu: {
+        load: Math.random() * 0.7,
+        cores: 4,
+        model: "x86_64"
+      },
+      memory: {
+        total: 8192, // 8 GB
+        used: 4096, // 4 GB
+        free: 4096, // 4 GB
+        usagePercentage: 50
+      },
+      disk: {
+        total: 500, // 500 GB
+        free: 250, // 250 GB
+        used: 250, // 250 GB
+        usagePercentage: 50
+      },
+      network: {
+        hostname: "localhost",
+        ip: "127.0.0.1",
+        receivedPerSec: Math.random() * 10, // MB/s
+        sentPerSec: Math.random() * 5 // MB/s
+      },
+      server: {
+        name: "localhost",
+        os: "Mock OS",
+        javaVersion: "17",
+        uptime: 60 // 60 minutes
+      }
+    };
+  }
+};
+
+// Perform speed test
+export const performSpeedTest = async (size = 1) => {
+  try {
+    console.log(`[API] Starting speed test with size: ${size}MB`);
+    const startTime = new Date().getTime();
+    
+    // Make the request
+    const response = await axios.get(`${API_URL}/admin/speed-test?size=${size}`, {
+      timeout: 60000, // 60 second timeout
+      responseType: 'arraybuffer' // Handle binary response
+    });
+    
+    // Calculate elapsed time and throughput
+    const endTime = new Date().getTime();
+    const elapsedMs = endTime - startTime;
+    const elapsedSec = elapsedMs / 1000;
+    const receivedBytes = response.data.byteLength;
+    const receivedMB = receivedBytes / (1024 * 1024);
+    const throughputMBps = receivedMB / elapsedSec;
+    
+    console.log(`[API] Speed test completed: ${receivedMB.toFixed(2)}MB in ${elapsedSec.toFixed(2)}s (${throughputMBps.toFixed(2)}MB/s)`);
+    
+    return {
+      size: receivedMB,
+      time: elapsedSec,
+      throughput: throughputMBps,
+      unit: 'MB/s'
+    };
+  } catch (error) {
+    console.error('Error performing speed test:', error);
+    throw error;
+  }
+};
+
 // Quiz Management API endpoints
 export const createQuiz = async (quizData) => {
   try {

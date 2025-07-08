@@ -3,7 +3,17 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import AdminClassGroupsPanel from '../../components/AdminClassGroupsPanel';
-import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo, getExpiredSessions, getSessionsExpiringSoon, forceLogoutSession } from '../../services/api';
+import { 
+  getUserStatistics, 
+  getActiveUsers, 
+  getLoginHistory, 
+  getSambaStorageInfo, 
+  getExpiredSessions, 
+  getSessionsExpiringSoon, 
+  forceLogoutSession,
+  getSystemResources,
+  performSpeedTest
+} from '../../services/api';
 import { API_URL } from '../../services/config';
 import axios from 'axios';
 
@@ -46,6 +56,12 @@ const AdminDashboard = () => {
   
   // State to track sessions being logged out
   const [loggingOutSessions, setLoggingOutSessions] = useState({});
+  
+  // System resources state
+  const [systemResources, setSystemResources] = useState(null);
+  const [isLoadingResources, setIsLoadingResources] = useState(true);
+  const [speedTestResult, setSpeedTestResult] = useState(null);
+  const [isRunningSpeedTest, setIsRunningSpeedTest] = useState(false);
   
   const [recentUsers, setRecentUsers] = useState([
     { id: 1, name: 'John Smith', email: 'john@example.com', role: 'student', joinedDate: '2025-05-15' },
@@ -147,6 +163,18 @@ const AdminDashboard = () => {
       setError(prev => prev || "Failed to load storage information.");
     } finally {
       setIsLoadingStorage(false);
+    }
+    
+    // Fetch system resources
+    try {
+      setIsLoadingResources(true);
+      const resourcesData = await getSystemResources();
+      setSystemResources(resourcesData);
+    } catch (error) {
+      console.error("Error fetching system resources:", error);
+      setError(prev => prev || "Failed to load system resources.");
+    } finally {
+      setIsLoadingResources(false);
     }
   }, []);
 
@@ -254,6 +282,25 @@ const AdminDashboard = () => {
         ...prev,
         [sessionId]: false
       }));
+    }
+  };
+
+  // Function to run a speed test
+  const handleRunSpeedTest = async (size = 1) => {
+    try {
+      setIsRunningSpeedTest(true);
+      setSpeedTestResult(null);
+      
+      // Run the speed test
+      const result = await performSpeedTest(size);
+      
+      // Update the result
+      setSpeedTestResult(result);
+    } catch (error) {
+      console.error("Error running speed test:", error);
+      setError(prev => prev || "Failed to run speed test.");
+    } finally {
+      setIsRunningSpeedTest(false);
     }
   };
 
@@ -407,6 +454,199 @@ const AdminDashboard = () => {
             <p className="text-gray-500 text-center py-4">
               {isLoadingStorage ? 'Loading storage information...' : 'No storage information available'}
             </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Add this section for system resources
+  const renderSystemResources = () => {
+    return (
+      <div className="bg-white rounded-lg shadow mb-8">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="text-lg font-semibold">System Resources</h2>
+          {isLoadingResources && (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+          )}
+        </div>
+        
+        <div className="p-4">
+          {systemResources ? (
+            <div>
+              {/* Server Information */}
+              <div className="flex items-center mb-6">
+                <div className="flex-shrink-0 bg-blue-100 p-3 rounded-lg mr-4">
+                  <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {systemResources.server?.name || window.location.hostname}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {systemResources.server?.os} • Java {systemResources.server?.javaVersion} • 
+                    Uptime: {systemResources.server?.uptime} minutes
+                  </p>
+                </div>
+              </div>
+              
+              {/* Resource Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* CPU Usage */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">CPU Usage</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {(systemResources.cpu?.load * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className={`h-2.5 rounded-full ${
+                        systemResources.cpu?.load > 0.8 ? 'bg-red-500' : 
+                        systemResources.cpu?.load > 0.6 ? 'bg-yellow-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min((systemResources.cpu?.load || 0) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {systemResources.cpu?.cores} Cores • {systemResources.cpu?.model}
+                  </div>
+                </div>
+                
+                {/* Memory Usage */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Memory Usage</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {systemResources.memory?.usagePercentage.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className={`h-2.5 rounded-full ${
+                        systemResources.memory?.usagePercentage > 80 ? 'bg-red-500' : 
+                        systemResources.memory?.usagePercentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(systemResources.memory?.usagePercentage || 0, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {systemResources.memory?.used} MB used of {systemResources.memory?.total} MB
+                  </div>
+                </div>
+                
+                {/* Disk Usage */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Disk Usage</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {systemResources.disk?.usagePercentage.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className={`h-2.5 rounded-full ${
+                        systemResources.disk?.usagePercentage > 80 ? 'bg-red-500' : 
+                        systemResources.disk?.usagePercentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(systemResources.disk?.usagePercentage || 0, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {systemResources.disk?.used} GB used of {systemResources.disk?.total} GB
+                  </div>
+                </div>
+                
+                {/* Network Usage */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Network</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {systemResources.network?.ip}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-xs text-gray-500">
+                      ↓ {systemResources.network?.receivedPerSec.toFixed(2)} MB/s
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      ↑ {systemResources.network?.sentPerSec.toFixed(2)} MB/s
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Speed Test Section */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-md font-medium text-gray-700">Speed Test</h3>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => handleRunSpeedTest(1)}
+                      disabled={isRunningSpeedTest}
+                      className={`px-3 py-1 text-xs rounded-md ${
+                        isRunningSpeedTest ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                    >
+                      1MB
+                    </button>
+                    <button 
+                      onClick={() => handleRunSpeedTest(5)}
+                      disabled={isRunningSpeedTest}
+                      className={`px-3 py-1 text-xs rounded-md ${
+                        isRunningSpeedTest ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                    >
+                      5MB
+                    </button>
+                    <button 
+                      onClick={() => handleRunSpeedTest(10)}
+                      disabled={isRunningSpeedTest}
+                      className={`px-3 py-1 text-xs rounded-md ${
+                        isRunningSpeedTest ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                    >
+                      10MB
+                    </button>
+                  </div>
+                </div>
+                
+                {isRunningSpeedTest ? (
+                  <div className="flex justify-center items-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    <span className="ml-2 text-gray-600">Running speed test...</span>
+                  </div>
+                ) : speedTestResult ? (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-lg font-semibold text-blue-600">{speedTestResult.size.toFixed(2)} MB</div>
+                        <div className="text-xs text-gray-500">Data Size</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-blue-600">{speedTestResult.time.toFixed(2)}s</div>
+                        <div className="text-xs text-gray-500">Time</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-blue-600">{speedTestResult.throughput.toFixed(2)} MB/s</div>
+                        <div className="text-xs text-gray-500">Throughput</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    Click a button above to run a speed test
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              {isLoadingResources ? 'Loading system resources...' : 'System resources information not available'}
+            </div>
           )}
         </div>
       </div>
@@ -912,6 +1152,9 @@ const AdminDashboard = () => {
         
         {/* Storage Information */}
         {renderStorageSection()}
+        
+        {/* System Resources */}
+        {renderSystemResources()}
         
         {/* Class Groups Panel */}
         <div className="mb-8">
