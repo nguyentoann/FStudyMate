@@ -178,36 +178,33 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  // Initial data load
+  // Fetch data when component mounts
   useEffect(() => {
     fetchDashboardData();
     
-    // Refresh active users and expiring sessions every 30 seconds
-    const refreshInterval = setInterval(async () => {
-      try {
-        setRefreshingData(true);
-        // Refresh active users
-        const activeUsersData = await getActiveUsers();
-        // Enhance active users with profile images
-        const enhancedActiveUsers = await enhanceSessionsWithProfiles(activeUsersData);
-        setActiveUsers(enhancedActiveUsers);
-        
-        // Also refresh sessions expiring soon
-        const expiringSoonData = await getSessionsExpiringSoon(24);
-        const enhancedExpiringSoonData = await enhanceSessionsWithProfiles(expiringSoonData);
-        setSessionsExpiringSoon(enhancedExpiringSoonData);
-        
-        setRefreshingData(false);
-      } catch (error) {
-        console.error("Error refreshing dashboard data:", error);
-        setRefreshingData(false);
-      }
-    }, 30000);
+    // Also fetch system resources
+    fetchSystemResources();
     
-    return () => {
-      clearInterval(refreshInterval);
-    };
+    // Set up polling interval
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 60000); // Refresh every minute
+    
+    return () => clearInterval(interval);
   }, [fetchDashboardData]);
+  
+  // Function to fetch system resources
+  const fetchSystemResources = useCallback(async () => {
+    try {
+      setIsLoadingResources(true);
+      const resources = await getSystemResources();
+      setSystemResources(resources);
+    } catch (error) {
+      console.error("Error fetching system resources:", error);
+    } finally {
+      setIsLoadingResources(false);
+    }
+  }, []);
 
   // Auto-clear success message after 5 seconds
   useEffect(() => {
@@ -269,36 +266,38 @@ const AdminDashboard = () => {
       
       // Update active users as well
       const activeUsersData = await getActiveUsers();
-      const enhancedActiveUsers = await enhanceSessionsWithProfiles(activeUsersData);
-      setActiveUsers(enhancedActiveUsers);
+      const enhancedActiveUsersData = await enhanceSessionsWithProfiles(activeUsersData);
+      setActiveUsers(enhancedActiveUsersData);
       
-      setSuccessMessage('Session force logout successful');
     } catch (error) {
-      console.error("Error forcing logout session:", error);
-      setError(prev => prev || "Failed to force logout session.");
+      console.error("Error forcing logout:", error);
+      alert("Failed to force logout the session. Please try again.");
     } finally {
-      // Clear loading state
+      // Clear loading state for this session
       setLoggingOutSessions(prev => ({
         ...prev,
         [sessionId]: false
       }));
     }
   };
-
-  // Function to run a speed test
-  const handleRunSpeedTest = async (size = 1) => {
+  
+  // Function to handle running a speed test
+  const handleRunSpeedTest = async (size) => {
     try {
       setIsRunningSpeedTest(true);
       setSpeedTestResult(null);
       
-      // Run the speed test
       const result = await performSpeedTest(size);
-      
-      // Update the result
       setSpeedTestResult(result);
     } catch (error) {
       console.error("Error running speed test:", error);
-      setError(prev => prev || "Failed to run speed test.");
+      setSpeedTestResult({
+        size: 0,
+        time: 0,
+        throughput: 0,
+        unit: 'MB/s',
+        error: error.message || 'Unknown error occurred'
+      });
     } finally {
       setIsRunningSpeedTest(false);
     }
@@ -466,9 +465,23 @@ const AdminDashboard = () => {
       <div className="bg-white rounded-lg shadow mb-8">
         <div className="p-4 border-b flex justify-between items-center">
           <h2 className="text-lg font-semibold">System Resources</h2>
-          {isLoadingResources && (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
-          )}
+          <div className="flex items-center">
+            {isLoadingResources && (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500 mr-2"></div>
+            )}
+            <button 
+              onClick={() => {
+                setIsLoadingResources(true);
+                getSystemResources()
+                  .then(data => setSystemResources(data))
+                  .finally(() => setIsLoadingResources(false));
+              }}
+              className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+              disabled={isLoadingResources}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
         
         <div className="p-4">
@@ -487,7 +500,7 @@ const AdminDashboard = () => {
                   </h3>
                   <p className="text-sm text-gray-500">
                     {systemResources.server?.os} • Java {systemResources.server?.javaVersion} • 
-                    Uptime: {systemResources.server?.uptime} minutes
+                    Uptime: {formatUptime(systemResources.server?.uptime)}
                   </p>
                 </div>
               </div>
@@ -534,7 +547,7 @@ const AdminDashboard = () => {
                     ></div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
-                    {systemResources.memory?.used} MB used of {systemResources.memory?.total} MB
+                    {formatMemory(systemResources.memory?.used)} used of {formatMemory(systemResources.memory?.total)}
                   </div>
                 </div>
                 
@@ -556,7 +569,7 @@ const AdminDashboard = () => {
                     ></div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
-                    {systemResources.disk?.used} GB used of {systemResources.disk?.total} GB
+                    {formatDiskSpace(systemResources.disk?.used)} used of {formatDiskSpace(systemResources.disk?.total)}
                   </div>
                 </div>
                 
@@ -635,6 +648,11 @@ const AdminDashboard = () => {
                         <div className="text-xs text-gray-500">Throughput</div>
                       </div>
                     </div>
+                    {speedTestResult.error && (
+                      <div className="mt-2 text-xs text-red-500 text-center">
+                        Error: {speedTestResult.error}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center text-gray-500 py-4">
@@ -651,6 +669,37 @@ const AdminDashboard = () => {
         </div>
       </div>
     );
+  };
+  
+  // Helper function to format memory size
+  const formatMemory = (mb) => {
+    if (mb === undefined) return "0 MB";
+    if (mb < 1024) return `${mb.toFixed(0)} MB`;
+    return `${(mb / 1024).toFixed(1)} GB`;
+  };
+  
+  // Helper function to format disk space
+  const formatDiskSpace = (gb) => {
+    if (gb === undefined) return "0 GB";
+    if (gb < 1) return `${(gb * 1024).toFixed(0)} MB`;
+    return `${gb.toFixed(1)} GB`;
+  };
+  
+  // Helper function to format uptime
+  const formatUptime = (minutes) => {
+    if (!minutes) return "Unknown";
+    
+    if (minutes < 60) return `${minutes} min`;
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (hours < 24) return `${hours}h ${remainingMinutes}m`;
+    
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    
+    return `${days}d ${remainingHours}h`;
   };
 
   return (

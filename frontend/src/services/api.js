@@ -536,7 +536,10 @@ export const getSambaStorageInfo = async () => {
 // Get system resources (CPU, memory, disk, network)
 export const getSystemResources = async () => {
   try {
-    const response = await axios.get(`${API_URL}/admin/system-resources`);
+    console.log('[API] Fetching system resources...');
+    const response = await axios.get(`${API_URL}/admin/system-resources`, {
+      timeout: 10000 // 10 second timeout
+    });
     console.log('[API] System resources fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -586,15 +589,16 @@ export const performSpeedTest = async (size = 1) => {
     // Make the request
     const response = await axios.get(`${API_URL}/admin/speed-test?size=${size}`, {
       timeout: 60000, // 60 second timeout
-      responseType: 'arraybuffer' // Handle binary response
+      responseType: 'json' // Changed from arraybuffer to json
     });
     
     // Calculate elapsed time and throughput
     const endTime = new Date().getTime();
     const elapsedMs = endTime - startTime;
     const elapsedSec = elapsedMs / 1000;
-    const receivedBytes = response.data.byteLength;
-    const receivedMB = receivedBytes / (1024 * 1024);
+    
+    // Get the size from the response or use the requested size
+    const receivedMB = response.data.size || size;
     const throughputMBps = receivedMB / elapsedSec;
     
     console.log(`[API] Speed test completed: ${receivedMB.toFixed(2)}MB in ${elapsedSec.toFixed(2)}s (${throughputMBps.toFixed(2)}MB/s)`);
@@ -607,7 +611,13 @@ export const performSpeedTest = async (size = 1) => {
     };
   } catch (error) {
     console.error('Error performing speed test:', error);
-    throw error;
+    return {
+      size: 0,
+      time: 0,
+      throughput: 0,
+      unit: 'MB/s',
+      error: error.message
+    };
   }
 };
 
