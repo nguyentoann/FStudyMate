@@ -21,11 +21,11 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Intege
     List<UserSession> findBySessionTokenOrderByLastActivityDesc(@Param("token") String token);
     
     // Find active sessions with recent activity
-    @Query("SELECT us FROM UserSession us WHERE us.lastActivity > :cutoffTime")
+    @Query("SELECT us FROM UserSession us WHERE us.lastActivity > :cutoffTime AND us.isExpired = false")
     List<UserSession> findActiveSessions(@Param("cutoffTime") LocalDateTime cutoffTime);
     
     // Count active users
-    @Query("SELECT COUNT(us) FROM UserSession us WHERE us.lastActivity > :cutoffTime")
+    @Query("SELECT COUNT(us) FROM UserSession us WHERE us.lastActivity > :cutoffTime AND us.isExpired = false")
     Long countActiveSessions(@Param("cutoffTime") LocalDateTime cutoffTime);
     
     // Find sessions by user ID
@@ -38,4 +38,16 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Intege
            "GROUP BY DATE(created_at) " +
            "ORDER BY login_date", nativeQuery = true)
     List<Object[]> getLoginCountByDay(@Param("startDate") LocalDateTime startDate);
+    
+    // Find expired sessions, ordered by expiry time (most recent first)
+    @Query("SELECT us FROM UserSession us WHERE us.expiryTime < :currentTime OR us.isExpired = true ORDER BY us.expiryTime DESC")
+    List<UserSession> findExpiredSessions(@Param("currentTime") LocalDateTime currentTime);
+    
+    // Count expired sessions
+    @Query("SELECT COUNT(us) FROM UserSession us WHERE us.expiryTime < :currentTime OR us.isExpired = true")
+    Long countExpiredSessions(@Param("currentTime") LocalDateTime currentTime);
+    
+    // Find sessions that will expire soon
+    @Query("SELECT us FROM UserSession us WHERE us.expiryTime BETWEEN :currentTime AND :futureTime AND us.isExpired = false")
+    List<UserSession> findSessionsExpiringBetween(@Param("currentTime") LocalDateTime currentTime, @Param("futureTime") LocalDateTime futureTime);
 } 

@@ -435,7 +435,8 @@ export const getUserStatistics = async () => {
       totalUsers: 1267,
       activeUsers: 342,
       newUsersToday: 18,
-      averageSessionTime: 24
+      averageSessionTime: 24,
+      expiredSessions: 15
     };
   }
 };
@@ -447,127 +448,44 @@ export const getActiveUsers = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching active users:', error);
-    // Log the specific error for debugging
-    if (error.response) {
-      console.error('Error response:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.error('No response received:', error.request);
-    } else {
-      console.error('Error setting up request:', error.message);
-    }
-    
-    // Fallback to demo data
-    console.warn('Using fallback active users data');
-    const mockActiveUsers = [
-      {
-        id: 1,
-        username: "student1",
-        name: "Nguyen Van A",
-        email: "student1@example.com",
-        activeTime: 45,
-        lastActivity: new Date(Date.now() - 2 * 60000).toISOString(),
-        ipAddress: "192.168.1.45",
-        device: "Chrome 114 / Windows 10",
-        location: "Quiz / Data Structures"
-      },
-      {
-        id: 2,
-        username: "lecturer_trang",
-        name: "Trang Nguyen",
-        email: "trang.nguyen@faculty.edu",
-        activeTime: 124, // minutes
-        lastActivity: new Date(Date.now() - 5 * 60000).toISOString(), // 5 minutes ago
-        ipAddress: "192.168.1.67",
-        device: "Firefox 102 / macOS",
-        location: "Lesson Editor"
-      },
-      {
-        id: 3,
-        username: "student456",
-        name: "Pham Minh Duc",
-        email: "duc.pham@student.edu",
-        activeTime: 18, // minutes
-        lastActivity: new Date().toISOString(), // Just now
-        ipAddress: "192.168.2.112",
-        device: "Safari / iPad OS 15.4",
-        location: "Quiz / Machine Learning"
-      },
-      {
-        id: 4,
-        username: "admin_hoang",
-        name: "Hoang Tran",
-        email: "hoang.admin@example.com",
-        activeTime: 240, // minutes
-        lastActivity: new Date(Date.now() - 1 * 60000).toISOString(), // 1 minute ago
-        ipAddress: "192.168.1.1",
-        device: "Edge 101 / Windows 11",
-        location: "Admin Dashboard"
-      },
-      {
-        id: 5,
-        username: "student789",
-        name: "Le Thi Hoa",
-        email: "hoa.le@student.edu",
-        activeTime: 32, // minutes
-        lastActivity: new Date(Date.now() - 3 * 60000).toISOString(), // 3 minutes ago
-        ipAddress: "192.168.3.87",
-        device: "Chrome 115 / Android 12",
-        location: "Study Material / JavaScript"
-      },
-      {
-        id: 6,
-        username: "student_nam",
-        name: "Nguyen Nam",
-        email: "nam.nguyen@student.edu",
-        activeTime: 15, // minutes
-        lastActivity: new Date(Date.now() - 30000).toISOString(), // 30 seconds ago
-        ipAddress: "192.168.4.210",
-        device: "Chrome 114 / Windows 10",
-        location: "Dashboard"
-      },
-      {
-        id: 7,
-        username: "lecturer_minh",
-        name: "Minh Vo",
-        email: "minh.vo@faculty.edu",
-        activeTime: 87, // minutes
-        lastActivity: new Date(Date.now() - 7 * 60000).toISOString(), // 7 minutes ago
-        ipAddress: "192.168.1.89",
-        device: "Firefox 101 / Ubuntu 22.04",
-        location: "Grading / Advanced Algorithms"
-      }
-    ];
-    
-    return mockActiveUsers;
+    // Return empty array on error
+    return [];
+  }
+};
+
+export const getExpiredSessions = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/expired-sessions`);
+    console.log('[API] Expired sessions fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching expired sessions:', error);
+    // Return empty array on error
+    return [];
+  }
+};
+
+export const getSessionsExpiringSoon = async (hours = 6) => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/expiring-sessions?hours=${hours}`);
+    console.log('[API] Sessions expiring soon fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching sessions expiring soon:', error);
+    // Return empty array on error
+    return [];
   }
 };
 
 export const getLoginHistory = async (days = 7) => {
   try {
-    const response = await axios.get(`${API_URL}/admin/login-history`, {
-      params: { days }
-    });
+    const response = await axios.get(`${API_URL}/admin/login-history?days=${days}`);
     console.log('[API] Login history fetched:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching login history:', error);
-    
-    // Fallback to generated data
-    console.warn('Using generated login history data');
-    const loginData = [];
-    const today = new Date();
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const count = Math.floor(Math.random() * (250 - 80) + 80);
-      loginData.push({
-        date: date.toISOString().split('T')[0],
-        count: count
-      });
-    }
-    
-    return loginData;
+    // Return empty array on error
+    return [];
   }
 };
 

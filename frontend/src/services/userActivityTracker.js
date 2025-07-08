@@ -16,7 +16,7 @@ const session = {
 // Get IP address on initialization
 const fetchIPAddress = async () => {
   try {
-    // In a real app, you would get this from the backend that has access to request headers
+    // External API call - withCredentials should be false
     const response = await axios.get('https://api.ipify.org?format=json');
     session.ipAddress = response.data.ip;
   } catch (error) {

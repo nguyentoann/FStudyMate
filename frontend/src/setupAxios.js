@@ -1,5 +1,6 @@
 // This file patches axios to work with our polyfills
 import axios from 'axios';
+import { API_URL } from './services/config';
 
 // Fix for axios expecting process
 if (typeof process === 'undefined' || !process.version) {
@@ -11,14 +12,21 @@ if (typeof process === 'undefined' || !process.version) {
 }
 
 // Set global defaults for axios
-axios.defaults.withCredentials = true;
+// Don't set withCredentials globally - we'll set it per request
+// axios.defaults.withCredentials = true;
 axios.defaults.headers.common['Accept'] = 'application/json';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
-// Add request interceptor for debugging
+// Add request interceptor for debugging and credentials management
 axios.interceptors.request.use(config => {
   // Log request for debugging
   console.log(`[Axios Request] ${config.method.toUpperCase()} ${config.url}`);
+  
+  // Only set withCredentials=true for our own API
+  if (config.url && config.url.startsWith(API_URL)) {
+    config.withCredentials = true;
+  }
+  
   return config;
 }, error => {
   return Promise.reject(error);

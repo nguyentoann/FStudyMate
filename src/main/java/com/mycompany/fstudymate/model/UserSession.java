@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
+import jakarta.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -39,6 +40,12 @@ public class UserSession {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
+    @Column(name = "expiry_time", nullable = false)
+    private LocalDateTime expiryTime;
+    
+    @Column(name = "is_expired", nullable = false)
+    private Boolean isExpired = false;
+    
     // New fields for activity tracking
     
     @Column(name = "current_page")
@@ -62,6 +69,8 @@ public class UserSession {
                ", sessionToken='" + sessionToken + '\'' +
                ", lastActivity=" + lastActivity +
                ", createdAt=" + createdAt +
+               ", expiryTime=" + expiryTime +
+               ", isExpired=" + isExpired +
                ", currentPage='" + currentPage + '\'' +
                ", pageViews=" + pageViews +
                ", duration=" + duration +
@@ -111,6 +120,22 @@ public class UserSession {
         this.createdAt = createdAt;
     }
     
+    public LocalDateTime getExpiryTime() {
+        return expiryTime;
+    }
+    
+    public void setExpiryTime(LocalDateTime expiryTime) {
+        this.expiryTime = expiryTime;
+    }
+    
+    public Boolean getIsExpired() {
+        return isExpired;
+    }
+    
+    public void setIsExpired(Boolean isExpired) {
+        this.isExpired = isExpired;
+    }
+    
     public String getCurrentPage() {
         return currentPage;
     }
@@ -141,5 +166,10 @@ public class UserSession {
     
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
+    }
+    
+    @Transient
+    public boolean isExpired() {
+        return LocalDateTime.now().isAfter(expiryTime) || isExpired;
     }
 } 

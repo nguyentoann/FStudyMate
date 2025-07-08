@@ -1,5 +1,6 @@
 package com.mycompany.fstudymate.config;
 
+import java.util.Collections;
 import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -62,11 +63,37 @@ public class WebConfig implements WebMvcConfigurer {
         
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
+        
+        // When using setAllowCredentials(true), you cannot use '*' for allowedOrigins
+        // Instead, use specific origins or allowedOriginPatterns
         config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("*"); // Allow all origins
+        // config.addAllowedOrigin("*"); // This is invalid with allowCredentials=true
+        config.setAllowedOriginPatterns(Collections.singletonList("*")); // Use this instead
+        
+        // Allow all headers including custom application headers
         config.addAllowedHeader("*");
+        
+        // Explicitly add common headers
+        config.addAllowedHeader("Authorization");
+        config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Accept");
+        
+        // Add custom application headers
+        config.addAllowedHeader("x-user-role");
+        config.addAllowedHeader("x-user-id");
+        config.addAllowedHeader("x-session-id");
+        config.addAllowedHeader("x-device-info");
+        config.addAllowedHeader("x-auth-token");
+        config.addAllowedHeader("x-api-key");
+        config.addAllowedHeader("x-timezone");
+        config.addAllowedHeader("x-language");
+        config.addAllowedHeader("x-app-version");
+        
+        // Expose headers
         config.addExposedHeader("Authorization");
         config.addExposedHeader("Content-Disposition");
+        
+        // Allow all methods
         config.addAllowedMethod("*");
         config.setMaxAge(3600L);
         

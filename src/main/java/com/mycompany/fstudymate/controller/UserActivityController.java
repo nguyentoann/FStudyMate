@@ -110,15 +110,51 @@ public class UserActivityController {
     }
     
     /**
+     * Get list of expired sessions
+     */
+    @GetMapping("/admin/expired-sessions")
+    public ResponseEntity<List<Map<String, Object>>> getExpiredSessions() {
+        try {
+            logger.info("Fetching expired sessions");
+            List<Map<String, Object>> expiredSessions = userActivityService.getExpiredSessions();
+            logger.info("Found " + expiredSessions.size() + " expired sessions");
+            return ResponseEntity.ok(expiredSessions);
+        } catch (Exception e) {
+            logger.severe("Error fetching expired sessions: " + e.getMessage());
+            // Return empty list on error
+            return ResponseEntity.ok(List.of());
+        }
+    }
+    
+    /**
+     * Get list of sessions expiring soon
+     */
+    @GetMapping("/admin/expiring-sessions")
+    public ResponseEntity<List<Map<String, Object>>> getSessionsExpiringSoon(
+            @RequestParam(value = "hours", defaultValue = "6") int hours) {
+        try {
+            logger.info("Fetching sessions expiring in the next " + hours + " hours");
+            List<Map<String, Object>> expiringSessions = userActivityService.getSessionsExpiringSoon(hours);
+            logger.info("Found " + expiringSessions.size() + " sessions expiring soon");
+            return ResponseEntity.ok(expiringSessions);
+        } catch (Exception e) {
+            logger.severe("Error fetching expiring sessions: " + e.getMessage());
+            // Return empty list on error
+            return ResponseEntity.ok(List.of());
+        }
+    }
+    
+    /**
      * Get login history for specified number of days
      */
     @GetMapping("/admin/login-history")
-    public ResponseEntity<List<LoginHistoryDTO>> getLoginHistory(@RequestParam(defaultValue = "7") int days) {
+    public ResponseEntity<List<LoginHistoryDTO>> getLoginHistory(
+            @RequestParam(value = "days", defaultValue = "7") int days) {
         try {
-            logger.info("Fetching login history for " + days + " days");
-            List<LoginHistoryDTO> loginHistory = userActivityService.getLoginHistory(days);
-            logger.info("Found login history entries: " + loginHistory.size());
-            return ResponseEntity.ok(loginHistory);
+            logger.info("Fetching login history for past " + days + " days");
+            List<LoginHistoryDTO> history = userActivityService.getLoginHistory(days);
+            logger.info("Found login history with " + history.size() + " entries");
+            return ResponseEntity.ok(history);
         } catch (Exception e) {
             logger.severe("Error fetching login history: " + e.getMessage());
             // Return empty list on error

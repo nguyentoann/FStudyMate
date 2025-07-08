@@ -5,6 +5,7 @@ public class UserStatisticsDTO {
     private Integer activeUsers;
     private Integer newUsersToday;
     private Integer averageSessionTime;
+    private Integer expiredSessions;
     
     // Constructors
     public UserStatisticsDTO() {
@@ -15,6 +16,15 @@ public class UserStatisticsDTO {
         this.activeUsers = activeUsers;
         this.newUsersToday = newUsersToday;
         this.averageSessionTime = averageSessionTime;
+        this.expiredSessions = 0;
+    }
+    
+    public UserStatisticsDTO(Integer totalUsers, Integer activeUsers, Integer newUsersToday, Integer averageSessionTime, Integer expiredSessions) {
+        this.totalUsers = totalUsers;
+        this.activeUsers = activeUsers;
+        this.newUsersToday = newUsersToday;
+        this.averageSessionTime = averageSessionTime;
+        this.expiredSessions = expiredSessions;
     }
     
     // Getters and Setters
@@ -48,5 +58,13 @@ public class UserStatisticsDTO {
     
     public void setAverageSessionTime(Integer averageSessionTime) {
         this.averageSessionTime = averageSessionTime;
+    }
+    
+    public Integer getExpiredSessions() {
+        return expiredSessions;
+    }
+    
+    public void setExpiredSessions(Integer expiredSessions) {
+        this.expiredSessions = expiredSessions;
     }
 } 

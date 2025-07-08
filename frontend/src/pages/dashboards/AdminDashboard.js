@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import AdminClassGroupsPanel from '../../components/AdminClassGroupsPanel';
-import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo } from '../../services/api';
+import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo, getExpiredSessions, getSessionsExpiringSoon } from '../../services/api';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -13,18 +13,27 @@ const AdminDashboard = () => {
     totalCourses: 0,
     totalQuizzes: 0,
     newUsersToday: 0,
-    averageSessionTime: 0
+    averageSessionTime: 0,
+    expiredSessions: 0
   });
   
   const [activeUsers, setActiveUsers] = useState([]);
   const [loginHistory, setLoginHistory] = useState([]);
   const [storageInfo, setStorageInfo] = useState(null);
+  const [expiredSessions, setExpiredSessions] = useState([]);
+  const [sessionsExpiringSoon, setSessionsExpiringSoon] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingStorage, setIsLoadingStorage] = useState(true);
+  const [isLoadingExpired, setIsLoadingExpired] = useState(true);
+  const [isLoadingExpiringSoon, setIsLoadingExpiringSoon] = useState(true);
   const [error, setError] = useState(null);
   const [refreshingData, setRefreshingData] = useState(false);
+  
+  // State for showing all sessions
+  const [showAllExpired, setShowAllExpired] = useState(false);
+  const [showAllExpiring, setShowAllExpiring] = useState(false);
   
   const [recentUsers, setRecentUsers] = useState([
     { id: 1, name: 'John Smith', email: 'john@example.com', role: 'student', joinedDate: '2025-05-15' },
@@ -52,7 +61,8 @@ const AdminDashboard = () => {
         totalUsers: userStats.totalUsers,
         activeUsers: userStats.activeUsers,
         newUsersToday: userStats.newUsersToday,
-        averageSessionTime: userStats.averageSessionTime
+        averageSessionTime: userStats.averageSessionTime,
+        expiredSessions: userStats.expiredSessions || 0
       }));
     } catch (error) {
       console.error("Error fetching user statistics:", error);
@@ -71,6 +81,30 @@ const AdminDashboard = () => {
       setError(prev => prev || "Failed to load active users data.");
     } finally {
       setIsLoadingUsers(false);
+    }
+    
+    // Fetch expired sessions
+    try {
+      setIsLoadingExpired(true);
+      const expiredSessionsData = await getExpiredSessions();
+      setExpiredSessions(expiredSessionsData);
+    } catch (error) {
+      console.error("Error fetching expired sessions:", error);
+      setError(prev => prev || "Failed to load expired sessions data.");
+    } finally {
+      setIsLoadingExpired(false);
+    }
+    
+    // Fetch sessions expiring soon
+    try {
+      setIsLoadingExpiringSoon(true);
+      const expiringSoonData = await getSessionsExpiringSoon(24); // Sessions expiring in next 24 hours
+      setSessionsExpiringSoon(expiringSoonData);
+    } catch (error) {
+      console.error("Error fetching sessions expiring soon:", error);
+      setError(prev => prev || "Failed to load sessions expiring soon data.");
+    } finally {
+      setIsLoadingExpiringSoon(false);
     }
     
     // Fetch login history
@@ -102,15 +136,21 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
     
-    // Refresh active users every 30 seconds
+    // Refresh active users and expiring sessions every 30 seconds
     const refreshInterval = setInterval(async () => {
       try {
         setRefreshingData(true);
+        // Refresh active users
         const activeUsersData = await getActiveUsers();
         setActiveUsers(activeUsersData);
+        
+        // Also refresh sessions expiring soon
+        const expiringSoonData = await getSessionsExpiringSoon(24);
+        setSessionsExpiringSoon(expiringSoonData);
+        
         setRefreshingData(false);
       } catch (error) {
-        console.error("Error refreshing active users:", error);
+        console.error("Error refreshing dashboard data:", error);
         setRefreshingData(false);
       }
     }, 30000);
@@ -348,8 +388,11 @@ const AdminDashboard = () => {
               </div>
               
               <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-gray-500 text-sm">Total Quizzes</p>
-                <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
+                <p className="text-gray-500 text-sm">Expired Sessions</p>
+                <p className="text-2xl font-bold">{stats.expiredSessions}</p>
+                <p className="text-amber-600 text-xs mt-2">
+                  Last 24 hours
+                </p>
               </div>
             </>
           )}
@@ -431,6 +474,167 @@ const AdminDashboard = () => {
               No active users at the moment
             </div>
           )}
+        </div>
+        
+        {/* Session Expiration Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Expired Sessions */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Expired Sessions ({expiredSessions.length})</h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              {isLoadingExpired ? (
+                <div className="flex justify-center items-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+                </div>
+              ) : expiredSessions.length > 0 ? (
+                <div className={`overflow-y-auto ${showAllExpired ? 'max-h-96' : ''}`}>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expired</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {expiredSessions.slice(0, showAllExpired ? expiredSessions.length : 5).map((session) => (
+                        <tr key={session.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-8 w-8 bg-red-100 rounded-full flex items-center justify-center text-red-500 font-semibold">
+                                {session.name ? session.name.charAt(0) : 'U'}
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{session.name || 'Unknown'}</div>
+                                <div className="text-xs text-gray-500">{session.username}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-900">
+                              {session.expiredAgo ? `${Math.floor(session.expiredAgo / 60)}h ${session.expiredAgo % 60}m ago` : 'Unknown'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {session.device || 'Unknown'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  No expired sessions found
+                </div>
+              )}
+              
+              {expiredSessions.length > 5 && (
+                <div className="p-4 border-t text-center">
+                  <button 
+                    onClick={() => setShowAllExpired(!showAllExpired)}
+                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  >
+                    {showAllExpired 
+                      ? "Show Less" 
+                      : `Show All ${expiredSessions.length} Expired Sessions`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Sessions Expiring Soon */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Sessions Expiring Soon ({sessionsExpiringSoon.length})</h2>
+              {isLoadingExpiringSoon && (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-500"></div>
+              )}
+            </div>
+            
+            <div className="overflow-x-auto">
+              {isLoadingExpiringSoon ? (
+                <div className="flex justify-center items-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+                </div>
+              ) : sessionsExpiringSoon.length > 0 ? (
+                <div className={`overflow-y-auto ${showAllExpiring ? 'max-h-96' : ''}`}>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires In</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {sessionsExpiringSoon.slice(0, showAllExpiring ? sessionsExpiringSoon.length : 5).map((session) => {
+                        // Calculate if session is expiring very soon (within 1 hour)
+                        const expiresVerySoon = session.expiresIn && session.expiresIn < 60;
+                        
+                        return (
+                          <tr key={session.id} className={expiresVerySoon ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-white font-semibold ${expiresVerySoon ? "bg-red-500" : "bg-amber-500"}`}>
+                                  {session.name ? session.name.charAt(0) : 'U'}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{session.name || 'Unknown'}</div>
+                                  <div className="text-xs text-gray-500">{session.username}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`text-sm font-medium ${expiresVerySoon ? "text-red-600" : "text-amber-600"}`}>
+                                {session.expiresIn ? `${Math.floor(session.expiresIn / 60)}h ${session.expiresIn % 60}m` : 'Unknown'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatLastActivity(session.lastActivity)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {expiresVerySoon ? (
+                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                  Expiring Soon
+                                </span>
+                              ) : (
+                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                                  Active
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  No sessions expiring soon
+                </div>
+              )}
+              
+              {sessionsExpiringSoon.length > 5 && (
+                <div className="p-4 border-t text-center">
+                  <button 
+                    onClick={() => setShowAllExpiring(!showAllExpiring)}
+                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  >
+                    {showAllExpiring 
+                      ? "Show Less" 
+                      : `Show All ${sessionsExpiringSoon.length} Sessions Expiring Soon`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         
         {/* System Alerts */}
@@ -564,9 +768,14 @@ const AdminDashboard = () => {
               <p className="text-sm text-purple-600 mb-4">
                 Monitor and manage active user sessions
               </p>
-              <button className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700">
-                View Sessions
-              </button>
+              <div className="flex flex-col">
+                <div className="text-sm mb-2">
+                  <span className="font-medium">{stats.expiredSessions}</span> expired sessions
+                </div>
+                <Link to="/admin/sessions" className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 text-center">
+                  View Sessions
+                </Link>
+              </div>
             </div>
           </div>
         </div>

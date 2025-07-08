@@ -33,7 +33,7 @@ public class GlobalCorsConfig {
         // Critical for cookies/auth to work
         config.setAllowCredentials(true);
         
-        // Allow all common headers
+        // Allow all common headers and custom application headers
         config.setAllowedHeaders(Arrays.asList(
             "Authorization", 
             "Content-Type", 
@@ -41,7 +41,18 @@ public class GlobalCorsConfig {
             "Accept",
             "Origin",
             "Access-Control-Request-Method",
-            "Access-Control-Request-Headers"
+            "Access-Control-Request-Headers",
+            "x-user-role",
+            "x-user-id",
+            "x-session-id",
+            "x-device-info",
+            "x-auth-token",
+            "x-api-key",
+            "x-timezone",
+            "x-language",
+            "x-app-version",
+            "cache-control",
+            "pragma"
         ));
         
         // Allow all common methods
