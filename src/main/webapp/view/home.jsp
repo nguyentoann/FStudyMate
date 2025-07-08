@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Hệ Thống Kiểm Tra</title>
+        <title>FStudymate</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <script>
@@ -30,7 +30,7 @@
             <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
                 <div class="flex items-center">
                     <i class="fas fa-book-open text-2xl mr-3"></i>
-                    <h1 class="text-2xl font-bold">Hệ Thống Kiểm Tra Trực Tuyến</h1>
+                    <h1 class="text-2xl font-bold"FStudymate</h1>
                 </div>
                 <nav>
                     <ul class="flex space-x-6">
@@ -146,7 +146,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <div class="text-center md:text-left mb-4 md:mb-0">
-                        <p>&copy; 2025 Hệ Thống Kiểm Tra</p>
+                        <p>&copy; 2025 FStudymate</p>
                     </div>
                     <div class="flex space-x-4">
                         <a href="#" class="hover:text-blue-300 transition-colors"><i class="fas fa-envelope"></i></a>

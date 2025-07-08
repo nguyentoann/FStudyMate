@@ -476,6 +476,77 @@ public class UserActivityService {
     }
     
     /**
+     * Force logout a user session by ID
+     * This will mark the session as expired and update the expiry time to now
+     * 
+     * @param sessionId The ID of the session to force logout
+     * @return true if the session was found and logged out, false otherwise
+     */
+    @Transactional
+    public boolean forceLogoutSession(Integer sessionId) {
+        if (sessionId == null) {
+            logger.warning("Cannot force logout null session ID");
+            return false;
+        }
+        
+        logger.info("Attempting to force logout session: " + sessionId);
+        
+        // Find the session by ID
+        Optional<UserSession> sessionOpt = userSessionRepository.findById(sessionId);
+        if (sessionOpt.isEmpty()) {
+            logger.warning("Session not found for force logout: " + sessionId);
+            return false;
+        }
+        
+        UserSession session = sessionOpt.get();
+        
+        // Mark session as expired and set expiry time to now
+        session.setIsExpired(true);
+        session.setExpiryTime(LocalDateTime.now());
+        
+        // Save the updated session
+        userSessionRepository.save(session);
+        
+        logger.info("Successfully forced logout session: " + sessionId);
+        return true;
+    }
+    
+    /**
+     * Check if a session is valid (exists and not expired)
+     * 
+     * @param sessionToken The session token to validate
+     * @return true if the session is valid, false otherwise
+     */
+    public boolean isSessionValid(String sessionToken) {
+        if (sessionToken == null || sessionToken.trim().isEmpty()) {
+            logger.warning("Cannot validate null or empty session token");
+            return false;
+        }
+        
+        logger.info("Checking if session is valid: " + sessionToken);
+        
+        // Find sessions by token
+        List<UserSession> sessions = userSessionRepository.findBySessionToken(sessionToken);
+        
+        if (sessions.isEmpty()) {
+            logger.warning("No session found with token: " + sessionToken);
+            return false;
+        }
+        
+        // Check if any of the sessions is valid (not expired)
+        LocalDateTime now = LocalDateTime.now();
+        for (UserSession session : sessions) {
+            if (!session.getIsExpired() && session.getExpiryTime().isAfter(now)) {
+                logger.info("Valid session found: " + session.getId());
+                return true;
+            }
+        }
+        
+        logger.warning("All sessions with token are expired: " + sessionToken);
+        return false;
+    }
+    
+    /**
      * Convert UserSession to a Map with selected fields, fetching related device details
      */
     private Map<String, Object> convertToUserMap(UserSession session) {

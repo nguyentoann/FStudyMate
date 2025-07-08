@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mycompany.fstudymate.dto.LoginHistoryDTO;
@@ -145,20 +146,125 @@ public class UserActivityController {
     }
     
     /**
-     * Get login history for specified number of days
+     * Get login history for the past X days
      */
     @GetMapping("/admin/login-history")
-    public ResponseEntity<List<LoginHistoryDTO>> getLoginHistory(
-            @RequestParam(value = "days", defaultValue = "7") int days) {
+    public ResponseEntity<List<LoginHistoryDTO>> getLoginHistory(@RequestParam(defaultValue = "7") int days) {
         try {
-            logger.info("Fetching login history for past " + days + " days");
+            logger.info("Fetching login history for the past " + days + " days");
             List<LoginHistoryDTO> history = userActivityService.getLoginHistory(days);
-            logger.info("Found login history with " + history.size() + " entries");
+            logger.info("Login history fetched: " + history.size() + " days of data");
             return ResponseEntity.ok(history);
         } catch (Exception e) {
             logger.severe("Error fetching login history: " + e.getMessage());
             // Return empty list on error
             return ResponseEntity.ok(List.of());
+        }
+    }
+    
+    /**
+     * Force logout a user session
+     */
+    @PostMapping("/admin/force-logout")
+    public ResponseEntity<Map<String, Object>> forceLogout(@RequestBody Map<String, Object> requestBody) {
+        try {
+            Object sessionIdObj = requestBody.get("sessionId");
+            if (sessionIdObj == null) {
+                logger.warning("No sessionId provided for force logout");
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Session ID is required"
+                ));
+            }
+            
+            Integer sessionId;
+            try {
+                if (sessionIdObj instanceof Integer) {
+                    sessionId = (Integer) sessionIdObj;
+                } else if (sessionIdObj instanceof String) {
+                    sessionId = Integer.parseInt((String) sessionIdObj);
+                } else {
+                    sessionId = Integer.valueOf(sessionIdObj.toString());
+                }
+            } catch (NumberFormatException e) {
+                logger.warning("Invalid sessionId format: " + sessionIdObj);
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Invalid session ID format"
+                ));
+            }
+            
+            logger.info("Force logout requested for session: " + sessionId);
+            boolean success = userActivityService.forceLogoutSession(sessionId);
+            
+            if (success) {
+                logger.info("Successfully forced logout for session: " + sessionId);
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Session has been terminated"
+                ));
+            } else {
+                logger.warning("Failed to force logout session: " + sessionId);
+                return ResponseEntity.ok(Map.of(
+                    "status", "error",
+                    "message", "Failed to terminate session or session not found"
+                ));
+            }
+        } catch (Exception e) {
+            logger.severe("Error forcing logout: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Failed to force logout: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
+     * Validate if a session is still active and not expired
+     */
+    @GetMapping("/validate-session")
+    public ResponseEntity<Map<String, Object>> validateSession(@RequestHeader("Authorization") String authHeader) {
+        try {
+            logger.info("Validating session with auth header: " + authHeader);
+            
+            // Extract session token from Authorization header
+            String sessionToken = null;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                sessionToken = authHeader.substring(7);
+            }
+            
+            if (sessionToken == null || sessionToken.trim().isEmpty()) {
+                logger.warning("No session token provided for validation");
+                return ResponseEntity.status(401).body(Map.of(
+                    "status", "error",
+                    "message", "No session token provided"
+                ));
+            }
+            
+            // Check if the session exists and is not expired
+            boolean isValid = userActivityService.isSessionValid(sessionToken);
+            
+            if (isValid) {
+                logger.info("Session validated successfully: " + sessionToken);
+                return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Session is valid"
+                ));
+            } else {
+                logger.warning("Invalid or expired session: " + sessionToken);
+                return ResponseEntity.status(401).body(Map.of(
+                    "status", "error",
+                    "message", "Session is invalid or expired"
+                ));
+            }
+        } catch (Exception e) {
+            logger.severe("Error validating session: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Failed to validate session: " + e.getMessage()
+            ));
         }
     }
 } 

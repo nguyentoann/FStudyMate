@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { API_URL, OPEN_URL, EMERGENCY_URL } from '../services/config';
 import { initActivityTracking, trackEvent } from '../services/userActivityTracker';
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 
 // Add API emergency URL
 const API_EMERGENCY_URL = `${API_URL}/emergency`;
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [sessionId, setSessionId] = useState(null);
 
+  // Add session validation on component mount and periodically
   useEffect(() => {
     // Check for stored user data on mount
     const storedUser = localStorage.getItem('user');
@@ -36,10 +38,57 @@ export const AuthProvider = ({ children }) => {
       setTimeout(() => {
         initActivityTracking(userData);
       }, 1000);
+      
+      // Validate session immediately
+      validateSession();
     }
     
     setLoading(false);
+    
+    // Set up periodic session validation (every 60 seconds)
+    const sessionCheckInterval = setInterval(() => {
+      if (localStorage.getItem('user')) {
+        validateSession();
+      }
+    }, 60000);
+    
+    return () => clearInterval(sessionCheckInterval);
   }, []);
+
+  // Function to validate if the current session is still active
+  const validateSession = async () => {
+    try {
+      // Get current session ID
+      const currentSessionId = localStorage.getItem('sessionId');
+      if (!currentSessionId) {
+        return; // No session to validate
+      }
+      
+      // Call the API to check if the session is valid
+      const response = await axios.get(`${API_URL}/validate-session`, {
+        headers: {
+          'Authorization': `Bearer ${currentSessionId}`
+        }
+      }).catch(error => {
+        // If the session is invalid, force logout
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          console.log('Session invalidated by server, logging out');
+          logout();
+          // Optionally show a notification to the user
+          if (window.showSessionExpiredNotification) {
+            window.showSessionExpiredNotification();
+          }
+        }
+        throw error;
+      });
+      
+      // If we get here, the session is valid
+      return true;
+    } catch (error) {
+      console.error('Error validating session:', error);
+      return false;
+    }
+  };
 
   const login = async (loginIdentifier, password) => {
     try {

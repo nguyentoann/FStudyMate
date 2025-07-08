@@ -24,6 +24,66 @@ root.render(
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
 
+// Add function to show session expired notification
+window.showSessionExpiredNotification = () => {
+  // Create notification container if it doesn't exist
+  let notificationContainer = document.getElementById('session-notification-container');
+  if (!notificationContainer) {
+    notificationContainer = document.createElement('div');
+    notificationContainer.id = 'session-notification-container';
+    notificationContainer.style.position = 'fixed';
+    notificationContainer.style.top = '20px';
+    notificationContainer.style.right = '20px';
+    notificationContainer.style.zIndex = '9999';
+    document.body.appendChild(notificationContainer);
+  }
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.style.backgroundColor = '#f8d7da';
+  notification.style.color = '#721c24';
+  notification.style.padding = '15px 20px';
+  notification.style.marginBottom = '10px';
+  notification.style.borderRadius = '4px';
+  notification.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+  notification.style.display = 'flex';
+  notification.style.alignItems = 'center';
+  notification.style.justifyContent = 'space-between';
+  notification.style.minWidth = '300px';
+  notification.style.animation = 'fadeIn 0.3s ease-out forwards';
+  
+  // Add notification content
+  notification.innerHTML = `
+    <div>
+      <strong>Session Expired</strong>
+      <p style="margin: 5px 0 0 0;">Your session has been terminated by an administrator.</p>
+    </div>
+    <button style="background: none; border: none; cursor: pointer; font-size: 16px; color: #721c24;">×</button>
+  `;
+  
+  // Add to container
+  notificationContainer.appendChild(notification);
+  
+  // Add close button functionality
+  const closeButton = notification.querySelector('button');
+  closeButton.addEventListener('click', () => {
+    notification.style.animation = 'fadeOut 0.3s ease-out forwards';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  });
+  
+  // Auto-remove after 10 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'fadeOut 0.3s ease-out forwards';
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
+    }
+  }, 10000);
+};
+
 // Expose debugging utilities to window for console access in development
 if (process.env.NODE_ENV === 'development') {
   window.AuthUtils = AuthUtils;

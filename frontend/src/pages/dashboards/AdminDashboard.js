@@ -3,7 +3,12 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import AdminClassGroupsPanel from '../../components/AdminClassGroupsPanel';
-import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo, getExpiredSessions, getSessionsExpiringSoon } from '../../services/api';
+import { getUserStatistics, getActiveUsers, getLoginHistory, getSambaStorageInfo, getExpiredSessions, getSessionsExpiringSoon, forceLogoutSession } from '../../services/api';
+import { API_URL } from '../../services/config';
+import axios from 'axios';
+
+// Default avatar path using the public folder (avoids CORS issues)
+const DEFAULT_AVATAR = "/images/default-avatar.svg";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -29,11 +34,18 @@ const AdminDashboard = () => {
   const [isLoadingExpired, setIsLoadingExpired] = useState(true);
   const [isLoadingExpiringSoon, setIsLoadingExpiringSoon] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [refreshingData, setRefreshingData] = useState(false);
   
   // State for showing all sessions
   const [showAllExpired, setShowAllExpired] = useState(false);
   const [showAllExpiring, setShowAllExpiring] = useState(false);
+  
+  // Cache for user profile images
+  const [userProfileCache, setUserProfileCache] = useState({});
+  
+  // State to track sessions being logged out
+  const [loggingOutSessions, setLoggingOutSessions] = useState({});
   
   const [recentUsers, setRecentUsers] = useState([
     { id: 1, name: 'John Smith', email: 'john@example.com', role: 'student', joinedDate: '2025-05-15' },
@@ -75,7 +87,9 @@ const AdminDashboard = () => {
     try {
       setIsLoadingUsers(true);
       const activeUsersData = await getActiveUsers();
-      setActiveUsers(activeUsersData);
+      // Enhance active users with profile images
+      const enhancedActiveUsers = await enhanceSessionsWithProfiles(activeUsersData);
+      setActiveUsers(enhancedActiveUsers);
     } catch (error) {
       console.error("Error fetching active users:", error);
       setError(prev => prev || "Failed to load active users data.");
@@ -87,7 +101,9 @@ const AdminDashboard = () => {
     try {
       setIsLoadingExpired(true);
       const expiredSessionsData = await getExpiredSessions();
-      setExpiredSessions(expiredSessionsData);
+      // Enhance expired sessions with profile images
+      const enhancedExpiredSessions = await enhanceSessionsWithProfiles(expiredSessionsData);
+      setExpiredSessions(enhancedExpiredSessions);
     } catch (error) {
       console.error("Error fetching expired sessions:", error);
       setError(prev => prev || "Failed to load expired sessions data.");
@@ -99,7 +115,9 @@ const AdminDashboard = () => {
     try {
       setIsLoadingExpiringSoon(true);
       const expiringSoonData = await getSessionsExpiringSoon(24); // Sessions expiring in next 24 hours
-      setSessionsExpiringSoon(expiringSoonData);
+      // Enhance sessions expiring soon with profile images
+      const enhancedExpiringSoonData = await enhanceSessionsWithProfiles(expiringSoonData);
+      setSessionsExpiringSoon(enhancedExpiringSoonData);
     } catch (error) {
       console.error("Error fetching sessions expiring soon:", error);
       setError(prev => prev || "Failed to load sessions expiring soon data.");
@@ -142,11 +160,14 @@ const AdminDashboard = () => {
         setRefreshingData(true);
         // Refresh active users
         const activeUsersData = await getActiveUsers();
-        setActiveUsers(activeUsersData);
+        // Enhance active users with profile images
+        const enhancedActiveUsers = await enhanceSessionsWithProfiles(activeUsersData);
+        setActiveUsers(enhancedActiveUsers);
         
         // Also refresh sessions expiring soon
         const expiringSoonData = await getSessionsExpiringSoon(24);
-        setSessionsExpiringSoon(expiringSoonData);
+        const enhancedExpiringSoonData = await enhanceSessionsWithProfiles(expiringSoonData);
+        setSessionsExpiringSoon(enhancedExpiringSoonData);
         
         setRefreshingData(false);
       } catch (error) {
@@ -159,6 +180,17 @@ const AdminDashboard = () => {
       clearInterval(refreshInterval);
     };
   }, [fetchDashboardData]);
+
+  // Auto-clear success message after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   // Function to format last activity time
   const formatLastActivity = (lastActivityTime) => {
@@ -184,6 +216,96 @@ const AdminDashboard = () => {
   const handleRefresh = () => {
     fetchDashboardData();
   };
+
+  // Function to handle force logout of a session
+  const handleForceLogout = async (sessionId) => {
+    try {
+      // Show confirmation dialog
+      if (!window.confirm('Are you sure you want to force logout this session?')) {
+        return;
+      }
+      
+      // Set loading state for this session
+      setLoggingOutSessions(prev => ({
+        ...prev,
+        [sessionId]: true
+      }));
+      
+      // Call the API to force logout the session
+      await forceLogoutSession(sessionId);
+      
+      // Refresh the sessions data
+      const expiringSoonData = await getSessionsExpiringSoon(24);
+      const enhancedExpiringSoonData = await enhanceSessionsWithProfiles(expiringSoonData);
+      setSessionsExpiringSoon(enhancedExpiringSoonData);
+      
+      // Update active users as well
+      const activeUsersData = await getActiveUsers();
+      const enhancedActiveUsers = await enhanceSessionsWithProfiles(activeUsersData);
+      setActiveUsers(enhancedActiveUsers);
+      
+      setSuccessMessage('Session force logout successful');
+    } catch (error) {
+      console.error("Error forcing logout session:", error);
+      setError(prev => prev || "Failed to force logout session.");
+    } finally {
+      // Clear loading state
+      setLoggingOutSessions(prev => ({
+        ...prev,
+        [sessionId]: false
+      }));
+    }
+  };
+
+  // Function to fetch user profile images
+  const fetchUserProfileImage = useCallback(async (userId) => {
+    // Check if we already have this user's profile in cache
+    if (userProfileCache[userId]) {
+      return userProfileCache[userId];
+    }
+    
+    try {
+      const response = await axios.get(`${API_URL}/admin/users/${userId}`);
+      if (response.data && response.data.profileImageUrl) {
+        // Update cache with the new profile image URL
+        setUserProfileCache(prevCache => ({
+          ...prevCache,
+          [userId]: response.data.profileImageUrl
+        }));
+        return response.data.profileImageUrl;
+      }
+    } catch (error) {
+      console.error(`Error fetching profile for user ${userId}:`, error);
+      // Store null in cache to avoid repeated failed requests
+      setUserProfileCache(prevCache => ({
+        ...prevCache,
+        [userId]: null
+      }));
+    }
+    
+    return null;
+  }, [userProfileCache]);
+
+  // Function to enhance sessions with profile images
+  const enhanceSessionsWithProfiles = useCallback(async (sessions) => {
+    if (!sessions || sessions.length === 0) return [];
+    
+    const enhancedSessions = [...sessions];
+    const uniqueUserIds = [...new Set(sessions.map(session => session.userId).filter(id => id))];
+    
+    // Fetch profiles for all unique users
+    for (const userId of uniqueUserIds) {
+      const profileImageUrl = await fetchUserProfileImage(userId);
+      // Update all sessions for this user with the profile image URL
+      enhancedSessions.forEach(session => {
+        if (session.userId === userId) {
+          session.profileImageUrl = profileImageUrl;
+        }
+      });
+    }
+    
+    return enhancedSessions;
+  }, [fetchUserProfileImage]);
 
   // Add this section before the "Quick Actions" section
   const renderStorageSection = () => {
@@ -347,6 +469,36 @@ const AdminDashboard = () => {
           </div>
         )}
         
+        {successMessage && (
+          <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-700">
+                  {successMessage}
+                </p>
+              </div>
+              <div className="ml-auto pl-3">
+                <div className="-mx-1.5 -my-1.5">
+                  <button 
+                    onClick={() => setSuccessMessage(null)}
+                    className="inline-flex rounded-md p-1.5 text-green-500 hover:bg-green-100"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Welcome back, {user?.fullName}!</h2>
           <p className="text-gray-600">
@@ -427,12 +579,17 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {activeUsers.map((activeUser) => (
-                    <tr key={activeUser.id} className="hover:bg-gray-50">
+                  {activeUsers.map((activeUser, index) => (
+                    <tr key={`active-${activeUser.id}-${index}`} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 font-semibold">
-                            {activeUser.name.charAt(0)}
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <img 
+                              className="h-8 w-8 rounded-full object-cover border-2 border-indigo-300"
+                              src={activeUser.profileImageUrl || DEFAULT_AVATAR} 
+                              alt={activeUser.name.charAt(0)} 
+                              onError={(e) => {e.target.src = DEFAULT_AVATAR}}
+                            />
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{activeUser.name}</div>
@@ -500,12 +657,17 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {expiredSessions.slice(0, showAllExpired ? expiredSessions.length : 5).map((session) => (
-                        <tr key={session.id} className="hover:bg-gray-50">
+                      {expiredSessions.slice(0, showAllExpired ? expiredSessions.length : 5).map((session, index) => (
+                        <tr key={`expired-${session.id}-${index}`} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="flex-shrink-0 h-8 w-8 bg-red-100 rounded-full flex items-center justify-center text-red-500 font-semibold">
-                                {session.name ? session.name.charAt(0) : 'U'}
+                              <div className="flex-shrink-0 h-8 w-8">
+                                <img 
+                                  className="h-8 w-8 rounded-full object-cover" 
+                                  src={session.profileImageUrl || DEFAULT_AVATAR} 
+                                  alt={session.name ? session.name.charAt(0) : 'U'} 
+                                  onError={(e) => {e.target.src = DEFAULT_AVATAR}}
+                                />
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium text-gray-900">{session.name || 'Unknown'}</div>
@@ -570,19 +732,25 @@ const AdminDashboard = () => {
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires In</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {sessionsExpiringSoon.slice(0, showAllExpiring ? sessionsExpiringSoon.length : 5).map((session) => {
+                      {sessionsExpiringSoon.slice(0, showAllExpiring ? sessionsExpiringSoon.length : 5).map((session, index) => {
                         // Calculate if session is expiring very soon (within 1 hour)
                         const expiresVerySoon = session.expiresIn && session.expiresIn < 60;
                         
                         return (
-                          <tr key={session.id} className={expiresVerySoon ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}>
+                          <tr key={`expiring-${session.id}-${index}`} className={expiresVerySoon ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-white font-semibold ${expiresVerySoon ? "bg-red-500" : "bg-amber-500"}`}>
-                                  {session.name ? session.name.charAt(0) : 'U'}
+                                <div className="flex-shrink-0 h-8 w-8">
+                                  <img 
+                                    className={`h-8 w-8 rounded-full object-cover ${expiresVerySoon ? "border-2 border-red-500" : "border-2 border-amber-500"}`}
+                                    src={session.profileImageUrl || DEFAULT_AVATAR} 
+                                    alt={session.name ? session.name.charAt(0) : 'U'} 
+                                    onError={(e) => {e.target.src = DEFAULT_AVATAR}}
+                                  />
                                 </div>
                                 <div className="ml-4">
                                   <div className="text-sm font-medium text-gray-900">{session.name || 'Unknown'}</div>
@@ -608,6 +776,29 @@ const AdminDashboard = () => {
                                   Active
                                 </span>
                               )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <button 
+                                onClick={() => handleForceLogout(session.id)}
+                                disabled={loggingOutSessions[session.id]}
+                                className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                  loggingOutSessions[session.id]
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                }`}
+                              >
+                                {loggingOutSessions[session.id] ? (
+                                  <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Processing...
+                                  </span>
+                                ) : (
+                                  'Force Logout'
+                                )}
+                              </button>
                             </td>
                           </tr>
                         );

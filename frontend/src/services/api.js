@@ -441,6 +441,17 @@ export const getUserStatistics = async () => {
   }
 };
 
+export const forceLogoutSession = async (sessionId) => {
+  try {
+    const response = await axios.post(`${API_URL}/admin/force-logout`, { sessionId });
+    console.log('[API] Force logout session response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error forcing logout session:', error);
+    throw error;
+  }
+};
+
 export const getActiveUsers = async () => {
   try {
     const response = await axios.get(`${API_URL}/admin/active-users`);

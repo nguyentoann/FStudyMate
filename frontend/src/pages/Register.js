@@ -362,42 +362,16 @@ const Register = () => {
           setDebug(prev => prev + '\nAPI OTP generation successful: ' + JSON.stringify(otpData));
           otpGenerationSuccessful = true;
         } else {
-          setDebug(prev => prev + '\nAPI OTP generation failed, trying API emergency endpoint...');
+          setDebug(prev => prev + '\nAPI OTP generation failed, trying emergency endpoint...');
         }
       } catch (apiError) {
         setDebug(prev => prev + '\nError with API OTP generation: ' + apiError.message);
       }
 
-      // 2. Try API emergency endpoint if needed
+      // 2. Try direct emergency endpoint if needed
       if (!otpGenerationSuccessful) {
         try {
-          setDebug(prev => prev + '\nTrying API emergency endpoint for OTP generation...');
-          const apiEmergencyResponse = await fetch(`${API_EMERGENCY_URL}/otp/generate`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email: userData.email }),
-            credentials: 'omit'
-          });
-          
-          const apiEmergencyData = await apiEmergencyResponse.json().catch(() => ({}));
-          
-          if (apiEmergencyResponse.ok) {
-            setDebug(prev => prev + '\nAPI emergency OTP generation successful: ' + JSON.stringify(apiEmergencyData));
-            otpGenerationSuccessful = true;
-          } else {
-            setDebug(prev => prev + '\nAPI emergency OTP generation failed, trying direct emergency endpoint...');
-          }
-        } catch (apiEmergencyError) {
-          setDebug(prev => prev + '\nError with API emergency OTP generation: ' + apiEmergencyError.message);
-        }
-      }
-
-      // 3. Try direct emergency endpoint as final fallback
-      if (!otpGenerationSuccessful) {
-        try {
-          setDebug(prev => prev + '\nTrying direct emergency endpoint for OTP generation...');
+          setDebug(prev => prev + '\nTrying emergency endpoint for OTP generation...');
           const emergencyResponse = await fetch(`${EMERGENCY_URL}/generate-otp`, {
             method: 'POST',
             headers: {
@@ -418,7 +392,7 @@ const Register = () => {
             }
             otpGenerationSuccessful = true;
           } else {
-            setDebug(prev => prev + '\nAll OTP generation attempts failed: ' + JSON.stringify(emergencyData));
+            setDebug(prev => prev + '\nEmergency OTP generation failed: ' + JSON.stringify(emergencyData));
           }
         } catch (emergencyError) {
           setDebug(prev => prev + '\nError with emergency OTP endpoint: ' + emergencyError.message);
