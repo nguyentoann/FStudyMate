@@ -512,22 +512,22 @@ export const getSambaStorageInfo = async () => {
     // Fallback to mock storage data
     console.warn('Using mock storage information');
     return {
-      totalSpace: 100, // GB
-      usedSpace: 42.5, // GB
-      freeSpace: 57.5, // GB
-      usagePercentage: 42.5,
+      totalSpace: "--", // GB
+      usedSpace: "--", // GB
+      freeSpace: "--", // GB
+      usagePercentage: "--",
       files: {
-        total: 1865,
-        images: 523,
-        videos: 115,
-        documents: 897,
-        other: 330
+        total: "--",
+        images: "--",
+        videos: "--",
+        documents: "--",
+        other: "--"
       },
       shares: [
-        { name: 'ChatFilesForum', size: 12.8, files: 342 },
-        { name: 'GroupChatFiles', size: 15.6, files: 523 },
-        { name: 'UserUploads', size: 8.2, files: 721 },
-        { name: 'SystemBackups', size: 5.9, files: 279 }
+        { name: 'ChatFilesForum', size: "--", files: "--" },
+        { name: 'GroupChatFiles', size: "--", files: "--" },
+        { name: 'UserUploads', size: "--", files: "--" },
+        { name: 'SystemBackups', size: "--", files: "--" }
       ]
     };
   }
@@ -548,33 +548,33 @@ export const getSystemResources = async () => {
     // Return mock data on error
     return {
       cpu: {
-        load: Math.random() * 0.7,
-        cores: 4,
-        model: "x86_64"
+        load: "--",
+        cores: "--",
+        model: "--"
       },
       memory: {
-        total: 8192, // 8 GB
-        used: 4096, // 4 GB
-        free: 4096, // 4 GB
-        usagePercentage: 50
+        total: "--", // 8 GB
+        used: "--", // 4 GB
+        free: "--", // 4 GB
+        usagePercentage: "--"
       },
       disk: {
-        total: 500, // 500 GB
-        free: 250, // 250 GB
-        used: 250, // 250 GB
-        usagePercentage: 50
+        total: "--", // 500 GB
+        free: "--", // 250 GB
+        used: "--", // 250 GB
+        usagePercentage: "--"
       },
       network: {
-        hostname: "localhost",
-        ip: "127.0.0.1",
-        receivedPerSec: Math.random() * 10, // MB/s
-        sentPerSec: Math.random() * 5 // MB/s
+        hostname: "--",
+        ip: "--",
+        receivedPerSec: "--", // MB/s
+        sentPerSec: "--", // MB/s
       },
       server: {
-        name: "localhost",
-        os: "Mock OS",
-        javaVersion: "17",
-        uptime: 60 // 60 minutes
+        name: "--",
+        os: "--",
+        javaVersion: "--",
+        uptime: "--" // 60 minutes
       }
     };
   }
