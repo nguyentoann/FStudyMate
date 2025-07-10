@@ -13,6 +13,7 @@ import ClickSpark from "./ClickSpark";
 import FloatingMenu from "./FloatingMenu";
 import JokeNotification from "./JokeNotification";
 import WebRTCDebugger from "./WebRTCDebugger";
+import NotificationButton from "./NotificationButton";
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -986,6 +987,11 @@ const DashboardLayout = ({ children }) => {
 
         {/* Chat buttons */}
         <div className="fixed bottom-4 right-4 z-[90] flex flex-col space-y-3">
+          {/* Notification Button - only for admins and lecturers */}
+          {(user?.role === 'admin' || user?.role === 'lecturer') && (
+            <NotificationButton isFloating={true} />
+          )}
+          
           {/* AI Chat Button */}
           <button
             onClick={handleOpenAIChat}

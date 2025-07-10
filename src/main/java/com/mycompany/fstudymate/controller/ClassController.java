@@ -50,10 +50,99 @@ public class ClassController {
     
     // Class Management Endpoints
     @GetMapping
-    public ResponseEntity<List<Class>> getAllClasses() {
+    public ResponseEntity<List<Map<String, Object>>> getAllClasses() {
         try {
             List<Class> classes = classService.getAllClasses();
-            return ResponseEntity.ok(classes);
+            List<Map<String, Object>> classesResponse = classes.stream().map(classObj -> {
+                Map<String, Object> classMap = new HashMap<>();
+                classMap.put("classId", classObj.getClassId());
+                classMap.put("className", classObj.getClassName());
+                
+                // Handle Term consistently
+                Map<String, Object> termMap = new HashMap<>();
+                if (classObj.getTerm() != null) {
+                    termMap.put("id", classObj.getTerm().getId());
+                    termMap.put("name", classObj.getTerm().getName());
+                } else {
+                    // If term is just an ID (not fully loaded)
+                    try {
+                        Integer termId = null;
+                        Field termField = classObj.getClass().getDeclaredField("term");
+                        termField.setAccessible(true);
+                        Object termValue = termField.get(classObj);
+                        if (termValue instanceof Integer) {
+                            termId = (Integer) termValue;
+                            Optional<Term> termOpt = termRepository.findById(termId);
+                            if (termOpt.isPresent()) {
+                                Term term = termOpt.get();
+                                termMap.put("id", term.getId());
+                                termMap.put("name", term.getName());
+                            } else {
+                                termMap.put("id", termId);
+                                termMap.put("name", "Unknown");
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Fallback
+                        termMap.put("id", null);
+                        termMap.put("name", "Unknown");
+                    }
+                }
+                classMap.put("term", termMap);
+                
+                // Add semester and academic year from term name
+                String termName = (String) termMap.get("name");
+                if (termName != null) {
+                    classMap.put("semester", termName);
+                    classMap.put("academicYear", termName);
+                }
+                
+                // Handle AcademicMajor consistently
+                Map<String, Object> majorMap = new HashMap<>();
+                if (classObj.getAcademicMajor() != null) {
+                    majorMap.put("id", classObj.getAcademicMajor().getId());
+                    majorMap.put("name", classObj.getAcademicMajor().getName());
+                } else {
+                    // If academicMajor is just an ID (not fully loaded)
+                    try {
+                        Integer majorId = null;
+                        Field majorField = classObj.getClass().getDeclaredField("academicMajor");
+                        majorField.setAccessible(true);
+                        Object majorValue = majorField.get(classObj);
+                        if (majorValue instanceof Integer) {
+                            majorId = (Integer) majorValue;
+                            Optional<AcademicMajor> majorOpt = academicMajorRepository.findById(majorId);
+                            if (majorOpt.isPresent()) {
+                                AcademicMajor major = majorOpt.get();
+                                majorMap.put("id", major.getId());
+                                majorMap.put("name", major.getName());
+                            } else {
+                                majorMap.put("id", majorId);
+                                majorMap.put("name", "Unknown");
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Fallback
+                        majorMap.put("id", null);
+                        majorMap.put("name", "Unknown");
+                    }
+                }
+                classMap.put("academicMajor", majorMap);
+                
+                // Add department from academic major
+                classMap.put("department", majorMap.get("name"));
+                
+                classMap.put("maxStudents", classObj.getMaxStudents());
+                classMap.put("currentStudents", classObj.getCurrentStudents());
+                classMap.put("homeroomTeacherId", classObj.getHomeroomTeacherId());
+                classMap.put("isActive", classObj.getIsActive());
+                classMap.put("createdAt", classObj.getCreatedAt());
+                classMap.put("updatedAt", classObj.getUpdatedAt());
+                
+                return classMap;
+            }).collect(Collectors.toList());
+            
+            return ResponseEntity.ok(classesResponse);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
