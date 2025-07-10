@@ -65,7 +65,7 @@ public class UserController {
     /**
      * Get users by role with optional filter for unassigned students
      * 
-     * @param role The user role to filter by
+     * @param role The user role to filter by, or "ALL" to get all users
      * @param unassigned If true, only return students without a class assignment
      * @return List of users with the specified role
      */
@@ -81,7 +81,10 @@ public class UserController {
             UserDAO userDAO = new UserDAO();
             List<Map<String, Object>> users;
             
-            if (unassigned && "STUDENT".equalsIgnoreCase(role)) {
+            if ("ALL".equalsIgnoreCase(role)) {
+                // Get all users regardless of role
+                users = userDAO.getAllUsers();
+            } else if (unassigned && "STUDENT".equalsIgnoreCase(role)) {
                 // Get unassigned students (without a class)
                 users = userDAO.getUnassignedStudents();
             } else {
