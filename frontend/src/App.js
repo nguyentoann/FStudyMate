@@ -12,6 +12,7 @@ import PasswordChange from "./pages/PasswordChange";
 import UserManagement from "./pages/admin/UserManagement";
 import UserEdit from "./pages/admin/UserEdit";
 import MathTest from "./pages/MathTest";
+import NotificationTestPage from "./pages/NotificationTestPage";
 import AuthenticatedRedirect from "./components/AuthenticatedRedirect";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
@@ -313,12 +314,29 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  // Thêm route này vào trong Routes component, trước Route
-                  path="*"
-                  <Route path="/course/:courseId" element={<Course />} />
+                  {/* Notification System Routes */}
+                  <Route
+                    path="/notifications"
+                    element={
+                      <ProtectedRoute>
+                        <NotificationTestPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/notifications"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin", "lecturer"]}>
+                        <NotificationTestPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  
+                  {/* 404 Route - must be last */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <ThemeToggle />
+                {/* Video Call Components */}
                 <VideoCall />
                 <IncomingCallNotification />
                 {/* {isDevelopment && <DeveloperTools />} */}
