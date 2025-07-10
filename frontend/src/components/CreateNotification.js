@@ -3,7 +3,7 @@ import {
   Form, Input, Button, Select, Radio, Card, Typography, Divider, Upload, 
   Collapse, List, Checkbox, Avatar, Spin, message, Space, Alert
 } from 'antd';
-import { UploadOutlined, SearchOutlined, SendOutlined, SaveOutlined } from '@ant-design/icons';
+import { UploadOutlined, SearchOutlined, SendOutlined, SaveOutlined, LoadingOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../context/AuthContext';
 import notificationService from '../services/notificationService';
@@ -32,7 +32,9 @@ const CreateNotification = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
-
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+  
   // Fetch classes and users on component mount
   useEffect(() => {
     fetchClasses();
@@ -63,31 +65,31 @@ const CreateNotification = () => {
   // Fetch all classes
   const fetchClasses = async () => {
     try {
-      setLoading(true);
+      setLoadingClasses(true);
       const response = await apiHelper.get('/classes');
       setClasses(response.data);
     } catch (error) {
       console.error('Error fetching classes:', error);
       message.error('Failed to load classes');
     } finally {
-      setLoading(false);
+      setLoadingClasses(false);
         }
   };
 
   // Fetch all users
   const fetchUsers = async () => {
     try {
-      setLoading(true);
+      setLoadingUsers(true);
       const response = await apiHelper.get('/user', { params: { role: 'ALL' } });
       setAllUsers(response.data);
       setFilteredUsers(response.data);
-      } catch (error) {
+    } catch (error) {
       console.error('Error fetching users:', error);
-      message.error('Failed to load users');
+      message.error('Failed to load users. Please try again.');
     } finally {
-      setLoading(false);
-      }
-    };
+      setLoadingUsers(false);
+    }
+  };
 
   // Fetch students in a class
   const fetchClassStudents = async (classId) => {
@@ -256,7 +258,7 @@ const CreateNotification = () => {
   const renderRecipientSelection = () => {
     switch (recipientType) {
       case 'INDIVIDUAL':
-  return (
+        return (
           <div>
             <Input
               placeholder="Search users by name or email"
@@ -265,43 +267,88 @@ const CreateNotification = () => {
               onChange={e => setSearchText(e.target.value)}
               style={{ marginBottom: 16 }}
             />
-            <List
-              bordered
-              loading={loading}
-              dataSource={filteredUsers}
-              renderItem={user => (
-                <List.Item
-                  key={user.id}
-                  onClick={() => handleUserSelection(user.id)}
-                  style={{ cursor: 'pointer' }}
+            {loadingUsers ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                <div style={{ marginTop: 16 }}>Loading users data...</div>
+              </div>
+            ) : filteredUsers.length === 0 && allUsers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Alert 
+                  message="Failed to load users" 
+                  description="Unable to retrieve user data" 
+                  type="error" 
+                  showIcon 
+                  style={{ marginBottom: 16 }}
+                />
+                <Button 
+                  type="primary" 
+                  onClick={fetchUsers} 
+                  icon={<LoadingOutlined />}
                 >
-                  <Checkbox checked={selectedUsers.includes(user.id)} />
-                  <Avatar src={user.profilePicture} style={{ marginLeft: 8 }}>
-                    {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
-                  </Avatar>
-                  <span style={{ marginLeft: 8 }}>
-                    {user.username} {user.email ? `(${user.email})` : ''}
-                  </span>
-                </List.Item>
-      )}
-            />
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <List
+                bordered
+                dataSource={filteredUsers}
+                locale={{ emptyText: 'No users found' }}
+                renderItem={user => (
+                  <List.Item
+                    key={user.id}
+                    onClick={() => handleUserSelection(user.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <Checkbox checked={selectedUsers.includes(user.id)} />
+                    <Avatar src={user.profilePicture} style={{ marginLeft: 8 }}>
+                      {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                    </Avatar>
+                    <span style={{ marginLeft: 8 }}>
+                      {user.username} {user.email ? `(${user.email})` : ''}
+                    </span>
+                  </List.Item>
+                )}
+              />
+            )}
             {selectedUsers.length > 0 && (
               <div style={{ marginTop: 16 }}>
                 <Text>Selected Users: {selectedUsers.length}</Text>
-        </div>
-      )}
+              </div>
+            )}
           </div>
         );
       
       case 'CLASS':
         return (
           <div>
-            {loading ? (
-              <Spin />
+            {loadingClasses ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                <div style={{ marginTop: 16 }}>Loading classes data...</div>
+              </div>
+            ) : classes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Alert 
+                  message="Failed to load classes" 
+                  description="Unable to retrieve class data" 
+                  type="error" 
+                  showIcon 
+                  style={{ marginBottom: 16 }}
+                />
+                <Button 
+                  type="primary" 
+                  onClick={fetchClasses} 
+                  icon={<LoadingOutlined />}
+                >
+                  Retry
+                </Button>
+              </div>
             ) : (
               <List
                 bordered
                 dataSource={classes}
+                locale={{ emptyText: 'No classes found' }}
                 renderItem={classItem => (
                   <List.Item
                     key={classItem.id}
@@ -358,9 +405,12 @@ const CreateNotification = () => {
                             <Text type="secondary">No students in this class</Text>
                           )
                         ) : (
-                          <Spin size="small" />
-              )}
-            </div>
+                          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                            <Spin indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} />
+                            <div style={{ marginTop: 8 }}>Loading students...</div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </List.Item>
                 )}

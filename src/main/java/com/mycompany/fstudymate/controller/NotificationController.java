@@ -1,8 +1,12 @@
 package com.mycompany.fstudymate.controller;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,10 @@ import org.springframework.web.multipart.MultipartFile;
 import com.mycompany.fstudymate.dto.NotificationRequest;
 import com.mycompany.fstudymate.dto.NotificationResponse;
 import com.mycompany.fstudymate.service.NotificationService;
+import com.mycompany.fstudymate.model.Notification;
+import com.mycompany.fstudymate.model.NotificationRecipient;
+import com.mycompany.fstudymate.repository.NotificationRepository;
+import com.mycompany.fstudymate.repository.NotificationRecipientRepository;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -28,6 +36,12 @@ public class NotificationController {
 
     @Autowired
     private NotificationService notificationService;
+    
+    @Autowired
+    private NotificationRepository notificationRepository;
+    
+    @Autowired
+    private NotificationRecipientRepository notificationRecipientRepository;
     
     @PostMapping
     public ResponseEntity<NotificationResponse> createNotification(@RequestBody NotificationRequest request) {
@@ -181,5 +195,79 @@ public class NotificationController {
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @GetMapping("/debug/recipients/{notificationId}")
+    public ResponseEntity<?> debugNotificationRecipients(@PathVariable Integer notificationId) {
+        try {
+            Map<String, Object> response = new HashMap<>();
+            
+            // Try to get the notification
+            try {
+                Optional<Notification> notificationOpt = notificationRepository.findById(notificationId);
+                if (notificationOpt.isPresent()) {
+                    Notification notification = notificationOpt.get();
+                    response.put("notification", Map.of(
+                        "id", notification.getId(),
+                        "title", notification.getTitle(),
+                        "content", notification.getContent(),
+                        "senderId", notification.getSender() != null ? notification.getSender().getId() : null,
+                        "createdAt", notification.getCreatedAt(),
+                        "recipientType", notification.getRecipientType(),
+                        "unsent", notification.isUnsent()
+                    ));
+                } else {
+                    response.put("notification", "Not found");
+                }
+            } catch (Exception e) {
+                response.put("notificationError", e.getMessage());
+            }
+            
+            // Try to get recipients
+            try {
+                List<NotificationRecipient> recipients = notificationRecipientRepository.findAll();
+                List<Map<String, Object>> recipientData = new ArrayList<>();
+                
+                for (NotificationRecipient recipient : recipients) {
+                    if (recipient.getNotification() != null && 
+                        recipient.getNotification().getId().equals(notificationId)) {
+                        recipientData.add(Map.of(
+                            "id", recipient.getId(),
+                            "notificationId", recipient.getNotification().getId(),
+                            "recipientId", recipient.getRecipient() != null ? recipient.getRecipient().getId() : null,
+                            "isRead", recipient.isRead(),
+                            "readAt", recipient.getReadAt()
+                        ));
+                    }
+                }
+                
+                response.put("recipientCount", recipientData.size());
+                response.put("recipients", recipientData);
+            } catch (Exception e) {
+                response.put("recipientsError", e.getMessage());
+            }
+            
+            // Try to count unread notifications for user 923
+            try {
+                Long count = notificationService.countUnreadNotifications(923);
+                response.put("unreadCount923", count);
+            } catch (Exception e) {
+                response.put("unreadCountError", e.getMessage());
+            }
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            errorResponse.put("stackTrace", getStackTraceAsString(e));
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    private String getStackTraceAsString(Exception e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        return sw.toString();
     }
 } 

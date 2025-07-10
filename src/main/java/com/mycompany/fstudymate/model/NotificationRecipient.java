@@ -3,9 +3,13 @@ package com.mycompany.fstudymate.model;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "notification_recipients")
+@Data
+@NoArgsConstructor
 public class NotificationRecipient {
     
     @Id
@@ -32,72 +36,11 @@ public class NotificationRecipient {
     @Column(name = "read_at")
     private LocalDateTime readAt;
     
-    // Default constructor
-    public NotificationRecipient() {
-    }
-    
     // Constructor with essential fields
     public NotificationRecipient(Notification notification, User recipient, String recipientType) {
         this.notification = notification;
         this.recipient = recipient;
         this.recipientType = recipientType;
-    }
-    
-    // Getters and Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Notification getNotification() {
-        return notification;
-    }
-
-    public void setNotification(Notification notification) {
-        this.notification = notification;
-    }
-
-    public User getRecipient() {
-        return recipient;
-    }
-
-    public void setRecipient(User recipient) {
-        this.recipient = recipient;
-    }
-
-    public String getRecipientType() {
-        return recipientType;
-    }
-
-    public void setRecipientType(String recipientType) {
-        this.recipientType = recipientType;
-    }
-
-    public String getClassId() {
-        return classId;
-    }
-
-    public void setClassId(String classId) {
-        this.classId = classId;
-    }
-
-    public boolean isRead() {
-        return isRead;
-    }
-
-    public void setRead(boolean isRead) {
-        this.isRead = isRead;
-    }
-
-    public LocalDateTime getReadAt() {
-        return readAt;
-    }
-
-    public void setReadAt(LocalDateTime readAt) {
-        this.readAt = readAt;
     }
     
     // Mark notification as read

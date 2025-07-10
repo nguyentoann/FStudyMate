@@ -56,7 +56,7 @@ const NotificationDebugger = () => {
     setLoading(true);
     try {
       // Fetch users
-      const usersResponse = await apiHelper.get('/users');
+      const usersResponse = await apiHelper.get('/user', { params: { role: 'ALL' } });
       setUsers(usersResponse.data || []);
       
       // Fetch classes

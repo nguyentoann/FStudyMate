@@ -14,15 +14,16 @@ import com.mycompany.fstudymate.model.User;
 public interface NotificationRepository extends JpaRepository<Notification, Integer> {
     
     // Find notifications sent by a specific user
-    List<Notification> findBySenderAndIsUnsentFalseOrderByCreatedAtDesc(User sender);
+    List<Notification> findBySenderAndUnsentFalseOrderByCreatedAtDesc(User sender);
     
     // Find system-generated notifications
+    @Query("SELECT n FROM Notification n WHERE n.isSystemGenerated = true AND n.unsent = false ORDER BY n.createdAt DESC")
     List<Notification> findByIsSystemGeneratedTrueAndIsUnsentFalseOrderByCreatedAtDesc();
     
     // Find notifications with specific IDs that are not unsent
-    @Query("SELECT n FROM Notification n WHERE n.id IN :ids AND n.isUnsent = false ORDER BY n.createdAt DESC")
+    @Query("SELECT n FROM Notification n WHERE n.id IN :ids AND n.unsent = false ORDER BY n.createdAt DESC")
     List<Notification> findByIdsAndNotUnsent(@Param("ids") List<Integer> notificationIds);
     
     // Count unsent notifications
-    Long countByIsUnsentTrue();
+    Long countByUnsentTrue();
 } 
