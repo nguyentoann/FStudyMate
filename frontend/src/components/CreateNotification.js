@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Form, Input, Button, Select, Radio, Card, Typography, Divider, Upload, 
   Collapse, List, Checkbox, Avatar, Spin, message, Space, Alert, Modal, Tabs, Tag
@@ -110,6 +110,7 @@ const CreateNotification = ({ visible, onClose }) => {
   const [selectedStudents, setSelectedStudents] = useState({});
   const [allUsers, setAllUsers] = useState([]);
   const [searchText, setSearchText] = useState('');
+  const [searchTextDebounced, setSearchTextDebounced] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [fileList, setFileList] = useState([]);
@@ -118,6 +119,9 @@ const CreateNotification = ({ visible, onClose }) => {
   const [submitting, setSubmitting] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingMoreUsers, setLoadingMoreUsers] = useState(false);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [currentUserPage, setCurrentUserPage] = useState(0);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [activeTab, setActiveTab] = useState('create');
   const [sentNotifications, setSentNotifications] = useState([]);
@@ -154,22 +158,30 @@ const CreateNotification = ({ visible, onClose }) => {
     setSelectedUsers([]);
   }, [recipientType, form]);
 
-  // Optimize user filtering with useMemo
-  const filteredUsersMemo = useMemo(() => {
-    if (!searchText) return allUsers.slice(0, 100); // Limit initial display to improve performance
-    
-    return allUsers.filter(
-      user => 
-        user.username?.toLowerCase().includes(searchText.toLowerCase()) ||
-        (user.email && user.email.toLowerCase().includes(searchText.toLowerCase())) ||
-        (user.fullName && user.fullName.toLowerCase().includes(searchText.toLowerCase()))
-    ).slice(0, 100); // Limit results to improve performance
-  }, [searchText, allUsers]);
-
-  // Update filtered users when memo changes
+  // Debounce search text to avoid excessive filtering
   useEffect(() => {
-    setFilteredUsers(filteredUsersMemo);
-  }, [filteredUsersMemo]);
+    const timer = setTimeout(() => {
+      setSearchTextDebounced(searchText);
+    }, 300); // 300ms delay
+    
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // Filter users based on search text
+  useEffect(() => {
+    if (!searchTextDebounced) {
+      setFilteredUsers(allUsers);
+    } else {
+      const searchLower = searchTextDebounced.toLowerCase();
+      const filtered = allUsers.filter(
+        user => 
+          (user.username && user.username.toLowerCase().includes(searchLower)) ||
+          (user.email && user.email.toLowerCase().includes(searchLower)) ||
+          (user.fullName && user.fullName.toLowerCase().includes(searchLower))
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [searchTextDebounced, allUsers]);
 
   // Filter sent notifications when search text changes
   useEffect(() => {
@@ -196,6 +208,7 @@ const CreateNotification = ({ visible, onClose }) => {
     setSearchText('');
     setRecipientType('INDIVIDUAL');
     setPreviewVisible(false);
+    setActiveTab('create');
   };
 
   // Fetch all classes
@@ -216,15 +229,71 @@ const CreateNotification = ({ visible, onClose }) => {
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
-      const response = await apiHelper.get('/user', { params: { role: 'ALL' } });
-      setAllUsers(response.data);
-      // Initial filtered users will be limited for performance
-      setFilteredUsers(response.data.slice(0, 100));
+      // First fetch with pagination
+      const response = await apiHelper.get('/user', { 
+        params: { 
+          role: 'ALL',
+          page: 0,
+          size: 100 // Fetch first 100 users
+        } 
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        setAllUsers(response.data);
+        setFilteredUsers(response.data);
+        setTotalUsers(response.data.length >= 100 ? 1000 : response.data.length); // Estimate total
+        setCurrentUserPage(0);
+      } else if (response.data && response.data.content && Array.isArray(response.data.content)) {
+        // Handle paginated response format
+        setAllUsers(response.data.content);
+        setFilteredUsers(response.data.content);
+        setTotalUsers(response.data.totalElements || 1000);
+        setCurrentUserPage(0);
+      } else {
+        console.error('Unexpected response format:', response);
+        message.error('Failed to load users: unexpected data format');
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
       message.error('Failed to load users. Please try again.');
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  // Load more users
+  const loadMoreUsers = async () => {
+    if (loadingMoreUsers) return;
+    
+    try {
+      setLoadingMoreUsers(true);
+      const nextPage = currentUserPage + 1;
+      
+      const response = await apiHelper.get('/user', { 
+        params: { 
+          role: 'ALL',
+          page: nextPage,
+          size: 100
+        } 
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        if (response.data.length > 0) {
+          setAllUsers(prev => [...prev, ...response.data]);
+          setCurrentUserPage(nextPage);
+        }
+      } else if (response.data && response.data.content && Array.isArray(response.data.content)) {
+        // Handle paginated response format
+        if (response.data.content.length > 0) {
+          setAllUsers(prev => [...prev, ...response.data.content]);
+          setCurrentUserPage(nextPage);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading more users:', error);
+      message.error('Failed to load more users');
+    } finally {
+      setLoadingMoreUsers(false);
     }
   };
 
@@ -672,22 +741,57 @@ const CreateNotification = ({ visible, onClose }) => {
                   <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
                 </div>
               ) : (
-                <List
-                  dataSource={filteredUsers}
-                  renderItem={user => (
-                    <List.Item 
-                      onClick={() => handleUserSelection(user.id)}
-                      style={selectedUsers.includes(user.id) ? styles.selectedUser : {}}
-                    >
-                      <Checkbox checked={selectedUsers.includes(user.id)} />
-                      <List.Item.Meta
-                        avatar={<Avatar src={user.profileImageUrl || '/images/default-avatar.svg'} />}
-                        title={user.fullName || user.username}
-                        description={user.email}
-                      />
-                    </List.Item>
+                <>
+                  <List
+                    dataSource={filteredUsers}
+                    renderItem={user => (
+                      <List.Item 
+                        onClick={() => handleUserSelection(user.id)}
+                        style={selectedUsers.includes(user.id) ? styles.selectedUser : {}}
+                      >
+                        <Checkbox checked={selectedUsers.includes(user.id)} />
+                        <List.Item.Meta
+                          avatar={<Avatar src={user.profileImageUrl || '/images/default-avatar.svg'} />}
+                          title={user.fullName || user.username}
+                          description={user.email}
+                        />
+                      </List.Item>
+                    )}
+                    pagination={{
+                      pageSize: 20,
+                      size: 'small',
+                      showSizeChanger: false,
+                      showTotal: (total) => `Total ${total} users`,
+                    }}
+                    locale={{ emptyText: 'No users found' }}
+                  />
+                  
+                  {allUsers.length < totalUsers && (
+                    <div style={{ textAlign: 'center', margin: '10px 0' }}>
+                      <Button 
+                        onClick={loadMoreUsers}
+                        loading={loadingMoreUsers}
+                        type="link"
+                      >
+                        Load more users
+                      </Button>
+                    </div>
                   )}
-                />
+                </>
+              )}
+            </div>
+            <div style={{ marginTop: '10px', textAlign: 'right' }}>
+              <Text type="secondary">
+                {selectedUsers.length} user(s) selected
+              </Text>
+              {selectedUsers.length > 0 && (
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => setSelectedUsers([])}
+                >
+                  Clear
+                </Button>
               )}
             </div>
           </div>
