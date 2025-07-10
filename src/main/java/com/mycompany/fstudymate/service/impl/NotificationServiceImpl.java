@@ -26,6 +26,11 @@ import com.mycompany.fstudymate.repository.NotificationRepository;
 import com.mycompany.fstudymate.repository.UserRepository;
 import com.mycompany.fstudymate.service.NotificationService;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
@@ -51,6 +56,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Autowired
     private ClassRepository classRepository;
+
+    @Autowired
+    private DataSource dataSource;
     
     @Override
     @Transactional
@@ -158,6 +166,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<NotificationResponse> getNotificationsForUser(Integer userId) {
         logger.info("Getting notifications for user ID: {}", userId);
         
@@ -180,6 +189,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<NotificationResponse> getUnreadNotificationsForUser(Integer userId) {
         logger.info("Getting unread notifications for user ID: {}", userId);
         
@@ -202,6 +212,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Long countUnreadNotifications(Integer userId) {
         // Validate user exists
         userRepository.findById(userId).orElseThrow(() -> 
@@ -299,6 +310,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<NotificationResponse> getNotificationsSentByUser(Integer userId) {
         logger.info("Getting notifications sent by user ID: {}", userId);
         
@@ -337,6 +349,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public NotificationResponse getNotificationById(Integer notificationId) {
         logger.info("Getting notification by ID: {}", notificationId);
         
@@ -382,38 +395,100 @@ public class NotificationServiceImpl implements NotificationService {
     }
     
     // Helper method to process class recipients
+    @Transactional
     private void processClassRecipients(Notification notification, List<String> classIds) {
         if (classIds == null || classIds.isEmpty()) {
             logger.warn("No class IDs provided for CLASS notification");
             return;
         }
         
-        logger.info("Processing {} class recipients", classIds.size());
+        logger.info("Processing {} class recipients with class IDs: {}", classIds.size(), classIds);
         for (String classId : classIds) {
             try {
+                logger.info("Processing class with ID: {}", classId);
                 Optional<Class> classOpt = classRepository.findById(classId);
                 
                 if (classOpt.isPresent()) {
                     Class classEntity = classOpt.get();
-                    notification.getTargetClasses().add(classEntity);
+                    logger.info("Found class: {} ({})", classEntity.getClassName(), classId);
                     
-                    // Get all students in the class and add them as recipients
-                    List<User> students = userRepository.findByClassId(classId);
-                    for (User student : students) {
-                        NotificationRecipient notificationRecipient = new NotificationRecipient();
-                        notificationRecipient.setNotification(notification);
-                        notificationRecipient.setRecipient(student);
-                        notificationRecipient.setRead(false);
-                        notificationRecipient.setReadAt(null);
+                    // Add the class to the notification's target classes
+                    notification.getTargetClasses().add(classEntity);
+                    notificationRepository.save(notification); // Save to ensure the relationship is persisted
+                    
+                    // Use a JOIN query to get all students in the class
+                    String query = "SELECT u.* FROM users u " +
+                                  "JOIN students s ON u.id = s.user_id " +
+                                  "WHERE s.class_id = ?";
+                    
+                    logger.info("Executing SQL query: {} with parameter: {}", query, classId);
+                    List<User> students = new ArrayList<>();
+                    Connection conn = null;
+                    PreparedStatement ps = null;
+                    ResultSet rs = null;
+                    
+                    try {
+                        conn = dataSource.getConnection();
+                        ps = conn.prepareStatement(query);
+                        ps.setString(1, classId);
+                        rs = ps.executeQuery();
                         
-                        notificationRecipientRepository.save(notificationRecipient);
+                        int count = 0;
+                        while (rs.next()) {
+                            count++;
+                            User student = new User();
+                            student.setId(rs.getInt("id"));
+                            student.setUsername(rs.getString("username"));
+                            student.setEmail(rs.getString("email"));
+                            student.setFullName(rs.getString("full_name"));
+                            student.setRole(rs.getString("role"));
+                            students.add(student);
+                            logger.debug("Found student: {} (ID: {}) in class {}", student.getUsername(), student.getId(), classId);
+                        }
+                        logger.info("SQL query returned {} students for class {}", count, classId);
+                    } catch (Exception e) {
+                        logger.error("Error executing SQL query: {}", e.getMessage(), e);
+                        throw new RuntimeException("Error retrieving students for class", e);
+                    } finally {
+                        if (rs != null) try { rs.close(); } catch (Exception e) { logger.warn("Error closing ResultSet: {}", e.getMessage()); }
+                        if (ps != null) try { ps.close(); } catch (Exception e) { logger.warn("Error closing PreparedStatement: {}", e.getMessage()); }
+                        if (conn != null) try { conn.close(); } catch (Exception e) { logger.warn("Error closing Connection: {}", e.getMessage()); }
                     }
-                    logger.info("Added {} students from class: {}", students.size(), classId);
+                    
+                    // Add students as notification recipients in a separate transaction
+                    if (!students.isEmpty()) {
+                        logger.info("Adding {} students from class {} as notification recipients", students.size(), classId);
+                        
+                        for (User student : students) {
+                            try {
+                                // Get the full user entity from the repository to avoid LazyInitializationException
+                                User fullStudent = userRepository.findById(student.getId())
+                                    .orElseThrow(() -> new IllegalArgumentException("Student not found with ID: " + student.getId()));
+                                
+                                NotificationRecipient notificationRecipient = new NotificationRecipient();
+                                notificationRecipient.setNotification(notification);
+                                notificationRecipient.setRecipient(fullStudent);
+                                notificationRecipient.setRead(false);
+                                notificationRecipient.setReadAt(null);
+                                
+                                notificationRecipientRepository.save(notificationRecipient);
+                                logger.debug("Added student {} (ID: {}) as notification recipient", student.getUsername(), student.getId());
+                            } catch (Exception e) {
+                                logger.error("Error adding student {} (ID: {}) as notification recipient: {}", 
+                                    student.getUsername(), student.getId(), e.getMessage(), e);
+                            }
+                        }
+                        
+                        logger.info("Successfully added {} students from class: {} as notification recipients", students.size(), classId);
+                    } else {
+                        logger.warn("No students found in class {}", classId);
+                    }
                 } else {
                     logger.warn("Class not found with ID: {}", classId);
                 }
             } catch (Exception e) {
                 logger.error("Error processing class with ID: {}", classId, e);
+                throw new RuntimeException("Error processing class notifications", e);
             }
         }
     }

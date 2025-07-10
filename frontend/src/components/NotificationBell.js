@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import NotificationModal from './NotificationModal';
+import NotificationButton from './NotificationButton';
 
 // Load dayjs plugins
 dayjs.extend(relativeTime);
@@ -137,14 +138,9 @@ const NotificationBell = () => {
             <Title level={5} style={{ margin: 0 }}>Notifications</Title>
             <Space>
               {canCreateNotifications && (
-                <Tooltip title="Create Notification">
-                  <Button 
-                    type="primary"
-                    size="small"
-                    icon={<SendOutlined />}
-                    onClick={goToCreateNotification}
-                  />
-                </Tooltip>
+                <NotificationButton size="small" type="primary" tooltip="Create Notification">
+                  <SendOutlined />
+                </NotificationButton>
               )}
               <Button 
                 type="link" 
@@ -202,9 +198,9 @@ const NotificationBell = () => {
                 View All Notifications
               </Button>
               {canCreateNotifications && (
-                <Button type="link" onClick={goToCreateNotification}>
+                <NotificationButton type="link" size="small">
                   Create Notification
-                </Button>
+                </NotificationButton>
               )}
             </Space>
           </div>

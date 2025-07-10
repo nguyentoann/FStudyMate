@@ -160,8 +160,8 @@ const ClassesPage = () => {
                   </div>
                   <div className="class-item-details">
                     <p><strong>ID:</strong> {classObj.classId}</p>
-                    <p><strong>Academic Year:</strong> {classObj.academicYear}</p>
-                    <p><strong>Semester:</strong> {classObj.semester}</p>
+                    <p><strong>Term:</strong> {classObj.term ? classObj.term.name : 'N/A'}</p>
+                    <p><strong>Department:</strong> {classObj.academicMajor ? classObj.academicMajor.name : 'N/A'}</p>
                     <p><strong>Students:</strong> {classObj.currentStudents}/{classObj.maxStudents}</p>
                   </div>
                 </div>
@@ -186,16 +186,12 @@ const ClassesPage = () => {
                     <span>{selectedClass.classId}</span>
                   </div>
                   <div className="info-group">
-                    <label>Academic Year:</label>
-                    <span>{selectedClass.academicYear}</span>
-                  </div>
-                  <div className="info-group">
-                    <label>Semester:</label>
-                    <span>{selectedClass.semester}</span>
+                    <label>Term:</label>
+                    <span>{selectedClass.term ? selectedClass.term.name : 'N/A'}</span>
                   </div>
                   <div className="info-group">
                     <label>Department:</label>
-                    <span>{selectedClass.department || 'N/A'}</span>
+                    <span>{selectedClass.academicMajor ? selectedClass.academicMajor.name : 'N/A'}</span>
                   </div>
                   <div className="info-group">
                     <label>Students:</label>

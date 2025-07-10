@@ -1,20 +1,105 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Form, Input, Button, Select, Radio, Card, Typography, Divider, Upload, 
-  Collapse, List, Checkbox, Avatar, Spin, message, Space, Alert
+  Collapse, List, Checkbox, Avatar, Spin, message, Space, Alert, Modal, Tabs, Tag
 } from 'antd';
-import { UploadOutlined, SearchOutlined, SendOutlined, SaveOutlined, LoadingOutlined } from '@ant-design/icons';
+import { 
+  UploadOutlined, SearchOutlined, SendOutlined, SaveOutlined, 
+  LoadingOutlined, EyeOutlined, ReloadOutlined 
+} from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../context/AuthContext';
 import notificationService from '../services/notificationService';
 import apiHelper from '../services/apiHelper';
+import './ClickSpark.css'; // Reusing existing CSS
 
 const { TextArea } = Input;
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
+const { TabPane } = Tabs;
 
-const CreateNotification = () => {
+// Custom CSS styles
+const styles = {
+  container: {
+    padding: '0',
+  },
+  formSection: {
+    marginBottom: '24px',
+  },
+  recipientSelection: {
+    marginTop: '16px',
+  },
+  userList: {
+    maxHeight: '300px',
+    overflowY: 'auto',
+    border: '1px solid #f0f0f0',
+    borderRadius: '4px',
+  },
+  selectedUser: {
+    backgroundColor: '#f0f8ff',
+  },
+  classHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  className: {
+    fontWeight: 'bold',
+  },
+  classInfo: {
+    color: '#888',
+    fontSize: '0.9em',
+  },
+  studentList: {
+    maxHeight: '200px',
+    overflowY: 'auto',
+    padding: '8px 0',
+  },
+  studentItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '8px 16px',
+    gap: '12px',
+    borderBottom: '1px solid #f0f0f0',
+  },
+  studentInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  studentName: {
+    fontWeight: 'bold',
+  },
+  studentEmail: {
+    fontSize: '0.8em',
+    color: '#888',
+  },
+  loadingContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '40px 0',
+  },
+  previewCard: {
+    marginTop: '16px',
+  },
+  selectAll: {
+    padding: '8px 16px',
+    borderBottom: '1px solid #f0f0f0',
+    marginBottom: '8px',
+  },
+  noStudents: {
+    padding: '16px',
+    textAlign: 'center',
+    color: '#888',
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  }
+};
+
+const CreateNotification = ({ visible, onClose }) => {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [recipientType, setRecipientType] = useState('INDIVIDUAL');
@@ -34,12 +119,33 @@ const CreateNotification = () => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingClasses, setLoadingClasses] = useState(false);
+  const [activeTab, setActiveTab] = useState('create');
+  const [sentNotifications, setSentNotifications] = useState([]);
+  const [filteredSentNotifications, setFilteredSentNotifications] = useState([]);
+  const [sentSearchText, setSentSearchText] = useState('');
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   
-  // Fetch classes and users on component mount
+  // Fetch classes and users when modal becomes visible
   useEffect(() => {
-    fetchClasses();
-    fetchUsers();
-  }, []);
+    if (visible) {
+      if (activeTab === 'create') {
+        fetchClasses();
+      } else if (activeTab === 'sent') {
+        fetchSentNotifications();
+      }
+    }
+  }, [visible, activeTab]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!visible) {
+      resetForm();
+    }
+  }, [visible]);
 
   // Handle recipient type change
   useEffect(() => {
@@ -48,19 +154,49 @@ const CreateNotification = () => {
     setSelectedUsers([]);
   }, [recipientType, form]);
 
-  // Filter users based on search text
-  useEffect(() => {
-    if (searchText) {
-      const filtered = allUsers.filter(
-        user => 
-          user.username.toLowerCase().includes(searchText.toLowerCase()) ||
-          (user.email && user.email.toLowerCase().includes(searchText.toLowerCase()))
-      );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(allUsers);
-    }
+  // Optimize user filtering with useMemo
+  const filteredUsersMemo = useMemo(() => {
+    if (!searchText) return allUsers.slice(0, 100); // Limit initial display to improve performance
+    
+    return allUsers.filter(
+      user => 
+        user.username?.toLowerCase().includes(searchText.toLowerCase()) ||
+        (user.email && user.email.toLowerCase().includes(searchText.toLowerCase())) ||
+        (user.fullName && user.fullName.toLowerCase().includes(searchText.toLowerCase()))
+    ).slice(0, 100); // Limit results to improve performance
   }, [searchText, allUsers]);
+
+  // Update filtered users when memo changes
+  useEffect(() => {
+    setFilteredUsers(filteredUsersMemo);
+  }, [filteredUsersMemo]);
+
+  // Filter sent notifications when search text changes
+  useEffect(() => {
+    if (sentSearchText) {
+      const filtered = sentNotifications.filter(
+        notification => 
+          notification.title.toLowerCase().includes(sentSearchText.toLowerCase()) ||
+          notification.content.toLowerCase().includes(sentSearchText.toLowerCase())
+      );
+      setFilteredSentNotifications(filtered);
+    } else {
+      setFilteredSentNotifications(sentNotifications);
+    }
+  }, [sentSearchText, sentNotifications]);
+
+  // Reset form
+  const resetForm = () => {
+    form.resetFields();
+    setFileList([]);
+    setPreviewContent('');
+    setSelectedClasses([]);
+    setSelectedUsers([]);
+    setSelectedStudents({});
+    setSearchText('');
+    setRecipientType('INDIVIDUAL');
+    setPreviewVisible(false);
+  };
 
   // Fetch all classes
   const fetchClasses = async () => {
@@ -73,7 +209,7 @@ const CreateNotification = () => {
       message.error('Failed to load classes');
     } finally {
       setLoadingClasses(false);
-        }
+    }
   };
 
   // Fetch all users
@@ -82,12 +218,30 @@ const CreateNotification = () => {
       setLoadingUsers(true);
       const response = await apiHelper.get('/user', { params: { role: 'ALL' } });
       setAllUsers(response.data);
-      setFilteredUsers(response.data);
+      // Initial filtered users will be limited for performance
+      setFilteredUsers(response.data.slice(0, 100));
     } catch (error) {
       console.error('Error fetching users:', error);
       message.error('Failed to load users. Please try again.');
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  // Fetch sent notifications
+  const fetchSentNotifications = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoadingSent(true);
+      const response = await notificationService.getSentNotifications(user.id);
+      setSentNotifications(response || []);
+      setFilteredSentNotifications(response || []);
+    } catch (error) {
+      console.error('Error fetching sent notifications:', error);
+      message.error('Failed to load sent notifications');
+    } finally {
+      setLoadingSent(false);
     }
   };
 
@@ -232,13 +386,9 @@ const CreateNotification = () => {
       
       message.success('Notification sent successfully');
       
-      // Reset form
-      form.resetFields();
-      setFileList([]);
-      setPreviewContent('');
-      setSelectedClasses([]);
-      setSelectedUsers([]);
-      setSelectedStudents({});
+      // Reset form and close modal
+      resetForm();
+      onClose();
       
     } catch (error) {
       console.error('Error sending notification:', error);
@@ -248,307 +398,551 @@ const CreateNotification = () => {
     }
   };
 
-  // Handle content preview
+  // Handle preview
   const handlePreview = () => {
-    setPreviewContent(form.getFieldValue('content') || '');
     setPreviewVisible(!previewVisible);
   };
 
-  // Render recipient selection based on type
+  // Handle tab change
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    
+    // Load data based on tab
+    if (key === 'create' && allUsers.length === 0) {
+      fetchUsers();
+    } else if (key === 'sent' && sentNotifications.length === 0) {
+      fetchSentNotifications();
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
+
+  // View notification details
+  const viewNotificationDetails = (notification) => {
+    setSelectedNotification(notification);
+    setNotificationModalVisible(true);
+  };
+
+  // Render notification detail modal
+  const renderNotificationDetailModal = () => {
+    if (!selectedNotification) return null;
+
+    return (
+      <Modal
+        title="Notification Details"
+        open={notificationModalVisible}
+        onCancel={() => setNotificationModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setNotificationModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+      >
+        <div style={{ padding: '16px 0' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <Title level={4}>{selectedNotification.title}</Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <Text type="secondary">Sent: {formatDate(selectedNotification.createdAt)}</Text>
+              <Tag color={selectedNotification.unsent ? 'red' : 'green'}>
+                {selectedNotification.unsent ? 'Unsent' : 'Active'}
+              </Tag>
+            </div>
+            <Divider style={{ margin: '8px 0' }} />
+            <div style={{ marginBottom: '16px' }}>
+              <div className="markdown-preview">
+                <ReactMarkdown>{selectedNotification.content}</ReactMarkdown>
+              </div>
+            </div>
+            {selectedNotification.attachmentPath && (
+              <div style={{ marginTop: '16px' }}>
+                <Text strong>Attachment:</Text>
+                <div>
+                  <a 
+                    href={`/api/notifications/${selectedNotification.id}/attachment`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    {selectedNotification.attachmentType === 'image' ? '📷' : '📎'} 
+                    Download attachment
+                  </a>
+                </div>
+              </div>
+            )}
+            <Divider style={{ margin: '16px 0' }} />
+            <div>
+              <Text strong>Recipient Type:</Text> 
+              <Text> {
+                selectedNotification.recipientType === 'INDIVIDUAL' ? 'Individual Users' : 
+                selectedNotification.recipientType === 'CLASS' ? 'Classes' : 
+                selectedNotification.recipientType === 'ALL_STUDENTS' ? 'All Students' :
+                selectedNotification.recipientType === 'ALL_OUTSRC_STUDENTS' ? 'All Outsource Students' :
+                selectedNotification.recipientType === 'ALL_LECTURERS' ? 'All Lecturers' : 'Everyone'
+              }</Text>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    );
+  };
+
+  // Render sent notifications tab
+  const renderSentNotifications = () => {
+    // Handle unsend notification
+    const handleUnsendNotification = async (notificationId) => {
+      Modal.confirm({
+        title: 'Unsend Notification',
+        content: 'Are you sure you want to unsend this notification? Recipients will no longer be able to see it.',
+        okText: 'Yes, Unsend',
+        okType: 'danger',
+        cancelText: 'No',
+        onOk: async () => {
+          try {
+            setLoading(true);
+            await notificationService.unsendNotification(notificationId, user.id);
+            message.success('Notification unsent successfully');
+            fetchSentNotifications(); // Refresh the list
+          } catch (error) {
+            console.error('Error unsending notification:', error);
+            message.error('Failed to unsend notification');
+          } finally {
+            setLoading(false);
+          }
+        }
+      });
+    };
+
+    // Handle delete notification
+    const handleDeleteNotification = async (notificationId) => {
+      Modal.confirm({
+        title: 'Delete Notification',
+        content: 'Are you sure you want to delete this notification? This action cannot be undone.',
+        okText: 'Yes, Delete',
+        okType: 'danger',
+        cancelText: 'No',
+        onOk: async () => {
+          try {
+            setLoading(true);
+            await notificationService.deleteNotification(notificationId, user.id);
+            message.success('Notification deleted successfully');
+            fetchSentNotifications(); // Refresh the list
+          } catch (error) {
+            console.error('Error deleting notification:', error);
+            message.error('Failed to delete notification');
+          } finally {
+            setLoading(false);
+          }
+        }
+      });
+    };
+
+    return (
+      <div style={{ padding: '16px 0' }}>
+        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+          <Input
+            placeholder="Search notifications..."
+            prefix={<SearchOutlined />}
+            value={sentSearchText}
+            onChange={(e) => setSentSearchText(e.target.value)}
+            allowClear
+            style={{ width: 'calc(100% - 100px)' }}
+          />
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={fetchSentNotifications}
+            loading={loadingSent}
+          >
+            Refresh
+          </Button>
+        </div>
+        
+        <List
+          loading={loadingSent}
+          locale={{ emptyText: 'No notifications found' }}
+          itemLayout="horizontal"
+          dataSource={filteredSentNotifications}
+          pagination={{
+            onChange: (page) => {
+              setPage(page);
+            },
+            pageSize: pageSize,
+            showSizeChanger: true,
+            onShowSizeChange: (current, size) => {
+              setPage(1);
+              setPageSize(size);
+            },
+          }}
+          renderItem={(item) => (
+            <List.Item
+              actions={[
+                <Button 
+                  key="view" 
+                  type="link"
+                  icon={<EyeOutlined />}
+                  onClick={() => viewNotificationDetails(item)}
+                >
+                  View
+                </Button>,
+                <Button 
+                  key="unsend" 
+                  type="link" 
+                  danger
+                  onClick={() => handleUnsendNotification(item.id)}
+                  disabled={item.unsent}
+                >
+                  Unsend
+                </Button>,
+                <Button 
+                  key="delete" 
+                  type="link" 
+                  danger
+                  onClick={() => handleDeleteNotification(item.id)}
+                >
+                  Delete
+                </Button>
+              ]}
+            >
+              <List.Item.Meta
+                title={
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <Text strong>{item.title}</Text>
+                      {item.unsent && (
+                        <Tag color="red" style={{ marginLeft: '8px' }}>
+                          Unsent
+                        </Tag>
+                      )}
+                      {!item.unsent && (
+                        <Tag color="green" style={{ marginLeft: '8px' }}>
+                          Active
+                        </Tag>
+                      )}
+                    </div>
+                    <Text type="secondary">{formatDate(item.createdAt)}</Text>
+                  </div>
+                }
+                description={
+                  <div>
+                    <Text ellipsis={{ rows: 2 }}>{item.content}</Text>
+                    <div style={{ marginTop: 8 }}>
+                      <Text type="secondary">
+                        Sent to: {item.recipientType === 'INDIVIDUAL' ? 'Individual Users' : 
+                                 item.recipientType === 'CLASS' ? 'Classes' : 
+                                 item.recipientType === 'ALL_STUDENTS' ? 'All Students' :
+                                 item.recipientType === 'ALL_OUTSRC_STUDENTS' ? 'All Outsource Students' :
+                                 item.recipientType === 'ALL_LECTURERS' ? 'All Lecturers' : 'Everyone'}
+                      </Text>
+                    </div>
+                    {item.attachmentPath && (
+                      <div style={{ marginTop: 4 }}>
+                        <Text type="secondary">
+                          {item.attachmentType === 'image' ? '📷' : '📎'} Attachment
+                        </Text>
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </div>
+    );
+  };
+
+  // Render recipient selection based on recipient type
   const renderRecipientSelection = () => {
     switch (recipientType) {
       case 'INDIVIDUAL':
         return (
-          <div>
+          <div className="recipient-selection">
             <Input
-              placeholder="Search users by name or email"
+              placeholder="Search users..."
               prefix={<SearchOutlined />}
               value={searchText}
-              onChange={e => setSearchText(e.target.value)}
+              onChange={(e) => setSearchText(e.target.value)}
               style={{ marginBottom: 16 }}
             />
-            {loadingUsers ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-                <div style={{ marginTop: 16 }}>Loading users data...</div>
-              </div>
-            ) : filteredUsers.length === 0 && allUsers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <Alert 
-                  message="Failed to load users" 
-                  description="Unable to retrieve user data" 
-                  type="error" 
-                  showIcon 
-                  style={{ marginBottom: 16 }}
+            <div className="user-list" style={styles.userList}>
+              {loadingUsers ? (
+                <div className="loading-container" style={styles.loadingContainer}>
+                  <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                </div>
+              ) : (
+                <List
+                  dataSource={filteredUsers}
+                  renderItem={user => (
+                    <List.Item 
+                      onClick={() => handleUserSelection(user.id)}
+                      style={selectedUsers.includes(user.id) ? styles.selectedUser : {}}
+                    >
+                      <Checkbox checked={selectedUsers.includes(user.id)} />
+                      <List.Item.Meta
+                        avatar={<Avatar src={user.profileImageUrl || '/images/default-avatar.svg'} />}
+                        title={user.fullName || user.username}
+                        description={user.email}
+                      />
+                    </List.Item>
+                  )}
                 />
-                <Button 
-                  type="primary" 
-                  onClick={fetchUsers} 
-                  icon={<LoadingOutlined />}
-                >
-                  Retry
-                </Button>
-              </div>
-            ) : (
-              <List
-                bordered
-                dataSource={filteredUsers}
-                locale={{ emptyText: 'No users found' }}
-                renderItem={user => (
-                  <List.Item
-                    key={user.id}
-                    onClick={() => handleUserSelection(user.id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <Checkbox checked={selectedUsers.includes(user.id)} />
-                    <Avatar src={user.profilePicture} style={{ marginLeft: 8 }}>
-                      {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
-                    </Avatar>
-                    <span style={{ marginLeft: 8 }}>
-                      {user.username} {user.email ? `(${user.email})` : ''}
-                    </span>
-                  </List.Item>
-                )}
-              />
-            )}
-            {selectedUsers.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <Text>Selected Users: {selectedUsers.length}</Text>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         );
-      
       case 'CLASS':
         return (
-          <div>
+          <div className="class-selection">
             {loadingClasses ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="loading-container" style={styles.loadingContainer}>
                 <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-                <div style={{ marginTop: 16 }}>Loading classes data...</div>
-              </div>
-            ) : classes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <Alert 
-                  message="Failed to load classes" 
-                  description="Unable to retrieve class data" 
-                  type="error" 
-                  showIcon 
-                  style={{ marginBottom: 16 }}
-                />
-                <Button 
-                  type="primary" 
-                  onClick={fetchClasses} 
-                  icon={<LoadingOutlined />}
-                >
-                  Retry
-                </Button>
               </div>
             ) : (
-              <List
-                bordered
-                dataSource={classes}
-                locale={{ emptyText: 'No classes found' }}
-                renderItem={classItem => (
-                  <List.Item
-                    key={classItem.id}
-                    style={{ display: 'block', padding: 0 }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '12px 24px',
-                        cursor: 'pointer'
-                      }}
+              <Collapse 
+                accordion
+                activeKey={expandedClass}
+                onChange={(key) => key && handleClassExpansion(key)}
               >
-                      <Checkbox
-                        checked={selectedClasses.includes(classItem.id)}
-                        onChange={(e) => handleClassSelection(classItem.id, e.target.checked)}
-                      />
-                      <div
-                        style={{ marginLeft: 8, flex: 1 }}
-                        onClick={() => handleClassExpansion(classItem.id)}
-                      >
-                        {classItem.name} ({classItem.code})
+                {classes.map(classObj => (
+                  <Panel 
+                    key={classObj.classId}
+                    header={
+                      <div style={styles.classHeader}>
+                        <Checkbox 
+                          checked={selectedClasses.includes(classObj.classId)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleClassSelection(classObj.classId, e.target.checked);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span style={styles.className}>{classObj.className}</span>
+                        <span style={styles.classInfo}>
+                          {classObj.department || (classObj.academicMajor && classObj.academicMajor.name) || 'No Department'} | 
+                          {classObj.semester || (classObj.term && classObj.term.name) || 'No Term'}
+                        </span>
                       </div>
-                    </div>
-                    
-                    {expandedClass === classItem.id && (
-                      <div style={{ padding: '0 24px 12px 48px' }}>
-                        {classStudents[classItem.id] ? (
-                          classStudents[classItem.id].length > 0 ? (
-                            <>
-                              <Text type="secondary">Select specific students:</Text>
-                              <List
-                                size="small"
-                                dataSource={classStudents[classItem.id]}
-                                renderItem={student => (
-                                  <List.Item key={student.id}>
-                                    <Checkbox
-                                      checked={
-                                        selectedStudents[classItem.id] &&
-                                        selectedStudents[classItem.id].includes(student.id)
-                                      }
-                                      onChange={(e) => handleStudentSelection(
-                                        classItem.id, student.id, e.target.checked
-                                      )}
-                                    />
-                                    <span style={{ marginLeft: 8 }}>
-                                      {student.username} {student.email ? `(${student.email})` : ''}
-                                    </span>
-                                  </List.Item>
-                                )}
-                              />
-                            </>
-                          ) : (
-                            <Text type="secondary">No students in this class</Text>
-                          )
-                        ) : (
-                          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                            <Spin indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} />
-                            <div style={{ marginTop: 8 }}>Loading students...</div>
+                    }
+                  >
+                    {loading && expandedClass === classObj.classId ? (
+                      <div style={styles.loadingContainer}>
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                      </div>
+                    ) : (
+                      <div style={styles.studentList}>
+                        <div style={styles.selectAll}>
+                          <Checkbox 
+                            checked={
+                              classStudents[classObj.classId] && 
+                              selectedStudents[classObj.classId] && 
+                              classStudents[classObj.classId].length === selectedStudents[classObj.classId].length
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedStudents(prev => ({
+                                  ...prev,
+                                  [classObj.classId]: classStudents[classObj.classId].map(s => s.id)
+                                }));
+                              } else {
+                                setSelectedStudents(prev => ({
+                                  ...prev,
+                                  [classObj.classId]: []
+                                }));
+                              }
+                            }}
+                          >
+                            Select All Students
+                          </Checkbox>
+                        </div>
+                        {classStudents[classObj.classId]?.map(student => (
+                          <div key={student.id} style={styles.studentItem}>
+                            <Checkbox 
+                              checked={selectedStudents[classObj.classId]?.includes(student.id)}
+                              onChange={(e) => handleStudentSelection(classObj.classId, student.id, e.target.checked)}
+                            />
+                            <Avatar src={student.profileImageUrl || '/images/default-avatar.svg'} />
+                            <div style={styles.studentInfo}>
+                              <div style={styles.studentName}>{student.fullName || student.username}</div>
+                              <div style={styles.studentEmail}>{student.email}</div>
+                            </div>
                           </div>
+                        ))}
+                        {classStudents[classObj.classId]?.length === 0 && (
+                          <div style={styles.noStudents}>No students in this class</div>
                         )}
                       </div>
                     )}
-                  </List.Item>
-                )}
-              />
-            )}
-            {selectedClasses.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <Text>Selected Classes: {selectedClasses.length}</Text>
-              </div>
+                  </Panel>
+                ))}
+              </Collapse>
             )}
           </div>
         );
-      
+      case 'ALL_STUDENTS':
+      case 'ALL_OUTSRC_STUDENTS':
+      case 'ALL_LECTURERS':
+      case 'ALL':
+        return (
+          <Alert
+            message={`Notification will be sent to all ${recipientType === 'ALL_STUDENTS' ? 'students' : 
+              recipientType === 'ALL_OUTSRC_STUDENTS' ? 'outsource students' : 
+              recipientType === 'ALL_LECTURERS' ? 'lecturers' : 'users'}`}
+            type="info"
+          />
+        );
       default:
         return null;
     }
   };
 
+  // Render the component
   return (
-    <Card title={<Title level={4}>Create Notification</Title>} style={{ width: '100%' }}>
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        {/* Title */}
-        <Form.Item
-          name="title"
-          label="Title"
-          rules={[{ required: true, message: 'Please enter a title' }]}
-        >
-          <Input placeholder="Notification title" />
-        </Form.Item>
-        
-        {/* Content */}
-        <Form.Item
-          name="content"
-          label={
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-              <span>Content (Supports Markdown)</span>
-              <Button type="link" onClick={handlePreview}>
-                {previewVisible ? 'Edit' : 'Preview'}
-              </Button>
-            </div>
-          }
-          rules={[{ required: true, message: 'Please enter content' }]}
-        >
-          {previewVisible ? (
-            <div
-              className="markdown-preview"
-              style={{
-                border: '1px solid #d9d9d9',
-                borderRadius: '2px',
-                padding: '16px',
-                minHeight: '200px'
+    <Modal
+      //title="Notifications"
+      open={visible}
+      onCancel={onClose}
+      width={800}
+      footer={null}
+      destroyOnClose={true}
+    >
+      <Tabs activeKey={activeTab} onChange={handleTabChange}>
+        <TabPane tab="Create Notification" key="create">
+          <div style={styles.container}>
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmit}
+              initialValues={{
+                recipientType: 'INDIVIDUAL',
+                sendEmail: false
               }}
             >
-              <ReactMarkdown>{previewContent}</ReactMarkdown>
-            </div>
-          ) : (
-            <TextArea
-              rows={6}
-              placeholder="Notification content (supports Markdown formatting)"
-            />
-          )}
-        </Form.Item>
+              {/* Notification Content */}
+              <div style={styles.formSection}>
+                <Title level={5}>Notification Content</Title>
+                
+                <Form.Item
+                  name="title"
+                  label="Title"
+                  rules={[{ required: true, message: 'Please enter a title' }]}
+                >
+                  <Input placeholder="Enter notification title" maxLength={100} />
+                </Form.Item>
+                
+                <Form.Item
+                  name="content"
+                  label="Content"
+                  rules={[{ required: true, message: 'Please enter content' }]}
+                >
+                  <TextArea 
+                    placeholder="Enter notification content (supports markdown)" 
+                    rows={4} 
+                    onChange={(e) => setPreviewContent(e.target.value)}
+                  />
+                </Form.Item>
+                
+                <Form.Item
+                  name="attachment"
+                  label="Attachment (Optional)"
+                >
+                  <Upload
+                    beforeUpload={() => false}
+                    maxCount={1}
+                    fileList={fileList}
+                    onChange={handleFileChange}
+                  >
+                    <Button icon={<UploadOutlined />}>Select File</Button>
+                  </Upload>
+                </Form.Item>
+                
+                {previewContent && (
+                  <div style={styles.previewCard}>
+                    <Card 
+                      size="small"
+                      title="Content Preview" 
+                      extra={
+                        <Button 
+                          type="text" 
+                          onClick={() => setPreviewVisible(!previewVisible)}
+                        >
+                          {previewVisible ? 'Hide' : 'Show'}
+                        </Button>
+                      }
+                    >
+                      {previewVisible && (
+                        <div className="markdown-preview">
+                          <ReactMarkdown>{previewContent}</ReactMarkdown>
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                )}
+              </div>
+              
+              {/* Recipient Selection */}
+              <div style={styles.formSection}>
+                <Title level={5}>Send to</Title>
+                
+                <Form.Item
+                  name="recipientType"
+                  
+                  rules={[{ required: true, message: 'Please select recipient type' }]}
+                >
+                  <Radio.Group onChange={(e) => setRecipientType(e.target.value)}>
+                    <Radio value="INDIVIDUAL">Specific User(s)</Radio>
+                    <Radio value="CLASS">Class(es)</Radio>
+                    <Radio value="ALL_STUDENTS">All Students</Radio>
+                    <Radio value="ALL_OUTSRC_STUDENTS">All Outsource Students</Radio>
+                    <Radio value="ALL_LECTURERS">All Lecturers</Radio>
+                    <Radio value="ALL">Everyone</Radio>
+                  </Radio.Group>
+                </Form.Item>
+                
+                <div style={styles.recipientSelection}>
+                  {renderRecipientSelection()}
+                </div>
+              </div>
+              
+              {/* Options */}
+              <div style={styles.formSection}>
+                <Title level={5}>Options</Title>
+                
+                <Form.Item
+                  name="sendEmail"
+                  valuePropName="checked"
+                >
+                  <Checkbox>Also send as email</Checkbox>
+                </Form.Item>
+              </div>
+              
+              {/* Submit Button */}
+              <div style={styles.modalFooter}>
+                <Button onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  icon={<SendOutlined />}
+                  loading={submitting}
+                >
+                  Send Notification
+                </Button>
+              </div>
+            </Form>
+          </div>
+        </TabPane>
         
-        {/* Attachment */}
-        <Form.Item
-          name="attachment"
-          label="Attachment (Optional)"
-        >
-          <Upload
-            beforeUpload={() => false}
-            maxCount={1}
-            fileList={fileList}
-            onChange={handleFileChange}
-          >
-            <Button icon={<UploadOutlined />}>Upload File</Button>
-          </Upload>
-        </Form.Item>
-        
-        <Divider />
-        
-        {/* Recipient Selection */}
-        <Form.Item
-          name="recipientType"
-          label="Send To"
-          initialValue={recipientType}
-        >
-          <Radio.Group
-            onChange={(e) => setRecipientType(e.target.value)}
-            value={recipientType}
-          >
-            <Radio value="INDIVIDUAL">Specific User(s)</Radio>
-            <Radio value="CLASS">Class(es)</Radio>
-            <Radio value="ALL_STUDENTS">All Students</Radio>
-            <Radio value="ALL_OUTSRC_STUDENTS">All Outsource Students</Radio>
-            <Radio value="ALL_LECTURERS">All Lecturers</Radio>
-            <Radio value="ALL">Everyone</Radio>
-          </Radio.Group>
-        </Form.Item>
-        
-        {/* Recipient selection based on type */}
-        <Form.Item name="recipientIds">
-          {renderRecipientSelection()}
-        </Form.Item>
-        
-        {/* Send Email Option */}
-        <Form.Item name="sendEmail" valuePropName="checked">
-          <Checkbox>Also send via email (if available)</Checkbox>
-        </Form.Item>
-        
-        <Divider />
-        
-        {/* Submit Button */}
-        <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={submitting}
-            icon={<SendOutlined />}
-            size="large"
-            style={{ marginRight: 8 }}
-          >
-            Send Notification
-          </Button>
-          <Button
-            htmlType="button"
-            onClick={() => {
-              form.resetFields();
-              setFileList([]);
-              setSelectedClasses([]);
-              setSelectedUsers([]);
-              setSelectedStudents({});
-            }}
-          >
-            Reset
-          </Button>
-        </Form.Item>
-      </Form>
-    </Card>
+        <TabPane tab="Sent Notifications" key="sent">
+          {renderSentNotifications()}
+        </TabPane>
+      </Tabs>
+      
+      {/* Notification detail modal */}
+      {renderNotificationDetailModal()}
+    </Modal>
   );
 };
 

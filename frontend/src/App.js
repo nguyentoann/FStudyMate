@@ -319,15 +319,15 @@ function App() {
                     path="/notifications"
                     element={
                       <ProtectedRoute>
-                        <NotificationTestPage defaultTab="2" />
+                        <NotificationTestPage />
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="/create-notification"
+                    path="/admin/notifications"
                     element={
-                      <ProtectedRoute allowedRoles={["admin", "lecturer", "ADMIN", "LECTURER"]}>
-                        <NotificationTestPage defaultTab="1" />
+                      <ProtectedRoute allowedRoles={["admin", "lecturer"]}>
+                        <NotificationTestPage />
                       </ProtectedRoute>
                     }
                   />
