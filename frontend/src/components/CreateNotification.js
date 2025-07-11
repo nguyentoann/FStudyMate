@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Form, Input, Button, Select, Radio, Card, Typography, Divider, Upload, 
+import {
+  Form, Input, Button, Select, Radio, Card, Typography, Divider, Upload,
   Collapse, List, Checkbox, Avatar, Spin, message, Space, Alert, Modal, Tabs, Tag
 } from 'antd';
-import { 
-  UploadOutlined, SearchOutlined, SendOutlined, SaveOutlined, 
-  LoadingOutlined, EyeOutlined, ReloadOutlined 
+import {
+  UploadOutlined, SearchOutlined, SendOutlined, SaveOutlined,
+  LoadingOutlined, EyeOutlined, ReloadOutlined,
+  BoldOutlined
 } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../context/AuthContext';
@@ -132,12 +133,15 @@ const CreateNotification = ({ visible, onClose }) => {
   const [pageSize, setPageSize] = useState(10);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
-  
+
   // Fetch classes and users when modal becomes visible
   useEffect(() => {
     if (visible) {
       if (activeTab === 'create') {
         fetchClasses();
+        if (allUsers.length === 0) {
+          fetchUsers();
+        }
       } else if (activeTab === 'sent') {
         fetchSentNotifications();
       }
@@ -163,7 +167,7 @@ const CreateNotification = ({ visible, onClose }) => {
     const timer = setTimeout(() => {
       setSearchTextDebounced(searchText);
     }, 300); // 300ms delay
-    
+
     return () => clearTimeout(timer);
   }, [searchText]);
 
@@ -174,7 +178,7 @@ const CreateNotification = ({ visible, onClose }) => {
     } else {
       const searchLower = searchTextDebounced.toLowerCase();
       const filtered = allUsers.filter(
-        user => 
+        user =>
           (user.username && user.username.toLowerCase().includes(searchLower)) ||
           (user.email && user.email.toLowerCase().includes(searchLower)) ||
           (user.fullName && user.fullName.toLowerCase().includes(searchLower))
@@ -187,7 +191,7 @@ const CreateNotification = ({ visible, onClose }) => {
   useEffect(() => {
     if (sentSearchText) {
       const filtered = sentNotifications.filter(
-        notification => 
+        notification =>
           notification.title.toLowerCase().includes(sentSearchText.toLowerCase()) ||
           notification.content.toLowerCase().includes(sentSearchText.toLowerCase())
       );
@@ -230,14 +234,14 @@ const CreateNotification = ({ visible, onClose }) => {
     try {
       setLoadingUsers(true);
       // First fetch with pagination
-      const response = await apiHelper.get('/user', { 
-        params: { 
+      const response = await apiHelper.get('/user', {
+        params: {
           role: 'ALL',
           page: 0,
           size: 100 // Fetch first 100 users
-        } 
+        }
       });
-      
+
       if (response.data && Array.isArray(response.data)) {
         setAllUsers(response.data);
         setFilteredUsers(response.data);
@@ -264,19 +268,19 @@ const CreateNotification = ({ visible, onClose }) => {
   // Load more users
   const loadMoreUsers = async () => {
     if (loadingMoreUsers) return;
-    
+
     try {
       setLoadingMoreUsers(true);
       const nextPage = currentUserPage + 1;
-      
-      const response = await apiHelper.get('/user', { 
-        params: { 
+
+      const response = await apiHelper.get('/user', {
+        params: {
           role: 'ALL',
           page: nextPage,
           size: 100
-        } 
+        }
       });
-      
+
       if (response.data && Array.isArray(response.data)) {
         if (response.data.length > 0) {
           setAllUsers(prev => [...prev, ...response.data]);
@@ -300,7 +304,7 @@ const CreateNotification = ({ visible, onClose }) => {
   // Fetch sent notifications
   const fetchSentNotifications = async () => {
     if (!user?.id) return;
-    
+
     try {
       setLoadingSent(true);
       const response = await notificationService.getSentNotifications(user.id);
@@ -317,7 +321,7 @@ const CreateNotification = ({ visible, onClose }) => {
   // Fetch students in a class
   const fetchClassStudents = async (classId) => {
     if (classStudents[classId]) return;
-    
+
     try {
       setLoading(true);
       const response = await apiHelper.get(`/classes/${classId}/students`);
@@ -396,7 +400,7 @@ const CreateNotification = ({ visible, onClose }) => {
 
       // Prepare recipient IDs based on recipient type
       let recipientIds = [];
-      
+
       switch (recipientType) {
         case 'INDIVIDUAL':
           recipientIds = selectedUsers;
@@ -410,7 +414,7 @@ const CreateNotification = ({ visible, onClose }) => {
               recipientIds = [...recipientIds, ...selectedStudents[classId]];
             }
           });
-          
+
           if (!hasSelectedStudents) {
             recipientIds = selectedClasses;
           }
@@ -429,17 +433,17 @@ const CreateNotification = ({ visible, onClose }) => {
         formData.append('senderId', user.id);
         formData.append('recipientType', recipientType);
         formData.append('sendEmail', values.sendEmail || false);
-        
+
         if (recipientIds.length > 0) {
           recipientIds.forEach(id => {
             formData.append('recipientIds', id);
           });
         }
-        
+
         if (fileList[0].originFileObj) {
           formData.append('attachment', fileList[0].originFileObj);
         }
-        
+
         await notificationService.createNotificationWithAttachment(formData);
       } else {
         // Create notification without attachment
@@ -452,13 +456,13 @@ const CreateNotification = ({ visible, onClose }) => {
           sendEmail: values.sendEmail || false
         });
       }
-      
+
       message.success('Notification sent successfully');
-      
+
       // Reset form and close modal
       resetForm();
       onClose();
-      
+
     } catch (error) {
       console.error('Error sending notification:', error);
       message.error('Failed to send notification');
@@ -475,7 +479,7 @@ const CreateNotification = ({ visible, onClose }) => {
   // Handle tab change
   const handleTabChange = (key) => {
     setActiveTab(key);
-    
+
     // Load data based on tab
     if (key === 'create' && allUsers.length === 0) {
       fetchUsers();
@@ -530,12 +534,12 @@ const CreateNotification = ({ visible, onClose }) => {
               <div style={{ marginTop: '16px' }}>
                 <Text strong>Attachment:</Text>
                 <div>
-                  <a 
-                    href={`/api/notifications/${selectedNotification.id}/attachment`} 
-                    target="_blank" 
+                  <a
+                    href={`/api/notifications/${selectedNotification.id}/attachment`}
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {selectedNotification.attachmentType === 'image' ? '📷' : '📎'} 
+                    {selectedNotification.attachmentType === 'image' ? '📷' : '📎'}
                     Download attachment
                   </a>
                 </div>
@@ -543,13 +547,13 @@ const CreateNotification = ({ visible, onClose }) => {
             )}
             <Divider style={{ margin: '16px 0' }} />
             <div>
-              <Text strong>Recipient Type:</Text> 
+              <Text strong>Recipient Type:</Text>
               <Text> {
-                selectedNotification.recipientType === 'INDIVIDUAL' ? 'Individual Users' : 
-                selectedNotification.recipientType === 'CLASS' ? 'Classes' : 
-                selectedNotification.recipientType === 'ALL_STUDENTS' ? 'All Students' :
-                selectedNotification.recipientType === 'ALL_OUTSRC_STUDENTS' ? 'All Outsource Students' :
-                selectedNotification.recipientType === 'ALL_LECTURERS' ? 'All Lecturers' : 'Everyone'
+                selectedNotification.recipientType === 'INDIVIDUAL' ? 'Individual Users' :
+                  selectedNotification.recipientType === 'CLASS' ? 'Classes' :
+                    selectedNotification.recipientType === 'ALL_STUDENTS' ? 'All Students' :
+                      selectedNotification.recipientType === 'ALL_OUTSRC_STUDENTS' ? 'All Outsource Students' :
+                        selectedNotification.recipientType === 'ALL_LECTURERS' ? 'All Lecturers' : 'Everyone'
               }</Text>
             </div>
           </div>
@@ -619,15 +623,15 @@ const CreateNotification = ({ visible, onClose }) => {
             allowClear
             style={{ width: 'calc(100% - 100px)' }}
           />
-          <Button 
-            icon={<ReloadOutlined />} 
+          <Button
+            icon={<ReloadOutlined />}
             onClick={fetchSentNotifications}
             loading={loadingSent}
           >
             Refresh
           </Button>
         </div>
-        
+
         <List
           loading={loadingSent}
           locale={{ emptyText: 'No notifications found' }}
@@ -647,26 +651,26 @@ const CreateNotification = ({ visible, onClose }) => {
           renderItem={(item) => (
             <List.Item
               actions={[
-                <Button 
-                  key="view" 
+                <Button
+                  key="view"
                   type="link"
                   icon={<EyeOutlined />}
                   onClick={() => viewNotificationDetails(item)}
                 >
                   View
                 </Button>,
-                <Button 
-                  key="unsend" 
-                  type="link" 
+                <Button
+                  key="unsend"
+                  type="link"
                   danger
                   onClick={() => handleUnsendNotification(item.id)}
                   disabled={item.unsent}
                 >
                   Unsend
                 </Button>,
-                <Button 
-                  key="delete" 
-                  type="link" 
+                <Button
+                  key="delete"
+                  type="link"
                   danger
                   onClick={() => handleDeleteNotification(item.id)}
                 >
@@ -698,11 +702,11 @@ const CreateNotification = ({ visible, onClose }) => {
                     <Text ellipsis={{ rows: 2 }}>{item.content}</Text>
                     <div style={{ marginTop: 8 }}>
                       <Text type="secondary">
-                        Sent to: {item.recipientType === 'INDIVIDUAL' ? 'Individual Users' : 
-                                 item.recipientType === 'CLASS' ? 'Classes' : 
-                                 item.recipientType === 'ALL_STUDENTS' ? 'All Students' :
-                                 item.recipientType === 'ALL_OUTSRC_STUDENTS' ? 'All Outsource Students' :
-                                 item.recipientType === 'ALL_LECTURERS' ? 'All Lecturers' : 'Everyone'}
+                        Sent to: {item.recipientType === 'INDIVIDUAL' ? 'Individual Users' :
+                          item.recipientType === 'CLASS' ? 'Classes' :
+                            item.recipientType === 'ALL_STUDENTS' ? 'All Students' :
+                              item.recipientType === 'ALL_OUTSRC_STUDENTS' ? 'All Outsource Students' :
+                                item.recipientType === 'ALL_LECTURERS' ? 'All Lecturers' : 'Everyone'}
                       </Text>
                     </div>
                     {item.attachmentPath && (
@@ -745,14 +749,14 @@ const CreateNotification = ({ visible, onClose }) => {
                   <List
                     dataSource={filteredUsers}
                     renderItem={user => (
-                      <List.Item 
+                      <List.Item
                         onClick={() => handleUserSelection(user.id)}
                         style={selectedUsers.includes(user.id) ? styles.selectedUser : {}}
                       >
-                        <Checkbox checked={selectedUsers.includes(user.id)} />
+                        <Checkbox checked={selectedUsers.includes(user.id)} style={{ marginLeft: '20px' }} />
                         <List.Item.Meta
-                          avatar={<Avatar src={user.profileImageUrl || '/images/default-avatar.svg'} />}
-                          title={user.fullName || user.username}
+                          avatar={<Avatar src={user.profileImageUrl || '/images/default-avatar.svg'} style={{ marginTop: '4px', marginLeft: '10px', height: '40px', width: '40px' }} />}
+                          title={<Text strong>{user.fullName || user.username}</Text>}
                           description={user.email}
                         />
                       </List.Item>
@@ -765,10 +769,10 @@ const CreateNotification = ({ visible, onClose }) => {
                     }}
                     locale={{ emptyText: 'No users found' }}
                   />
-                  
+
                   {allUsers.length < totalUsers && (
                     <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                      <Button 
+                      <Button
                         onClick={loadMoreUsers}
                         loading={loadingMoreUsers}
                         type="link"
@@ -785,9 +789,9 @@ const CreateNotification = ({ visible, onClose }) => {
                 {selectedUsers.length} user(s) selected
               </Text>
               {selectedUsers.length > 0 && (
-                <Button 
-                  type="link" 
-                  size="small" 
+                <Button
+                  type="link"
+                  size="small"
                   onClick={() => setSelectedUsers([])}
                 >
                   Clear
@@ -804,17 +808,17 @@ const CreateNotification = ({ visible, onClose }) => {
                 <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
               </div>
             ) : (
-              <Collapse 
+              <Collapse
                 accordion
                 activeKey={expandedClass}
                 onChange={(key) => key && handleClassExpansion(key)}
               >
                 {classes.map(classObj => (
-                  <Panel 
+                  <Panel
                     key={classObj.classId}
                     header={
                       <div style={styles.classHeader}>
-                        <Checkbox 
+                        <Checkbox
                           checked={selectedClasses.includes(classObj.classId)}
                           onChange={(e) => {
                             e.stopPropagation();
@@ -824,7 +828,7 @@ const CreateNotification = ({ visible, onClose }) => {
                         />
                         <span style={styles.className}>{classObj.className}</span>
                         <span style={styles.classInfo}>
-                          {classObj.department || (classObj.academicMajor && classObj.academicMajor.name) || 'No Department'} | 
+                          {classObj.department || (classObj.academicMajor && classObj.academicMajor.name) || 'No Department'} |
                           {classObj.semester || (classObj.term && classObj.term.name) || 'No Term'}
                         </span>
                       </div>
@@ -837,10 +841,10 @@ const CreateNotification = ({ visible, onClose }) => {
                     ) : (
                       <div style={styles.studentList}>
                         <div style={styles.selectAll}>
-                          <Checkbox 
+                          <Checkbox
                             checked={
-                              classStudents[classObj.classId] && 
-                              selectedStudents[classObj.classId] && 
+                              classStudents[classObj.classId] &&
+                              selectedStudents[classObj.classId] &&
                               classStudents[classObj.classId].length === selectedStudents[classObj.classId].length
                             }
                             onChange={(e) => {
@@ -862,7 +866,7 @@ const CreateNotification = ({ visible, onClose }) => {
                         </div>
                         {classStudents[classObj.classId]?.map(student => (
                           <div key={student.id} style={styles.studentItem}>
-                            <Checkbox 
+                            <Checkbox
                               checked={selectedStudents[classObj.classId]?.includes(student.id)}
                               onChange={(e) => handleStudentSelection(classObj.classId, student.id, e.target.checked)}
                             />
@@ -890,9 +894,9 @@ const CreateNotification = ({ visible, onClose }) => {
       case 'ALL':
         return (
           <Alert
-            message={`Notification will be sent to all ${recipientType === 'ALL_STUDENTS' ? 'students' : 
-              recipientType === 'ALL_OUTSRC_STUDENTS' ? 'outsource students' : 
-              recipientType === 'ALL_LECTURERS' ? 'lecturers' : 'users'}`}
+            message={`Notification will be sent to all ${recipientType === 'ALL_STUDENTS' ? 'students' :
+              recipientType === 'ALL_OUTSRC_STUDENTS' ? 'outsource students' :
+                recipientType === 'ALL_LECTURERS' ? 'lecturers' : 'users'}`}
             type="info"
           />
         );
@@ -926,7 +930,7 @@ const CreateNotification = ({ visible, onClose }) => {
               {/* Notification Content */}
               <div style={styles.formSection}>
                 <Title level={5}>Notification Content</Title>
-                
+
                 <Form.Item
                   name="title"
                   label="Title"
@@ -934,19 +938,19 @@ const CreateNotification = ({ visible, onClose }) => {
                 >
                   <Input placeholder="Enter notification title" maxLength={100} />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="content"
                   label="Content"
                   rules={[{ required: true, message: 'Please enter content' }]}
                 >
-                  <TextArea 
-                    placeholder="Enter notification content (supports markdown)" 
-                    rows={4} 
+                  <TextArea
+                    placeholder="Enter notification content (supports markdown)"
+                    rows={4}
                     onChange={(e) => setPreviewContent(e.target.value)}
                   />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="attachment"
                   label="Attachment (Optional)"
@@ -960,15 +964,15 @@ const CreateNotification = ({ visible, onClose }) => {
                     <Button icon={<UploadOutlined />}>Select File</Button>
                   </Upload>
                 </Form.Item>
-                
+
                 {previewContent && (
                   <div style={styles.previewCard}>
-                    <Card 
+                    <Card
                       size="small"
-                      title="Content Preview" 
+                      title="Content Preview"
                       extra={
-                        <Button 
-                          type="text" 
+                        <Button
+                          type="text"
                           onClick={() => setPreviewVisible(!previewVisible)}
                         >
                           {previewVisible ? 'Hide' : 'Show'}
@@ -984,14 +988,14 @@ const CreateNotification = ({ visible, onClose }) => {
                   </div>
                 )}
               </div>
-              
+
               {/* Recipient Selection */}
               <div style={styles.formSection}>
                 <Title level={5}>Send to</Title>
-                
+
                 <Form.Item
                   name="recipientType"
-                  
+
                   rules={[{ required: true, message: 'Please select recipient type' }]}
                 >
                   <Radio.Group onChange={(e) => setRecipientType(e.target.value)}>
@@ -1003,16 +1007,16 @@ const CreateNotification = ({ visible, onClose }) => {
                     <Radio value="ALL">Everyone</Radio>
                   </Radio.Group>
                 </Form.Item>
-                
+
                 <div style={styles.recipientSelection}>
                   {renderRecipientSelection()}
                 </div>
               </div>
-              
+
               {/* Options */}
               <div style={styles.formSection}>
                 <Title level={5}>Options</Title>
-                
+
                 <Form.Item
                   name="sendEmail"
                   valuePropName="checked"
@@ -1020,15 +1024,15 @@ const CreateNotification = ({ visible, onClose }) => {
                   <Checkbox>Also send as email</Checkbox>
                 </Form.Item>
               </div>
-              
+
               {/* Submit Button */}
               <div style={styles.modalFooter}>
                 <Button onClick={onClose}>
                   Cancel
                 </Button>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
+                <Button
+                  type="primary"
+                  htmlType="submit"
                   icon={<SendOutlined />}
                   loading={submitting}
                 >
@@ -1038,12 +1042,12 @@ const CreateNotification = ({ visible, onClose }) => {
             </Form>
           </div>
         </TabPane>
-        
+
         <TabPane tab="Sent Notifications" key="sent">
           {renderSentNotifications()}
         </TabPane>
       </Tabs>
-      
+
       {/* Notification detail modal */}
       {renderNotificationDetailModal()}
     </Modal>
