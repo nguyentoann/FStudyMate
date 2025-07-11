@@ -8,6 +8,7 @@ public class NotificationResponse {
     private String content;
     private Integer senderId;
     private String senderName;
+    private String senderProfileImage;
     private LocalDateTime createdAt;
     private boolean isRead;
     private LocalDateTime readAt;
@@ -58,6 +59,14 @@ public class NotificationResponse {
     
     public void setSenderName(String senderName) {
         this.senderName = senderName;
+    }
+    
+    public String getSenderProfileImage() {
+        return senderProfileImage;
+    }
+    
+    public void setSenderProfileImage(String senderProfileImage) {
+        this.senderProfileImage = senderProfileImage;
     }
     
     public LocalDateTime getCreatedAt() {

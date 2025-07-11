@@ -574,6 +574,11 @@ public class NotificationServiceImpl implements NotificationService {
         response.setAttachmentType(notification.getAttachmentName());
         response.setUnsent(notification.isUnsent());
         
+        // Add sender profile image URL
+        if (notification.getSender() != null) {
+            response.setSenderProfileImage(notification.getSender().getProfileImageUrl());
+        }
+        
         return response;
     }
 } 

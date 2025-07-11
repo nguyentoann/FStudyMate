@@ -1,0 +1,253 @@
+/* Notification Markdown Styles */
+.notification-content.markdown-preview {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.notification-content.markdown-preview p {
+  margin: 0;
+  margin-bottom: 6px;
+}
+
+.notification-content.markdown-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.notification-content.markdown-preview h1,
+.notification-content.markdown-preview h2,
+.notification-content.markdown-preview h3,
+.notification-content.markdown-preview h4,
+.notification-content.markdown-preview h5,
+.notification-content.markdown-preview h6 {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.notification-content.markdown-preview ul,
+.notification-content.markdown-preview ol {
+  margin-top: 0;
+  margin-bottom: 6px;
+  padding-left: 20px;
+}
+
+.notification-content.markdown-preview code {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 90%;
+}
+
+.notification-content.markdown-preview a {
+  color: #1677ff;
+  text-decoration: none;
+}
+
+.notification-content.markdown-preview a:hover {
+  text-decoration: underline;
+}
+
+.notification-content.markdown-preview img {
+  max-width: 100%;
+  max-height: 100px;
+}
+
+.notification-content.markdown-preview blockquote {
+  margin: 0;
+  padding-left: 8px;
+  border-left: 3px solid #d9d9d9;
+  color: #666;
+}
+
+/* Style for the dropdown notifications */
+.ant-dropdown-menu-item-active {
+  background-color: #f0f8ff !important;
+}
+
+/* Limit the height of notification content in dropdown */
+.notification-content.markdown-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Popup notification styles */
+.notification-popup {
+  border-radius: 12px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
+  position: fixed !important;
+  top: 60px !important; /* Position below navbar */
+  right: 20px !important;
+  z-index: 1050 !important;
+  max-width: 350px !important;
+  padding: 12px 16px !important;
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.notification-popup .ant-notification-notice-message {
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+  font-size: 15px !important;
+  color: #1f1f1f !important;
+}
+
+.notification-popup .ant-notification-notice-description {
+  max-height: 80px;
+  overflow: hidden;
+  color: #333 !important;
+}
+
+.notification-popup .ant-notification-notice-icon {
+  margin-top: 16px !important;
+  font-size: 18px !important;
+}
+
+.notification-popup .ant-notification-notice-close {
+  top: 12px !important;
+  right: 12px !important;
+  color: #999 !important;
+}
+
+/* Override Ant Design's default notification container */
+.ant-notification-topRight {
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Notification popup animation */
+@keyframes notificationPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes notificationPopOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.notification-popup {
+  animation: notificationPopIn 0.3s ease-out forwards;
+}
+
+.notification-popup.ant-notification-fade-leave {
+  animation: notificationPopOut 0.3s ease-in forwards;
+}
+
+/* Add hover effect */
+.notification-popup:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  cursor: pointer;
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+/* Notification popup content */
+.notification-popup-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+}
+
+.notification-time {
+  font-style: italic;
+}
+
+.notification-sender {
+  font-weight: 500;
+}
+
+/* Notification avatar styles */
+.notification-avatar-container {
+  position: relative;
+  display: inline-block;
+  margin-left: 8px; /* Add margin to make space for the blue dot */
+}
+
+/* New notification dot indicator */
+.notification-dot-indicator {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #1677ff;
+  box-shadow: 0 0 0 2px #fff;
+  z-index: 1;
+}
+
+.notification-avatar-badge {
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: translate(25%, -25%);
+}
+
+/* Notification sender name */
+.notification-sender-name {
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+/* Improve spacing in the notification list */
+.ant-list-item-meta-avatar {
+  padding-right: 16px;
+  padding-left: 8px; /* Add padding to accommodate the blue dot */
+}
+
+.ant-list-item-meta-content {
+  width: 100%;
+}
+
+/* Facebook-style notification hover */
+.ant-list-item:hover .notification-avatar-container::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.05);
+  z-index: -1;
+}
+
+/* Notification modal styles */
+.notification-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.notification-modal-avatar {
+  flex-shrink: 0;
+}
+
+.notification-modal-title {
+  flex-grow: 1;
+} 

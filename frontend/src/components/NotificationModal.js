@@ -1,9 +1,10 @@
 import React from 'react';
-import { Modal, Typography, Divider, Space, Button, Image } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import { Modal, Typography, Divider, Space, Button, Image, Avatar } from 'antd';
+import { DownloadOutlined, UserOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import dayjs from 'dayjs';
 import remarkGfm from 'remark-gfm';
+import './NotificationStyles.css';
 
 const { Title, Text } = Typography;
 
@@ -24,11 +25,33 @@ const NotificationModal = ({ open, notification, onClose }) => {
   return (
     <Modal
       title={
-        <div>
-          <Title level={4}>{notification.title}</Title>
-          <Text type="secondary">
-            From: {notification.senderName} • {formatDate(notification.createdAt)}
-          </Text>
+        <div className="notification-modal-header">
+          <div className="notification-modal-avatar">
+            <div className="notification-avatar-container">
+              <Avatar 
+                src={notification.senderProfileImage} 
+                size={40} 
+                icon={<UserOutlined />}
+              />
+              {!notification.isRead && (
+                <div 
+                  className="notification-dot-indicator"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    left: 30,
+                    top: 40
+                  }}
+                />
+              )}
+            </div>
+          </div>
+          <div className="notification-modal-title">
+            <Title level={4}>{notification.title}</Title>
+            <Text type="secondary">
+              From: {notification.senderName} • {formatDate(notification.createdAt)}
+            </Text>
+          </div>
         </div>
       }
       open={open}
@@ -41,7 +64,7 @@ const NotificationModal = ({ open, notification, onClose }) => {
       
       <div className="notification-content">
         {/* Render markdown content */}
-        <div className="markdown-content">
+        <div className="markdown-content markdown-preview">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {notification.content || ''}
           </ReactMarkdown>

@@ -37,6 +37,12 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+    
+    @Column(name = "phone_number")
+    private String phoneNumber;
+    
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Quiz> quizzes;
     
@@ -112,6 +118,22 @@ public class User {
     
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+    
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+    
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+    
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
     
     public List<Quiz> getQuizzes() {
