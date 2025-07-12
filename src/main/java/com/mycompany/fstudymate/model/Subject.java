@@ -17,9 +17,15 @@ public class Subject {
     @Column(name = "ID")
     private Integer id;
     
+    @Column(name = "Code")
+    private String code;
+    
     @Column(name = "Name")
     private String name;
     
     @Column(name = "Active")
     private Boolean active;
+    
+    @Column(name = "TermNo")
+    private Integer termNo;
 } 

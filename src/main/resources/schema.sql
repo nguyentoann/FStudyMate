@@ -197,6 +197,7 @@ DROP TABLE IF EXISTS `Subjects`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Subjects` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `Code` varchar(20) DEFAULT NULL,
   `Name` varchar(100) NOT NULL,
   `Active` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`ID`)

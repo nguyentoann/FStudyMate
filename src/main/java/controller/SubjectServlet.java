@@ -23,9 +23,8 @@ public class SubjectServlet extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         
-        // For now, we'll use mock data instead of database
-        // In a production environment, you would use the actual DAO methods
-        List<Subject> subjects = SubjectDAO.getMockSubjects();
+        // Use real data from database
+        List<Subject> subjects = SubjectDAO.getAllSubjects();
         
         try (PrintWriter out = response.getWriter()) {
             out.print(gson.toJson(subjects));

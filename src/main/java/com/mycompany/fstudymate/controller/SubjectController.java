@@ -15,8 +15,8 @@ public class SubjectController {
     @GetMapping
     public ResponseEntity<List<Subject>> getAllSubjects() {
         try {
-            // For now, we'll use mock data instead of database
-            List<Subject> subjects = SubjectDAO.getMockSubjects();
+            // Use real data from database
+            List<Subject> subjects = SubjectDAO.getAllSubjects();
             return new ResponseEntity<>(subjects, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();

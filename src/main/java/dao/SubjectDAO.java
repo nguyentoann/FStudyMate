@@ -35,11 +35,27 @@ public class SubjectDAO {
             while (rs.next()) {
                 Subject subject = new Subject();
                 subject.setId(rs.getInt("ID"));
+                subject.setCode(rs.getString("Code"));
                 subject.setName(rs.getString("Name"));
                 subject.setActive(rs.getBoolean("Active"));
+                
+                // Get TermNo if exists
+                try {
+                    Integer termNo = rs.getInt("TermNo");
+                    if (!rs.wasNull()) {
+                        subject.setTermNo(termNo);
+                    }
+                } catch (SQLException e) {
+                    // TermNo column might not exist in older database versions
+                    System.out.println("[DEBUG] TermNo column not found: " + e.getMessage());
+                }
+                
                 subjects.add(subject);
                 count++;
-                System.out.println("[DEBUG] Found subject: ID=" + subject.getId() + ", Name=" + subject.getName());
+                System.out.println("[DEBUG] Found subject: ID=" + subject.getId() + 
+                                  ", Code=" + subject.getCode() + 
+                                  ", Name=" + subject.getName() + 
+                                  ", TermNo=" + subject.getTermNo());
             }
             
             System.out.println("[DEBUG] Total subjects found: " + count);
@@ -83,9 +99,25 @@ public class SubjectDAO {
             if (rs.next()) {
                 subject = new Subject();
                 subject.setId(rs.getInt("ID"));
+                subject.setCode(rs.getString("Code"));
                 subject.setName(rs.getString("Name"));
                 subject.setActive(rs.getBoolean("Active"));
-                System.out.println("[DEBUG] Found subject: ID=" + subject.getId() + ", Name=" + subject.getName());
+                
+                // Get TermNo if exists
+                try {
+                    Integer termNo = rs.getInt("TermNo");
+                    if (!rs.wasNull()) {
+                        subject.setTermNo(termNo);
+                    }
+                } catch (SQLException e) {
+                    // TermNo column might not exist in older database versions
+                    System.out.println("[DEBUG] TermNo column not found: " + e.getMessage());
+                }
+                
+                System.out.println("[DEBUG] Found subject: ID=" + subject.getId() + 
+                                  ", Code=" + subject.getCode() + 
+                                  ", Name=" + subject.getName() + 
+                                  ", TermNo=" + subject.getTermNo());
             } else {
                 System.out.println("[DEBUG] No subject found with ID: " + id);
             }
@@ -146,11 +178,11 @@ public class SubjectDAO {
     // This method is just for demonstration - it creates mock data for testing
     public static List<Subject> getMockSubjects() {
         List<Subject> subjects = new ArrayList<>();
-        subjects.add(new Subject(1, "Programming", true));
-        subjects.add(new Subject(2, "Web Development", false));
-        subjects.add(new Subject(3, "Data Structures", false));
-        subjects.add(new Subject(4, "Algorithms", false));
-        subjects.add(new Subject(5, "Databases", false));
+        subjects.add(new Subject(1, "PRO192", "Programming", true, 1));
+        subjects.add(new Subject(2, "WEB101", "Web Development", false, 2));
+        subjects.add(new Subject(3, "DSA201", "Data Structures", false, 2));
+        subjects.add(new Subject(4, "ALG101", "Algorithms", false, 3));
+        subjects.add(new Subject(5, "DBI202", "Databases", false, 3));
         return subjects;
     }
 } 

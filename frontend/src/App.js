@@ -54,6 +54,9 @@ import ClassManagement from "./pages/admin/ClassManagement";
 import MyCoursesPage from "./pages/MyCourses";
 // Thêm import cho trang Classes
 import ClassesPage from "./pages/ClassesPage";
+// Import Learning Materials pages
+import LearningMaterialsPage from "./pages/LearningMaterialsPage";
+import SubjectMaterialsPage from "./pages/SubjectMaterialsPage";
 
 function App() {
   useEffect(() => {
@@ -328,6 +331,24 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={["admin", "lecturer"]}>
                         <NotificationTestPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  
+                  {/* Learning Materials routes */}
+                  <Route
+                    path="/materials"
+                    element={
+                      <ProtectedRoute>
+                        <LearningMaterialsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/materials/subject/:subjectCode"
+                    element={
+                      <ProtectedRoute>
+                        <SubjectMaterialsPage />
                       </ProtectedRoute>
                     }
                   />

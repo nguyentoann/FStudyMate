@@ -323,7 +323,7 @@ const CreateNotification = ({ visible, onClose }) => {
     if (classStudents[classId]) return;
 
     try {
-      setLoading(true);
+    setLoading(true);
       const response = await apiHelper.get(`/classes/${classId}/students`);
       setClassStudents(prev => ({
         ...prev,
@@ -504,7 +504,7 @@ const CreateNotification = ({ visible, onClose }) => {
   const renderNotificationDetailModal = () => {
     if (!selectedNotification) return null;
 
-    return (
+  return (
       <Modal
         title="Notification Details"
         open={notificationModalVisible}
@@ -543,8 +543,8 @@ const CreateNotification = ({ visible, onClose }) => {
                     Download attachment
                   </a>
                 </div>
-              </div>
-            )}
+        </div>
+      )}
             <Divider style={{ margin: '16px 0' }} />
             <div>
               <Text strong>Recipient Type:</Text>
@@ -693,9 +693,9 @@ const CreateNotification = ({ visible, onClose }) => {
                           Active
                         </Tag>
                       )}
-                    </div>
+          </div>
                     <Text type="secondary">{formatDate(item.createdAt)}</Text>
-                  </div>
+            </div>
                 }
                 description={
                   <div>
@@ -837,7 +837,7 @@ const CreateNotification = ({ visible, onClose }) => {
                     {loading && expandedClass === classObj.classId ? (
                       <div style={styles.loadingContainer}>
                         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-                      </div>
+            </div>
                     ) : (
                       <div style={styles.studentList}>
                         <div style={styles.selectAll}>
@@ -875,12 +875,12 @@ const CreateNotification = ({ visible, onClose }) => {
                               <div style={styles.studentName}>{student.fullName || student.username}</div>
                               <div style={styles.studentEmail}>{student.email}</div>
                             </div>
-                          </div>
-                        ))}
+                    </div>
+                  ))}
                         {classStudents[classObj.classId]?.length === 0 && (
                           <div style={styles.noStudents}>No students in this class</div>
-                        )}
-                      </div>
+              )}
+            </div>
                     )}
                   </Panel>
                 ))}
@@ -985,8 +985,8 @@ const CreateNotification = ({ visible, onClose }) => {
                         </div>
                       )}
                     </Card>
-                  </div>
-                )}
+          </div>
+        )}
               </div>
 
               {/* Recipient Selection */}
@@ -1011,7 +1011,7 @@ const CreateNotification = ({ visible, onClose }) => {
                 <div style={styles.recipientSelection}>
                   {renderRecipientSelection()}
                 </div>
-              </div>
+        </div>
 
               {/* Options */}
               <div style={styles.formSection}>
@@ -1023,7 +1023,7 @@ const CreateNotification = ({ visible, onClose }) => {
                 >
                   <Checkbox>Also send as email</Checkbox>
                 </Form.Item>
-              </div>
+        </div>
 
               {/* Submit Button */}
               <div style={styles.modalFooter}>
@@ -1038,9 +1038,9 @@ const CreateNotification = ({ visible, onClose }) => {
                 >
                   Send Notification
                 </Button>
-              </div>
+        </div>
             </Form>
-          </div>
+    </div>
         </TabPane>
 
         <TabPane tab="Sent Notifications" key="sent">

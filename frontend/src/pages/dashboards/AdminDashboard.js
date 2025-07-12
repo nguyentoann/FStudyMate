@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
+import SambaSyncTool from '../../components/SambaSyncTool';
 import { 
   getUserStatistics, 
   getActiveUsers, 
@@ -1203,6 +1204,9 @@ const AdminDashboard = () => {
         
         {/* System Resources */}
         {renderSystemResources()}
+        
+        {/* Samba Sync Tool */}
+        <SambaSyncTool />
         
         
         {/* Quick Actions */}

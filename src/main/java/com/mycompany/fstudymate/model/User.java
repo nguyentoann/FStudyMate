@@ -44,9 +44,11 @@ public class User {
     private String phoneNumber;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
     private List<Quiz> quizzes;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
     private List<QuizTaken> quizTakens;
     
     @PrePersist

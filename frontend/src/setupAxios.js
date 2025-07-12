@@ -25,6 +25,12 @@ axios.interceptors.request.use(config => {
   // Only set withCredentials=true for our own API
   if (config.url && config.url.startsWith(API_URL)) {
     config.withCredentials = true;
+    
+    // Add Authorization header with session token for API requests
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId) {
+      config.headers['Authorization'] = `Bearer ${sessionId}`;
+    }
   }
   
   return config;
