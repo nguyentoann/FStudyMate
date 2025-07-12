@@ -344,7 +344,7 @@ const FloatingMenu = ({
 
           {/* Lessons */}
           <Link
-            to="/lessons"
+            to="/materials"
             className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${
                 location.pathname.includes("lessons")
@@ -366,7 +366,7 @@ const FloatingMenu = ({
               />
             </svg>
             {isExpanded && (
-              <span className="ml-2 whitespace-nowrap">Lessons</span>
+              <span className="ml-2 whitespace-nowrap">Course Materials</span>
             )}
           </Link>
 
