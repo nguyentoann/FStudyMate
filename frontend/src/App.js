@@ -44,6 +44,7 @@ import QuizDetails from "./pages/QuizDetails";
 import "./styles/globals.css";
 import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
+import FeedbackPage from "./pages/help/FeedbackPage";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -57,6 +58,8 @@ import ClassesPage from "./pages/ClassesPage";
 // Import Learning Materials pages
 import LearningMaterialsPage from "./pages/LearningMaterialsPage";
 import SubjectMaterialsPage from "./pages/SubjectMaterialsPage";
+// Import Search Page
+import SearchPage from "./pages/SearchPage";
 
 function App() {
   useEffect(() => {
@@ -353,6 +356,26 @@ function App() {
                     }
                   />
                   
+                  {/* Feedback Route */}
+                  <Route
+                    path="/help/feedback"
+                    element={
+                      <ProtectedRoute>
+                        <FeedbackPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  
+                  {/* Search Route */}
+                  <Route
+                    path="/search"
+                    element={
+                      <ProtectedRoute>
+                        <SearchPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   {/* 404 Route - must be last */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

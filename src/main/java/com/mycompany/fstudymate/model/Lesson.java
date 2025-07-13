@@ -40,6 +40,10 @@ public class Lesson {
     @Column(name = "ViewCount")
     private Integer viewCount;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SubjectId", referencedColumnName = "ID", insertable = false, updatable = false)
+    private Subject subject;
+    
     // Manual getters and setters since Lombok isn't working on Windows
     
     public Integer getId() {
@@ -104,5 +108,13 @@ public class Lesson {
     
     public void setViewCount(Integer viewCount) {
         this.viewCount = viewCount;
+    }
+    
+    public Subject getSubject() {
+        return subject;
+    }
+    
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 } 
