@@ -1,23 +1,35 @@
 package com.mycompany.fstudymate.repository;
 
 import com.mycompany.fstudymate.model.Feedback;
+import com.mycompany.fstudymate.model.Feedback.FeedbackType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
+public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     
-    // Find all feedback by user ID
-    List<Feedback> findByUserIdOrderByCreatedAtDesc(Integer userId);
+    // Tìm các feedback theo type và targetId
+    List<Feedback> findByTypeAndTargetIdOrderByCreatedAtDesc(FeedbackType type, String targetId);
     
-    // Find all feedback by status
-    List<Feedback> findByStatusOrderByCreatedAtDesc(Feedback.FeedbackStatus status);
+    // Tìm các feedback theo type và targetId với eager loading của user
+    @Query("SELECT f FROM Feedback f LEFT JOIN FETCH f.user WHERE f.type = :type AND f.targetId = :targetId ORDER BY f.createdAt DESC")
+    List<Feedback> findByTypeAndTargetIdWithUser(@Param("type") FeedbackType type, @Param("targetId") String targetId);
     
-    // Find all feedback by user ID and status
-    List<Feedback> findByUserIdAndStatusOrderByCreatedAtDesc(Integer userId, Feedback.FeedbackStatus status);
+    // Tìm các feedback do người dùng tạo ra
+    List<Feedback> findByCreatedByOrderByCreatedAtDesc(Integer createdBy);
     
-    // Count feedback by status
-    long countByStatus(Feedback.FeedbackStatus status);
+    // Tìm các feedback theo type
+    List<Feedback> findByTypeOrderByCreatedAtDesc(FeedbackType type);
+    
+    // Tìm các feedback theo type với eager loading của user
+    @Query("SELECT f FROM Feedback f LEFT JOIN FETCH f.user WHERE f.type = :type ORDER BY f.createdAt DESC")
+    List<Feedback> findByTypeWithUser(@Param("type") FeedbackType type);
+    
+    // Tìm các feedback theo lessonId với eager loading của user và lesson
+    @Query("SELECT f FROM Feedback f LEFT JOIN FETCH f.user LEFT JOIN FETCH f.lesson WHERE f.lessonId = :lessonId ORDER BY f.createdAt DESC")
+    List<Feedback> findByLessonIdWithUser(@Param("lessonId") Integer lessonId);
 } 
