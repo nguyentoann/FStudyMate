@@ -48,10 +48,10 @@ const initActivityTracking = (user) => {
     }, 60000)); // Only update once per minute to avoid too many updates
   });
   
-  // Send heartbeat every minute to keep session active
+  // Send heartbeat every 5 minutes to keep session active (reduced frequency)
   setInterval(() => {
     sendActivityUpdate();
-  }, 60000);
+  }, 300000); // 5 minutes
   
   // Initial page view
   trackPageView(window.location.pathname);
@@ -107,6 +107,12 @@ const sendActivityUpdate = async (isFinal = false) => {
     // Get user ID if available
     const userId = localStorage.getItem('userId');
     
+    // Only send if we have a valid session token
+    if (!sessionToken || sessionToken === 'undefined') {
+      console.log('No valid session token, skipping activity update');
+      return;
+    }
+    
     // Debug what we're sending
     console.log('Activity tracking data before send:', {
       sessionToken,
@@ -158,12 +164,13 @@ const sendActivityUpdate = async (isFinal = false) => {
     if (error.response) {
       console.error('Server response:', error.response.status, error.response.data);
     }
+    // Don't throw error to avoid breaking the app
   }
 };
 
 // Generate a temporary session token if none exists
 const generateTemporaryToken = () => {
-  const token = 'temp_' + Math.random().toString(36).substring(2, 15);
+  const token = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
   localStorage.setItem('sessionId', token);
   return token;
 };

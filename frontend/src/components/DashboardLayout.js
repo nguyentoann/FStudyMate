@@ -14,6 +14,7 @@ import FloatingMenu from "./FloatingMenu";
 import JokeNotification from "./JokeNotification";
 import WebRTCDebugger from "./WebRTCDebugger";
 import NotificationButton from "./NotificationButton";
+import InactivityWarning from "./InactivityWarning";
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -1137,6 +1138,9 @@ const DashboardLayout = ({ children }) => {
 
         {/* Joke notification for specific user */}
         <JokeNotification />
+        
+        {/* Inactivity warning */}
+        <InactivityWarning />
       </div>
     </ClickSpark>
   );

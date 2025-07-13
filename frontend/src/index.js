@@ -56,7 +56,7 @@ window.showSessionExpiredNotification = () => {
   notification.innerHTML = `
     <div>
       <strong>Session Expired</strong>
-      <p style="margin: 5px 0 0 0;">Your session has been terminated by an administrator.</p>
+      <p style="margin: 5px 0 0 0;">Your session has expired due to inactivity. Please login again.</p>
     </div>
     <button style="background: none; border: none; cursor: pointer; font-size: 16px; color: #721c24;">×</button>
   `;
