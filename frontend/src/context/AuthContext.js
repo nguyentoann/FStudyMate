@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { API_URL, OPEN_URL, EMERGENCY_URL } from '../services/config';
 import { initActivityTracking, trackEvent } from '../services/userActivityTracker';
-import { v4 as uuidv4 } from 'uuid';
+// Removed uuid import as we're using custom session ID generation
 import axios from 'axios';
 
 // Add API emergency URL
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     // Generate or retrieve session ID
     let currentSessionId = localStorage.getItem('sessionId');
     if (!currentSessionId) {
-      currentSessionId = uuidv4();
+      currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
       localStorage.setItem('sessionId', currentSessionId);
     }
     setSessionId(currentSessionId);
@@ -45,12 +45,12 @@ export const AuthProvider = ({ children }) => {
     
     setLoading(false);
     
-    // Set up periodic session validation (every 60 seconds)
+    // Set up periodic session validation (every 5 minutes instead of every minute)
     const sessionCheckInterval = setInterval(() => {
       if (localStorage.getItem('user')) {
         validateSession();
       }
-    }, 60000);
+    }, 300000); // 5 minutes
     
     return () => clearInterval(sessionCheckInterval);
   }, []);
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
           'Authorization': `Bearer ${currentSessionId}`
         }
       }).catch(error => {
-        // If the session is invalid, force logout
+        // Only logout if it's a clear authentication error, not network issues
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           console.log('Session invalidated by server, logging out');
           logout();
@@ -78,6 +78,9 @@ export const AuthProvider = ({ children }) => {
           if (window.showSessionExpiredNotification) {
             window.showSessionExpiredNotification();
           }
+        } else {
+          // For network errors or other issues, don't logout automatically
+          console.log('Session validation failed due to network error, not logging out');
         }
         throw error;
       });
@@ -86,7 +89,8 @@ export const AuthProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('Error validating session:', error);
-      return false;
+      // Don't return false here to avoid unnecessary logout
+      return true; // Assume session is valid if we can't validate
     }
   };
 
