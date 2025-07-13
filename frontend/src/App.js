@@ -36,6 +36,7 @@ import CalendarPage from "./pages/CalendarPage";
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
 import CreateQuiz from "./pages/lecturer/CreateQuiz";
+import QuestionBankManager from "./pages/lecturer/QuestionBankManager";
 import BlueCursor from "./components/BlueCursor";
 import AppTheme from "./pages/AppTheme";
 import AboutUs from "./pages/AboutUs";
@@ -284,6 +285,14 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={["lecturer"]}>
                         <CreateQuiz />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/lecturer/question-bank"
+                    element={
+                      <ProtectedRoute allowedRoles={["lecturer"]}>
+                        <QuestionBankManager />
                       </ProtectedRoute>
                     }
                   />

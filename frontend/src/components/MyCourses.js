@@ -344,7 +344,7 @@ const MyCourses = ({ onGenerateQuiz }) => {
             setSelectedSubject(activeSubjects[0].id);
             setActiveTermTab(String(activeSubjects[0].termNo || 0));
           } else {
-            setSelectedSubject(data[0].id);
+        setSelectedSubject(data[0].id);
             setActiveTermTab(String(data[0].termNo || 0));
           }
         }
@@ -526,7 +526,7 @@ const MyCourses = ({ onGenerateQuiz }) => {
         {loading && subjects.length === 0 ? (
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
-          </div>
+        </div>
         ) : (
           renderSubjectsByTerm()
         )}
@@ -633,14 +633,14 @@ const MyCourses = ({ onGenerateQuiz }) => {
                     const thumbnailUrl = isYouTube ? getYoutubeThumbnail(firstVideoUrl) : null;
                     
                     return (
-                      <div
-                        key={lesson.id}
+              <div
+                key={lesson.id}
                         className={`border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
-                          darkMode ? "border-gray-700" : ""
-                        }`}
-                      >
-                        {/* Lesson Header */}
-                        <div
+                  darkMode ? "border-gray-700" : ""
+                }`}
+              >
+                {/* Lesson Header */}
+                <div
                           className={`p-3 ${
                             darkMode ? "bg-gray-700 border-gray-600" : "bg-indigo-50"
                           } border-b`}
@@ -650,25 +650,25 @@ const MyCourses = ({ onGenerateQuiz }) => {
                               {lesson.subjectCode}
                             </div>
                           )}
-                          <h3
+                    <h3
                             className={`font-semibold text-lg truncate ${
-                              darkMode ? "text-white" : ""
-                            }`}
+                        darkMode ? "text-white" : ""
+                      }`}
                             title={lesson.title}
-                          >
-                            {lesson.title}
-                          </h3>
-                          <div
+                    >
+                      {lesson.title}
+                    </h3>
+                    <div
                             className={`flex items-center text-sm ${
-                              darkMode ? "text-gray-300" : "text-gray-500"
+                        darkMode ? "text-gray-300" : "text-gray-500"
                             } mt-1`}
-                          >
-                            <span>
-                              Posted on{" "}
-                              {format(new Date(lesson.date), "MMM dd, yyyy")}
-                            </span>
-                            <span className="mx-2">•</span>
-                            <span>by {lesson.lecturer?.fullName || "Unknown"}</span>
+                    >
+                      <span>
+                        Posted on{" "}
+                        {format(new Date(lesson.date), "MMM dd, yyyy")}
+                      </span>
+                      <span className="mx-2">•</span>
+                      <span>by {lesson.lecturer?.fullName || "Unknown"}</span>
                             {lesson.termNo > 0 && (
                               <>
                                 <span className="mx-2">•</span>
@@ -688,8 +688,8 @@ const MyCourses = ({ onGenerateQuiz }) => {
                                 </span>
                               </>
                             )}
-                          </div>
-                        </div>
+                    </div>
+                  </div>
 
                         {/* Lesson Content Preview */}
                         <div className={`p-3 ${darkMode ? "bg-gray-800" : "bg-white"} h-48 overflow-hidden`}>
@@ -799,76 +799,76 @@ const MyCourses = ({ onGenerateQuiz }) => {
                         
                         {/* Lesson Footer */}
                         <div className={`p-3 ${darkMode ? "bg-gray-700" : "bg-gray-50"} border-t flex justify-between items-center`}>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => toggleFavorite(lesson.id)}
-                              className={`p-1.5 rounded-full ${
-                                lesson.isFavorite
-                                  ? "text-yellow-500 hover:text-yellow-600"
-                                  : "text-gray-400 hover:text-gray-500"
-                              }`}
-                              title={
-                                lesson.isFavorite
-                                  ? "Remove from favorites"
-                                  : "Add to favorites"
-                              }
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => toggleLike(lesson.id)}
-                              className={`p-1.5 rounded-full flex items-center ${
-                                lesson.isLiked
-                                  ? "text-red-500 hover:text-red-600"
-                                  : "text-gray-400 hover:text-gray-500"
-                              }`}
-                              title={lesson.isLiked ? "Unlike" : "Like"}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              <span className="ml-1 text-xs font-medium">
-                                {lesson.likes}
-                              </span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                startChatWithLecturer(
-                                  lesson.lecturer?.id || lesson.lecturerId
-                                )
-                              }
-                              className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500"
-                              title="Chat with lecturer"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => toggleFavorite(lesson.id)}
+                      className={`p-1.5 rounded-full ${
+                        lesson.isFavorite
+                          ? "text-yellow-500 hover:text-yellow-600"
+                          : "text-gray-400 hover:text-gray-500"
+                      }`}
+                      title={
+                        lesson.isFavorite
+                          ? "Remove from favorites"
+                          : "Add to favorites"
+                      }
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => toggleLike(lesson.id)}
+                      className={`p-1.5 rounded-full flex items-center ${
+                        lesson.isLiked
+                          ? "text-red-500 hover:text-red-600"
+                          : "text-gray-400 hover:text-gray-500"
+                      }`}
+                      title={lesson.isLiked ? "Unlike" : "Like"}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="ml-1 text-xs font-medium">
+                        {lesson.likes}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() =>
+                        startChatWithLecturer(
+                          lesson.lecturer?.id || lesson.lecturerId
+                        )
+                      }
+                      className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500"
+                      title="Chat with lecturer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
                           </div>
                           <div>
                             <button
@@ -885,48 +885,48 @@ const MyCourses = ({ onGenerateQuiz }) => {
                             >
                               View Full
                             </button>
-                            <button
-                              onClick={() => openQuizGenerator(lesson)}
-                              disabled={generatingQuiz}
-                              className={`px-3 py-1 rounded text-xs font-medium ${
-                                generatingQuiz && generatingLessonId === lesson.id
-                                  ? darkMode
-                                    ? "bg-indigo-700 text-white cursor-wait"
-                                    : "bg-indigo-300 text-indigo-800 cursor-wait"
-                                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-                              }`}
-                              title="Generate AI quiz from this lesson"
-                            >
-                              {generatingQuiz && generatingLessonId === lesson.id ? (
-                                <>
-                                  <svg
-                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <circle
-                                      className="opacity-25"
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="currentColor"
-                                      strokeWidth="4"
-                                    ></circle>
-                                    <path
-                                      className="opacity-75"
-                                      fill="currentColor"
-                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                  </svg>
+                    <button
+                      onClick={() => openQuizGenerator(lesson)}
+                      disabled={generatingQuiz}
+                      className={`px-3 py-1 rounded text-xs font-medium ${
+                        generatingQuiz && generatingLessonId === lesson.id
+                          ? darkMode
+                            ? "bg-indigo-700 text-white cursor-wait"
+                            : "bg-indigo-300 text-indigo-800 cursor-wait"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700"
+                      }`}
+                      title="Generate AI quiz from this lesson"
+                    >
+                      {generatingQuiz && generatingLessonId === lesson.id ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
                                   Creating...
-                                </>
-                              ) : (
-                                <>Create Quiz</>
-                              )}
-                            </button>
-                          </div>
-                        </div>
+                        </>
+                      ) : (
+                        <>Create Quiz</>
+                      )}
+                    </button>
+                  </div>
+                </div>
                       </div>
                     );
                   })}
@@ -960,7 +960,7 @@ const MyCourses = ({ onGenerateQuiz }) => {
                     {lesson.subjectCode && (
                       <div className={`font-mono ${darkMode ? "bg-indigo-700" : "bg-indigo-600"} text-white text-sm font-medium px-2 py-1 rounded inline-block mb-2`}>
                         {lesson.subjectCode}
-                      </div>
+          </div>
                     )}
                     <h3
                       className={`font-semibold text-lg truncate ${
@@ -1286,8 +1286,8 @@ const MyCourses = ({ onGenerateQuiz }) => {
                         Term {selectedLesson.termNo}
                       </span>
                     </>
-                  )}
-                </div>
+      )}
+    </div>
               </div>
               <button 
                 onClick={() => setSelectedLesson(null)}

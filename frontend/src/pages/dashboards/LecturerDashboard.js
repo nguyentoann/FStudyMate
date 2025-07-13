@@ -783,6 +783,10 @@ const LecturerDashboard = () => {
     navigate('/lecturer/create-quiz');
   };
   
+  const goToQuestionBank = () => {
+    navigate('/lecturer/question-bank');
+  };
+  
   const openQuizGenerator = (lesson) => {
     setSelectedLesson(lesson);
     setQuizModalOpen(true);
@@ -871,7 +875,7 @@ const LecturerDashboard = () => {
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="text-gray-500 text-sm">Quizzes Created</p>
             <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
-            <div className="mt-2 flex space-x-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={goToQuizManager}
                 className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
@@ -883,6 +887,12 @@ const LecturerDashboard = () => {
                 className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
               >
                 Create Quiz
+              </button>
+              <button
+                onClick={goToQuestionBank}
+                className="px-2 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700"
+              >
+                Question Bank
               </button>
             </div>
           </div>
