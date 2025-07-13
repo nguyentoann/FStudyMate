@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import DashboardLayout from '../components/DashboardLayout';
-import Calendar from '../components/Calendar';
-import EventsList from '../components/EventsList';
-import './CalendarPage.css';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import DashboardLayout from "../components/DashboardLayout";
+import Calendar from "../components/Calendar";
+import EventsList from "../components/EventsList";
+import "./CalendarPage.css";
 
 const CalendarPage = () => {
   const { user } = useAuth();
   const { darkMode } = useTheme();
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' or 'events'
+  const [activeTab, setActiveTab] = useState("calendar"); // 'calendar' or 'events'
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,13 +22,17 @@ const CalendarPage = () => {
   const fetchUpcomingEvents = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/events/public/upcoming`);
+      const response = await fetch(
+        `${
+          process.env.REACT_APP_API_URL || "http://localhost:8080"
+        }/api/events/public/upcoming`
+      );
       if (response.ok) {
         const events = await response.json();
         setUpcomingEvents(events.slice(0, 5)); // Show only 5 upcoming events
       }
     } catch (error) {
-      console.error('Error fetching upcoming events:', error);
+      console.error("Error fetching upcoming events:", error);
     } finally {
       setLoading(false);
     }
@@ -44,13 +48,13 @@ const CalendarPage = () => {
 
   return (
     <DashboardLayout>
-      <div className={`calendar-page ${darkMode ? 'dark' : ''}`}>
+      <div className={`calendar-page ${darkMode ? "dark" : ""}`}>
         <div className="calendar-page-header">
           <div className="header-content">
             <h1>Calendar & Events</h1>
             <p>Manage your personal schedule and discover campus events</p>
           </div>
-          
+
           <div className="header-stats">
             <div className="stat-card">
               <div className="stat-number">{upcomingEvents.length}</div>
@@ -65,15 +69,19 @@ const CalendarPage = () => {
 
         <div className="calendar-page-tabs">
           <button
-            className={`tab-button ${activeTab === 'calendar' ? 'active' : ''}`}
-            onClick={() => setActiveTab('calendar')}
+            className={`shadow-xl rounded-xl px-6 py-4 font-bold ${
+              activeTab === "calendar" ? "bg-sky-500 " : " bg-white"
+            }`}
+            onClick={() => setActiveTab("calendar")}
           >
             <i className="fas fa-calendar-alt"></i>
             My Calendar
           </button>
           <button
-            className={`tab-button ${activeTab === 'events' ? 'active' : ''}`}
-            onClick={() => setActiveTab('events')}
+            className={`shadow-xl rounded-xl px-6 py-4 font-bold ${
+              activeTab === "events" ? "bg-sky-500" : "bg-white"
+            }`}
+            onClick={() => setActiveTab("events")}
           >
             <i className="fas fa-calendar-day"></i>
             Campus Events
@@ -81,7 +89,7 @@ const CalendarPage = () => {
         </div>
 
         <div className="calendar-page-content">
-          {activeTab === 'calendar' ? (
+          {activeTab === "calendar" ? (
             <div className="calendar-section">
               <Calendar />
             </div>
@@ -119,12 +127,12 @@ const CalendarPage = () => {
                 {upcomingEvents.length === 0 ? (
                   <div className="no-events">No events scheduled for today</div>
                 ) : (
-                  upcomingEvents.map(event => (
+                  upcomingEvents.map((event) => (
                     <div key={event.id} className="event-item">
                       <div className="event-time">
-                        {new Date(event.startDate).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                        {new Date(event.startDate).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </div>
                       <div className="event-details">
@@ -161,4 +169,4 @@ const CalendarPage = () => {
   );
 };
 
-export default CalendarPage; 
+export default CalendarPage;

@@ -335,7 +335,7 @@ const LandingPage = () => {
             {[1, 2, 3].map((item, index) => (
               <div
                 key={index}
-                className={`bg-white rounded-lg shadow-md p-6 flex flex-col items-center hover:shadow-lg transition-all duration-500 delay-${
+                className={`bg-white rounded-lg shadow-xl p-6 flex flex-col items-center  transition-all duration-500 delay-${
                   index * 150
                 } ${
                   visibleSections.who
