@@ -283,7 +283,7 @@ const BackgroundCustomizer = () => {
           <input
             type="range"
             min="0"
-            max="20"
+            max="40"
             value={blur}
             onChange={handleBlurChange}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"

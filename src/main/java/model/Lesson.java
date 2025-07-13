@@ -36,6 +36,15 @@ public class Lesson {
     
     @JsonProperty("viewCount")
     private int viewCount;
+    
+    @JsonProperty("subjectCode")
+    private String subjectCode;
+    
+    @JsonProperty("termNo")
+    private Integer termNo;
+    
+    @JsonProperty("subject")
+    private Subject subject;
 
     public Lesson() {
         this.date = new Date();
@@ -127,5 +136,29 @@ public class Lesson {
 
     public void setViewCount(int viewCount) {
         this.viewCount = viewCount;
+    }
+    
+    public String getSubjectCode() {
+        return subjectCode;
+    }
+    
+    public void setSubjectCode(String subjectCode) {
+        this.subjectCode = subjectCode;
+    }
+    
+    public Integer getTermNo() {
+        return termNo;
+    }
+    
+    public void setTermNo(Integer termNo) {
+        this.termNo = termNo;
+    }
+    
+    public Subject getSubject() {
+        return subject;
+    }
+    
+    public void setSubject(Subject subject) {
+        this.subject = subject;
     }
 } 

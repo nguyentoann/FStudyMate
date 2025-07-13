@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Card, Row, Col, Typography, List, Tag, Spin, Button, Modal, Collapse } from 'antd';
+import { Card, Row, Col, Typography, List, Tag, Spin, Button, Modal, Collapse, Input } from 'antd';
 import DashboardLayout from '../components/DashboardLayout';
-import { BookOutlined, BookFilled, ClockCircleOutlined, FolderOutlined, EyeOutlined, DownloadOutlined, FileOutlined, CaretRightOutlined } from '@ant-design/icons';
+import { BookOutlined, BookFilled, ClockCircleOutlined, FolderOutlined, EyeOutlined, DownloadOutlined, FileOutlined, CaretRightOutlined, SearchOutlined } from '@ant-design/icons';
 import { API_URL } from '../services/config';
 import FileViewer from '../components/FileViewer';
 import { px } from 'framer-motion';
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
+const { Search } = Input;
 
 const LearningMaterialsPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [groupedSubjects, setGroupedSubjects] = useState({});
+  const [filteredGroupedSubjects, setFilteredGroupedSubjects] = useState({});
   const [loading, setLoading] = useState(true);
   const [recentFiles, setRecentFiles] = useState([]);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [currentViewFile, setCurrentViewFile] = useState(null);
   const [expandedTerms, setExpandedTerms] = useState([]);
+  const [searchText, setSearchText] = useState('');
 
 
 
@@ -60,12 +63,42 @@ const LearningMaterialsPage = () => {
       });
       
       setGroupedSubjects(grouped);
+      setFilteredGroupedSubjects(grouped);
       
       // Set all terms to be expanded by default
       const termKeys = Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b));
       setExpandedTerms(termKeys);
     }
   }, [subjects]);
+
+  // Filter subjects when search text changes
+  useEffect(() => {
+    if (!searchText.trim()) {
+      setFilteredGroupedSubjects(groupedSubjects);
+      return;
+    }
+    
+    const lowerSearchText = searchText.toLowerCase();
+    const filtered = {};
+    
+    Object.keys(groupedSubjects).forEach(termNo => {
+      const filteredSubjects = groupedSubjects[termNo].filter(subject => 
+        (subject.name && subject.name.toLowerCase().includes(lowerSearchText)) ||
+        (subject.code && subject.code.toLowerCase().includes(lowerSearchText)) ||
+        (lowerSearchText === 'active' && subject.active) ||
+        (lowerSearchText === 'inactive' && !subject.active)
+      );
+      
+      if (filteredSubjects.length > 0) {
+        filtered[termNo] = filteredSubjects;
+      }
+    });
+    
+    setFilteredGroupedSubjects(filtered);
+    
+    // Expand all terms that have matching subjects
+    setExpandedTerms(Object.keys(filtered));
+  }, [searchText, groupedSubjects]);
 
   const fetchSubjects = async () => {
     setLoading(true);
@@ -77,6 +110,14 @@ const LearningMaterialsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  const clearSearch = () => {
+    setSearchText('');
   };
 
   const storeRecentFile = (file) => {
@@ -144,6 +185,22 @@ const LearningMaterialsPage = () => {
     }
   };
 
+  // Count total subjects for search results info
+  const getTotalFilteredSubjects = () => {
+    return Object.values(filteredGroupedSubjects).reduce(
+      (total, subjects) => total + subjects.length, 
+      0
+    );
+  };
+
+  // Count total subjects
+  const getTotalSubjects = () => {
+    return Object.values(groupedSubjects).reduce(
+      (total, subjects) => total + subjects.length, 
+      0
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="learning-materials-page">
@@ -153,6 +210,33 @@ const LearningMaterialsPage = () => {
             <Text type="secondary">
               Access course materials organized by subject. Click on a subject to view its materials.
             </Text>
+          </Col>
+          
+          {/* Search Bar */}
+          <Col span={24}>
+            <div className="search-container">
+              <Search
+                placeholder="Search subjects by name, code, or type 'active'/'inactive'..."
+                allowClear
+                enterButton={<SearchOutlined />}
+                size="large"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onSearch={handleSearch}
+              />
+              {searchText && (
+                <div className="search-results-info">
+                  <Text type="secondary">
+                    Found {getTotalFilteredSubjects()} subjects out of {getTotalSubjects()} for "{searchText}"
+                    {getTotalFilteredSubjects() !== getTotalSubjects() && (
+                      <Button type="link" onClick={clearSearch} size="small">
+                        Clear search
+                      </Button>
+                    )}
+                  </Text>
+                </div>
+              )}
+            </div>
           </Col>
           
           {/* Recent Files Section */}
@@ -237,68 +321,80 @@ const LearningMaterialsPage = () => {
           {/* Subjects Section */}
           <Col span={24}>
             <Spin spinning={loading}>
-              <Collapse
-                bordered={false}
-                defaultActiveKey={expandedTerms}
-                onChange={(key) => setExpandedTerms(key)}
-                className="term-collapse"
-              >
-                {Object.keys(groupedSubjects)
-                  .sort((a, b) => parseInt(a) - parseInt(b))
-                  .map(termNo => (
-                    <Panel
-                      header={
-                        <div className="term-header">
-                          <span className="term-title">
-                            {termNo === "0" ? "Uncategorized" : `Term ${termNo}`}
-                          </span>
-                          <Tag color="blue">{groupedSubjects[termNo].length} subjects</Tag>
-                        </div>
-                      }
-                      key={termNo}
-                    >
-                      <Row gutter={[24, 16]}>
-                        {groupedSubjects[termNo].map(subject => (
-                          <Col xs={24} sm={12} md={8} lg={4} key={subject.id}>
-                            <Link to={`/materials/subject/${subject.id}`}>
-                              <Card
-                                hoverable
-                                className="subject-card"
-                                style={{ background: 'linear-gradient(135deg, rgba(255, 247, 161, 0.3), rgba(198, 248, 255, 0.3))' }}
-                                cover={
-                                  <div className="subject-card-cover">
-                                    {subject.active ? 
-                                      <BookFilled style={{ fontSize: 48, color: '#1890ff' }} /> :
-                                      <BookOutlined style={{ fontSize: 48, color: '#8c8c8c' }} />
-                                    }
-                                  </div>
-                                }
-                              >
-                                <Card.Meta 
-                                  title={
-                                    <div>
-                                      {subject.code && (
-                                        <div className="subject-code">{subject.code}</div>
-                                      )}
-                                      <div>{subject.name}</div>
+              {Object.keys(filteredGroupedSubjects).length === 0 ? (
+                <div className="no-results">
+                  <Card>
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <SearchOutlined style={{ fontSize: '32px', color: '#bfbfbf', marginBottom: '16px' }} />
+                      <Title level={4}>No subjects found matching "{searchText}"</Title>
+                      <Button type="primary" onClick={clearSearch}>Clear Search</Button>
+                    </div>
+                  </Card>
+                </div>
+              ) : (
+                <Collapse
+                  bordered={false}
+                  defaultActiveKey={expandedTerms}
+                  onChange={(key) => setExpandedTerms(key)}
+                  className="term-collapse"
+                >
+                  {Object.keys(filteredGroupedSubjects)
+                    .sort((a, b) => parseInt(a) - parseInt(b))
+                    .map(termNo => (
+                      <Panel
+                        header={
+                          <div className="term-header">
+                            <span className="term-title">
+                              {termNo === "0" ? "Uncategorized" : `Term ${termNo}`}
+                            </span>
+                            <Tag color="blue">{filteredGroupedSubjects[termNo].length} subjects</Tag>
+                          </div>
+                        }
+                        key={termNo}
+                      >
+                        <Row gutter={[24, 16]}>
+                          {filteredGroupedSubjects[termNo].map(subject => (
+                            <Col xs={24} sm={12} md={8} lg={4} key={subject.id}>
+                              <Link to={`/materials/subject/${subject.id}`}>
+                                <Card
+                                  hoverable
+                                  className="subject-card"
+                                  style={{ background: 'linear-gradient(135deg, rgba(255, 247, 161, 0.3), rgba(198, 248, 255, 0.3))' }}
+                                  cover={
+                                    <div className="subject-card-cover">
+                                      {subject.active ? 
+                                        <BookFilled style={{ fontSize: 48, color: '#1890ff' }} /> :
+                                        <BookOutlined style={{ fontSize: 48, color: '#8c8c8c' }} />
+                                      }
                                     </div>
                                   }
-                                  description={
-                                    <>
-                                      <Tag color={subject.active ? 'green' : 'default'}>
-                                        {subject.active ? 'Active' : 'Inactive'}
-                                      </Tag>
-                                    </>
-                                  } 
-                                />
-                              </Card>
-                            </Link>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Panel>
-                  ))}
-              </Collapse>
+                                >
+                                  <Card.Meta 
+                                    title={
+                                      <div>
+                                        {subject.code && (
+                                          <div className="subject-code">{subject.code}</div>
+                                        )}
+                                        <div>{subject.name}</div>
+                                      </div>
+                                    }
+                                    description={
+                                      <>
+                                        <Tag color={subject.active ? 'green' : 'default'}>
+                                          {subject.active ? 'Active' : 'Inactive'}
+                                        </Tag>
+                                      </>
+                                    } 
+                                  />
+                                </Card>
+                              </Link>
+                            </Col>
+                          ))}
+                        </Row>
+                      </Panel>
+                    ))}
+                </Collapse>
+              )}
             </Spin>
           </Col>
         </Row>
@@ -333,6 +429,18 @@ const LearningMaterialsPage = () => {
       <style jsx="true">{`
         .learning-materials-page {
           padding: 24px;
+        }
+        .search-container {
+          margin-bottom: 16px;
+        }
+        .search-results-info {
+          margin-top: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .no-results {
+          margin-top: 20px;
         }
         .subject-card-cover {
           height: 140px;

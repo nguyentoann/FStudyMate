@@ -51,6 +51,13 @@ public class LessonServlet extends HttpServlet {
                     List<Lesson> lessons = LessonDAO.getLessonsBySubject(subjectId);
                     System.out.println("[DEBUG] Retrieved " + lessons.size() + " lessons");
                     
+                    // Log subject code and termNo for debugging
+                    for (Lesson lesson : lessons) {
+                        System.out.println("[DEBUG] Lesson: " + lesson.getId() + 
+                                         ", Subject Code: " + lesson.getSubjectCode() + 
+                                         ", TermNo: " + lesson.getTermNo());
+                    }
+                    
                     PrintWriter out = response.getWriter();
                     String jsonResponse = gson.toJson(lessons);
                     System.out.println("[DEBUG] JSON response: " + jsonResponse);
@@ -60,6 +67,14 @@ public class LessonServlet extends HttpServlet {
                     // Return all lessons if no subject ID is provided
                     List<Lesson> lessons = LessonDAO.getAllLessons();
                     System.out.println("[DEBUG] Retrieved all lessons: " + lessons.size());
+                    
+                    // Log subject code and termNo for debugging
+                    for (Lesson lesson : lessons) {
+                        System.out.println("[DEBUG] Lesson: " + lesson.getId() + 
+                                         ", Subject Code: " + lesson.getSubjectCode() + 
+                                         ", TermNo: " + lesson.getTermNo());
+                    }
+                    
                     PrintWriter out = response.getWriter();
                     out.print(gson.toJson(lessons));
                     out.flush();
@@ -70,6 +85,11 @@ public class LessonServlet extends HttpServlet {
                 Lesson lesson = LessonDAO.getLessonById(lessonId);
                 
                 if (lesson != null) {
+                    // Log subject code and termNo for debugging
+                    System.out.println("[DEBUG] Retrieved lesson: " + lesson.getId() + 
+                                     ", Subject Code: " + lesson.getSubjectCode() + 
+                                     ", TermNo: " + lesson.getTermNo());
+                    
                     PrintWriter out = response.getWriter();
                     out.print(gson.toJson(lesson));
                     out.flush();

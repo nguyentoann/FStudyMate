@@ -58,6 +58,7 @@ const FileViewer = ({ file }) => {
 
   const renderFilePreview = () => {
     const fileUrl = getFileUrl();
+    const downloadUrl = getDownloadUrl();
     
     if (isImageFile(file.fileName)) {
       return (
@@ -70,8 +71,8 @@ const FileViewer = ({ file }) => {
         </div>
       );
     } else if (isPdfFile(file.fileName) || isPptxFile(file.fileName) || isDocFile(file.fileName)) {
-      // For PDF, PPTX, and DOC files - use Google Docs Viewer as a workaround
-      const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+      // For PDF, PPTX, and DOC files - use Google Docs Viewer with download URL instead of view URL
+      const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
       
       return (
         <div>
@@ -94,7 +95,7 @@ const FileViewer = ({ file }) => {
             </Button>
             <Button 
               icon={<DownloadOutlined />}
-              onClick={() => window.open(getDownloadUrl(), '_blank')}
+              onClick={() => window.open(downloadUrl, '_blank')}
             >
               Download
             </Button>
@@ -133,7 +134,7 @@ const FileViewer = ({ file }) => {
             <Button 
               type="primary" 
               icon={<DownloadOutlined />}
-              onClick={() => window.open(getDownloadUrl(), '_blank')}
+              onClick={() => window.open(downloadUrl, '_blank')}
             >
               Download File
             </Button>

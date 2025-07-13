@@ -10,7 +10,7 @@ import {
   FileOutlined, FolderOutlined, FileTextOutlined, UploadOutlined,
   DownloadOutlined, DeleteOutlined, EditOutlined, EyeOutlined,
   PlusOutlined, FolderAddOutlined, ArrowLeftOutlined, HomeOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined, SearchOutlined
 } from '@ant-design/icons';
 import DashboardLayout from '../components/DashboardLayout';
 import ReactMarkdown from 'react-markdown';
@@ -26,6 +26,7 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { TextArea } = Input;
+const { Search } = Input;
 
 const SubjectMaterialsPage = () => {
   const { subjectCode } = useParams();
@@ -38,12 +39,14 @@ const SubjectMaterialsPage = () => {
   const currentPath = query.get('path') || '/';
   
   const [materials, setMaterials] = useState([]);
+  const [filteredMaterials, setFilteredMaterials] = useState([]);
   const [subject, setSubject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [readmeContent, setReadmeContent] = useState('');
   const [readmeMaterialId, setReadmeMaterialId] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [canModify, setCanModify] = useState(false);
+  const [searchText, setSearchText] = useState('');
   
   // Modal states
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
@@ -64,6 +67,26 @@ const SubjectMaterialsPage = () => {
     fetchMaterials();
     checkPermissions();
   }, [subjectCode, currentPath]);
+
+  // Filter materials when search text changes
+  useEffect(() => {
+    if (!searchText.trim()) {
+      setFilteredMaterials(materials);
+      return;
+    }
+    
+    const lowerSearchText = searchText.toLowerCase();
+    const filtered = materials.filter(material => {
+      return (
+        material.fileName.toLowerCase().includes(lowerSearchText) ||
+        (material.description && material.description.toLowerCase().includes(lowerSearchText)) ||
+        (material.fileCategory && material.fileCategory.toLowerCase().includes(lowerSearchText)) ||
+        (subject && subject.code && subject.code.toLowerCase().includes(lowerSearchText))
+      );
+    });
+    
+    setFilteredMaterials(filtered);
+  }, [searchText, materials, subject]);
 
   // Debug log for permissions
   useEffect(() => {
@@ -96,6 +119,7 @@ const SubjectMaterialsPage = () => {
       
       const data = response.data;
       setMaterials(data.materials || []);
+      setFilteredMaterials(data.materials || []);
       
       if (data.readme && data.readme.content) {
         setReadmeContent(data.readme.content);
@@ -436,6 +460,14 @@ const SubjectMaterialsPage = () => {
       </Space>
     );
   };
+
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  const clearSearch = () => {
+    setSearchText('');
+  };
   
   const columns = [
     {
@@ -548,20 +580,47 @@ const SubjectMaterialsPage = () => {
               Materials
               {currentPath !== '/' && ` - ${currentPath.split('/').filter(Boolean).pop()}`}
             </Title>
+            
+            {/* Search Bar */}
+            <div className="search-container">
+              <Search
+                placeholder="Search files, folders, or subject code..."
+                allowClear
+                enterButton={<SearchOutlined />}
+                size="large"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onSearch={handleSearch}
+                style={{ marginBottom: '16px', width: '100%' }}
+              />
+              {searchText && (
+                <div className="search-results-info">
+                  <Text type="secondary">
+                    Found {filteredMaterials.length} results for "{searchText}"
+                    {filteredMaterials.length !== materials.length && (
+                      <Button type="link" onClick={clearSearch} size="small">
+                        Clear search
+                      </Button>
+                    )}
+                  </Text>
+                </div>
+              )}
+            </div>
+            
             {renderControls()}
           </div>
           
           {/* Files Table (Always shown) */}
           <div className="files-container">
             <Title level={4}>Files</Title>
-            {materials.length === 0 ? (
+            {filteredMaterials.length === 0 ? (
               <Empty 
-                description="No materials found in this location"
+                description={searchText ? "No matching files found" : "No materials found in this location"}
                 image={Empty.PRESENTED_IMAGE_SIMPLE} 
               />
             ) : (
               <Table 
-                dataSource={materials}
+                dataSource={filteredMaterials}
                 columns={columns}
                 rowKey="id"
                 onRow={(material) => ({
@@ -749,6 +808,16 @@ const SubjectMaterialsPage = () => {
         }
         .markdown-card .ant-card-body {
           padding: 24px;
+        }
+        .search-container {
+          margin: 16px 0;
+        }
+        .search-results-info {
+          margin-top: -8px;
+          margin-bottom: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
         .markdown-body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

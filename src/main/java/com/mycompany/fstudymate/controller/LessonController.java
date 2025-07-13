@@ -25,6 +25,14 @@ public class LessonController {
                     System.out.println("[SPRING] Fetching lessons for subjectId: " + subjectIdInt);
                     lessons = LessonDAO.getLessonsBySubject(subjectIdInt);
                     System.out.println("[SPRING] Retrieved " + lessons.size() + " lessons");
+                    
+                    // Log subject code and termNo for debugging
+                    for (Lesson lesson : lessons) {
+                        System.out.println("[SPRING] Lesson: " + lesson.getId() + 
+                                         ", Title: " + lesson.getTitle() +
+                                         ", Subject Code: " + lesson.getSubjectCode() + 
+                                         ", TermNo: " + lesson.getTermNo());
+                    }
                 } catch (NumberFormatException e) {
                     System.out.println("[SPRING] Invalid subjectId format: " + subjectId);
                     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -34,6 +42,14 @@ public class LessonController {
                 System.out.println("[SPRING] Fetching all lessons");
                 lessons = LessonDAO.getAllLessons();
                 System.out.println("[SPRING] Retrieved " + lessons.size() + " lessons");
+                
+                // Log subject code and termNo for debugging
+                for (Lesson lesson : lessons) {
+                    System.out.println("[SPRING] Lesson: " + lesson.getId() + 
+                                     ", Title: " + lesson.getTitle() +
+                                     ", Subject Code: " + lesson.getSubjectCode() + 
+                                     ", TermNo: " + lesson.getTermNo());
+                }
             }
             return new ResponseEntity<>(lessons, HttpStatus.OK);
         } catch (Exception e) {
@@ -50,6 +66,13 @@ public class LessonController {
             if (lesson == null) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
+            
+            // Log subject code and termNo for debugging
+            System.out.println("[SPRING] Retrieved lesson: " + lesson.getId() + 
+                             ", Title: " + lesson.getTitle() +
+                             ", Subject Code: " + lesson.getSubjectCode() + 
+                             ", TermNo: " + lesson.getTermNo());
+                             
             return new ResponseEntity<>(lesson, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,7 +88,18 @@ public class LessonController {
             
             if (generatedId > 0) {
                 lesson.setId(generatedId);
-                return new ResponseEntity<>(lesson, HttpStatus.CREATED);
+                
+                // Get the complete lesson with subject code and termNo
+                Lesson createdLesson = LessonDAO.getLessonById(generatedId);
+                if (createdLesson != null) {
+                    // Log subject code and termNo for debugging
+                    System.out.println("[SPRING] Created lesson: " + createdLesson.getId() + 
+                                     ", Subject Code: " + createdLesson.getSubjectCode() + 
+                                     ", TermNo: " + createdLesson.getTermNo());
+                    return new ResponseEntity<>(createdLesson, HttpStatus.CREATED);
+                } else {
+                    return new ResponseEntity<>(lesson, HttpStatus.CREATED);
+                }
             } else {
                 return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -91,6 +125,12 @@ public class LessonController {
             if (success) {
                 // Get the updated lesson from the database
                 Lesson updatedLesson = LessonDAO.getLessonById(id);
+                
+                // Log subject code and termNo for debugging
+                System.out.println("[SPRING] Updated lesson: " + updatedLesson.getId() + 
+                                 ", Subject Code: " + updatedLesson.getSubjectCode() + 
+                                 ", TermNo: " + updatedLesson.getTermNo());
+                                 
                 return new ResponseEntity<>(updatedLesson, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -109,6 +149,11 @@ public class LessonController {
             if (existingLesson == null) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
+            
+            // Log subject code and termNo for debugging
+            System.out.println("[SPRING] Deleting lesson: " + existingLesson.getId() + 
+                             ", Subject Code: " + existingLesson.getSubjectCode() + 
+                             ", TermNo: " + existingLesson.getTermNo());
 
             // Real deletion using database
             boolean success = LessonDAO.deleteLesson(id);

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import model.Lesson;
+import model.Subject;
 import model.User;
 
 public class LessonDAO {
@@ -22,9 +23,11 @@ public class LessonDAO {
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = pool.getConnection();
         
-        String sql = "SELECT l.*, u.full_name, u.Email, u.Username, u.profile_image_url " +
+        String sql = "SELECT l.*, u.full_name, u.Email, u.Username, u.profile_image_url, " +
+                     "s.Code as subject_code, s.Name as subject_name, s.Active as subject_active, s.TermNo as term_no " +
                      "FROM Lessons l " +
-                     "LEFT JOIN users u ON l.LecturerId = u.ID";
+                     "LEFT JOIN users u ON l.LecturerId = u.ID " +
+                     "LEFT JOIN Subjects s ON l.SubjectId = s.ID";
         
         // Add query logging for direct MySQL execution
         System.out.println("===== MYSQL QUERY FOR DIRECT EXECUTION =====");
@@ -60,9 +63,11 @@ public class LessonDAO {
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = pool.getConnection();
         
-        String sql = "SELECT l.*, u.full_name, u.Email, u.Username, u.profile_image_url " +
+        String sql = "SELECT l.*, u.full_name, u.Email, u.Username, u.profile_image_url, " +
+                     "s.Code as subject_code, s.Name as subject_name, s.Active as subject_active, s.TermNo as term_no " +
                      "FROM Lessons l " +
                      "LEFT JOIN users u ON l.LecturerId = u.ID " +
+                     "LEFT JOIN Subjects s ON l.SubjectId = s.ID " +
                      "WHERE l.SubjectId = ?";
         
         // Add enhanced query logging for direct MySQL execution
@@ -87,7 +92,8 @@ public class LessonDAO {
                 Lesson lesson = mapResultSetToLesson(rs);
                 lessons.add(lesson);
                 count++;
-                System.out.println("[DEBUG] Found lesson: ID=" + lesson.getId() + ", Title=" + lesson.getTitle());
+                System.out.println("[DEBUG] Found lesson: ID=" + lesson.getId() + ", Title=" + lesson.getTitle() + 
+                                  ", SubjectCode=" + lesson.getSubjectCode() + ", TermNo=" + lesson.getTermNo());
             }
             
             System.out.println("[DEBUG] Total lessons found for subject " + subjectId + ": " + count);
@@ -185,9 +191,11 @@ public class LessonDAO {
         ConnectionPool pool = ConnectionPool.getInstance();
         Connection connection = pool.getConnection();
         
-        String sql = "SELECT l.*, u.full_name, u.Email, u.Username, u.profile_image_url " +
+        String sql = "SELECT l.*, u.full_name, u.Email, u.Username, u.profile_image_url, " +
+                     "s.Code as subject_code, s.Name as subject_name, s.Active as subject_active, s.TermNo as term_no " +
                      "FROM Lessons l " +
                      "LEFT JOIN users u ON l.LecturerId = u.ID " +
+                     "LEFT JOIN Subjects s ON l.SubjectId = s.ID " +
                      "WHERE l.ID = ?";
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -320,6 +328,34 @@ public class LessonDAO {
         lesson.setLecturerId(rs.getInt("LecturerId"));
         lesson.setLikes(rs.getInt("Likes"));
         lesson.setViewCount(rs.getInt("ViewCount"));
+        
+        // Get subject code and term number
+        try {
+            String subjectCode = rs.getString("subject_code");
+            if (subjectCode != null) {
+                lesson.setSubjectCode(subjectCode);
+            }
+            
+            // Check if term_no column exists in the result set
+            Object termNoObj = rs.getObject("term_no");
+            if (termNoObj != null) {
+                lesson.setTermNo(rs.getInt("term_no"));
+            }
+            
+            // Create Subject object
+            Subject subject = new Subject();
+            subject.setId(rs.getInt("SubjectId"));
+            subject.setCode(rs.getString("subject_code"));
+            subject.setName(rs.getString("subject_name"));
+            subject.setActive(rs.getBoolean("subject_active"));
+            if (termNoObj != null) {
+                subject.setTermNo(rs.getInt("term_no"));
+            }
+            lesson.setSubject(subject);
+        } catch (SQLException e) {
+            // If columns don't exist, just log it and continue
+            System.out.println("Warning: Could not retrieve subject code or term number: " + e.getMessage());
+        }
         
         // Create User object for lecturer if LecturerId exists
         if (rs.getInt("LecturerId") > 0) {
