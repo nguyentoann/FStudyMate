@@ -169,9 +169,9 @@ function FeedbackPage() {
                                     onChange={(e) => setTargetName(e.target.value)}
                                 />
                             </div>
-                        </div>
-                    )}
-                </div>
+            </div>
+          )}
+        </div>
         
                 {/* Form gửi feedback */}
                 <div className="mb-6">
