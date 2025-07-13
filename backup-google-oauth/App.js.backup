@@ -45,6 +45,7 @@ import QuizDetails from "./pages/QuizDetails";
 import "./styles/globals.css";
 import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
+import GoogleOAuthDebug from "./components/GoogleOAuthDebug";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -74,7 +75,7 @@ function App() {
   }, []);
 
   return (
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || "your-google-client-id"}>
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || "1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com"}>
       <AuthProvider>
         <ChatProvider>
           <GroupChatProvider>
@@ -363,6 +364,7 @@ function App() {
                 <VideoCall />
                 <IncomingCallNotification />
                 {/* {isDevelopment && <DeveloperTools />} */}
+                <GoogleOAuthDebug />
               </Router>
 
               {/* Global CSS for dark mode */}

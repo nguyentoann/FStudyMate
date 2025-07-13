@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { PUBLIC_URL, API_URL } from '../services/config';
 
@@ -23,7 +24,7 @@ const Login = () => {
   const [loginValid, setLoginValid] = useState(null); // null = not checked, true = exists, false = not found
   const [checkingLogin, setCheckingLogin] = useState(false);
 
-  const { login: loginFn } = useAuth();
+  const { login: loginFn, googleLogin } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
 
@@ -168,6 +169,49 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (response) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const result = await googleLogin(response);
+      
+      // Navigate based on user role
+      if (result.user && result.user.role) {
+        switch (result.user.role) {
+          case "admin":
+            navigate("/admin/dashboard");
+            break;
+          case "lecturer":
+            navigate("/lecturer/dashboard");
+            break;
+          case "student":
+            navigate("/student/dashboard");
+            break;
+          case "outsrc_student":
+            navigate("/outsource/dashboard");
+            break;
+          case "guest":
+            navigate("/guest/dashboard");
+            break;
+          default:
+            navigate("/dashboard");
+        }
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      setError('Google login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google login failed. Please try again.');
   };
 
   return (
@@ -389,9 +433,44 @@ const Login = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.4 }}
+                disabled={loading}
               >
-                Sign In
+                {loading ? 'Signing In...' : 'Sign In'}
               </motion.button>
+              
+              {/* Divider */}
+              <motion.div 
+                className="relative my-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8, duration: 0.4 }}
+              >
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </motion.div>
+              
+              {/* Google OAuth Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9, duration: 0.4 }}
+                className="flex justify-center"
+              >
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  text="continue_with"
+                  shape="rectangular"
+                  locale="en"
+                />
+              </motion.div>
               
               <motion.div 
                 className="mt-6 text-center"
