@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import "./ProfileCard.css";
 
 const DEFAULT_BEHIND_GRADIENT =
@@ -17,16 +23,9 @@ const ANIMATION_CONFIG = {
 const clamp = (value, min = 0, max = 100) =>
   Math.min(Math.max(value, min), max);
 
-const round = (value, precision = 3) =>
-  parseFloat(value.toFixed(precision));
+const round = (value, precision = 3) => parseFloat(value.toFixed(precision));
 
-const adjust = (
-  value,
-  fromMin,
-  fromMax,
-  toMin,
-  toMax
-) =>
+const adjust = (value, fromMin, fromMax, toMin, toMax) =>
   round(toMin + ((toMax - toMin) * (value - fromMin)) / (fromMax - fromMin));
 
 const easeInOutCubic = (x) =>
@@ -53,18 +52,21 @@ const ProfileCardComponent = ({
 }) => {
   const wrapRef = useRef(null);
   const cardRef = useRef(null);
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("/images/default-avatar.svg");
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(
+    "/images/default-avatar.svg"
+  );
   const [originalUrlTried, setOriginalUrlTried] = useState(false);
 
   // Reset state when avatarUrl changes
   useEffect(() => {
     // Ensure avatarUrl is a string
-    const safeAvatarUrl = typeof avatarUrl === 'string' ? avatarUrl : "/images/default-avatar.svg";
+    const safeAvatarUrl =
+      typeof avatarUrl === "string" ? avatarUrl : "/images/default-avatar.svg";
     setCurrentAvatarUrl(safeAvatarUrl);
     setOriginalUrlTried(false);
-    
-    console.log('ProfileCard received avatarUrl:', safeAvatarUrl);
-    console.log('ProfileCard received originalUrl:', originalUrl);
+
+    console.log("ProfileCard received avatarUrl:", safeAvatarUrl);
+    console.log("ProfileCard received originalUrl:", originalUrl);
   }, [avatarUrl, originalUrl]);
 
   const animationHandlers = useMemo(() => {
@@ -72,12 +74,7 @@ const ProfileCardComponent = ({
 
     let rafId = null;
 
-    const updateCardTransform = (
-      offsetX,
-      offsetY,
-      card,
-      wrap
-    ) => {
+    const updateCardTransform = (offsetX, offsetY, card, wrap) => {
       const width = card.clientWidth;
       const height = card.clientHeight;
 
@@ -92,7 +89,11 @@ const ProfileCardComponent = ({
         "--pointer-y": `${percentY}%`,
         "--background-x": `${adjust(percentX, 0, 100, 35, 65)}%`,
         "--background-y": `${adjust(percentY, 0, 100, 35, 65)}%`,
-        "--pointer-from-center": `${clamp(Math.hypot(percentY - 50, percentX - 50) / 50, 0, 1)}`,
+        "--pointer-from-center": `${clamp(
+          Math.hypot(percentY - 50, percentX - 50) / 50,
+          0,
+          1
+        )}`,
         "--pointer-from-top": `${percentY / 100}`,
         "--pointer-from-left": `${percentX / 100}`,
         "--rotate-x": `${round(-(centerX / 5))}deg`,
@@ -104,13 +105,7 @@ const ProfileCardComponent = ({
       });
     };
 
-    const createSmoothAnimation = (
-      duration,
-      startX,
-      startY,
-      card,
-      wrap
-    ) => {
+    const createSmoothAnimation = (duration, startX, startY, card, wrap) => {
       const startTime = performance.now();
       const targetX = wrap.clientWidth / 2;
       const targetY = wrap.clientHeight / 2;
@@ -237,12 +232,11 @@ const ProfileCardComponent = ({
   ]);
 
   const cardStyle = useMemo(
-    () =>
-    ({
+    () => ({
       "--icon": iconUrl ? `url(${iconUrl})` : "none",
       "--grain": grainUrl ? `url(${grainUrl})` : "none",
       "--behind-gradient": showBehindGradient
-        ? (behindGradient ?? DEFAULT_BEHIND_GRADIENT)
+        ? behindGradient ?? DEFAULT_BEHIND_GRADIENT
         : "none",
       "--inner-gradient": innerGradient ?? DEFAULT_INNER_GRADIENT,
     }),
@@ -255,25 +249,30 @@ const ProfileCardComponent = ({
 
   // Function to handle image loading errors
   const handleImageError = (e) => {
-    console.log('Image failed to load:', e.target.src);
+    console.log("Image failed to load:", e.target.src);
     e.target.onerror = null; // Prevent infinite loop
-    
+
     try {
       // If the current URL is from StudentImages but failed to load
-      if (e.target.src.includes('/StudentImages/') && !originalUrlTried && originalUrl && typeof originalUrl === 'string') {
-        console.log('Falling back to original URL:', originalUrl);
+      if (
+        e.target.src.includes("/StudentImages/") &&
+        !originalUrlTried &&
+        originalUrl &&
+        typeof originalUrl === "string"
+      ) {
+        console.log("Falling back to original URL:", originalUrl);
         setCurrentAvatarUrl(originalUrl);
         setOriginalUrlTried(true);
         return;
       }
-      
+
       // If we're already using the original URL but it failed
-      if (originalUrlTried || !originalUrl || typeof originalUrl !== 'string') {
-        console.log('Using default avatar as fallback');
+      if (originalUrlTried || !originalUrl || typeof originalUrl !== "string") {
+        console.log("Using default avatar as fallback");
         e.target.src = "/images/default-avatar.svg";
       }
     } catch (err) {
-      console.error('Error in image error handler:', err);
+      console.error("Error in image error handler:", err);
       e.target.src = "/images/default-avatar.svg";
     }
   };
@@ -312,15 +311,6 @@ const ProfileCardComponent = ({
                     <div className="pc-status">{status}</div>
                   </div>
                 </div>
-                <button
-                  className="pc-contact-btn"
-                  onClick={handleContactClick}
-                  style={{ pointerEvents: "auto" }}
-                  type="button"
-                  aria-label={`Contact ${name || "user"}`}
-                >
-                  {contactText}
-                </button>
               </div>
             )}
           </div>
@@ -338,4 +328,4 @@ const ProfileCardComponent = ({
 
 const ProfileCard = React.memo(ProfileCardComponent);
 
-export default ProfileCard; 
+export default ProfileCard;

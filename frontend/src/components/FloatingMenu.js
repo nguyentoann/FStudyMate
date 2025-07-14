@@ -371,7 +371,7 @@ const FloatingMenu = ({
           </Link>
 
           {/* Student Overview */}
-          <Link
+          {/* <Link
             to="/student-overview"
             className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${
@@ -396,7 +396,7 @@ const FloatingMenu = ({
             {isExpanded && (
               <span className="ml-2 whitespace-nowrap">Student Overview</span>
             )}
-          </Link>
+          </Link> */}
 
           {/* Request - simplified version */}
           <div className="relative">
@@ -709,7 +709,7 @@ const FloatingMenu = ({
                     <span className="whitespace-nowrap">Profile</span>
                   </Link>
 
-                  <Link
+                  {/* <Link
                     to="/account"
                     className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
                   >
@@ -727,9 +727,9 @@ const FloatingMenu = ({
                       />
                     </svg>
                     <span className="whitespace-nowrap">Account</span>
-                  </Link>
+                  </Link> */}
 
-                  <Link
+                  {/* <Link
                     to="/language"
                     className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
                   >
@@ -747,7 +747,7 @@ const FloatingMenu = ({
                       />
                     </svg>
                     <span className="whitespace-nowrap">Language</span>
-                  </Link>
+                  </Link> */}
 
                   <Link
                     to="/theme"
