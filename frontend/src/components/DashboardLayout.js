@@ -131,8 +131,8 @@ const DashboardLayout = ({ children }) => {
     }
   };
 
-  // Check if user role is student or admin (roles that can use group chat)
-  const canUseGroupChat = user?.role === "student" || user?.role === "admin";
+  // Allow all roles to use group chat
+  const canUseGroupChat = true;
 
   // Menu items with submenu support
   const renderMenuItems = (isMobile = false) => {
@@ -1014,33 +1014,31 @@ const DashboardLayout = ({ children }) => {
             </svg>
           </button>
 
-          {/* Group Chat Button - only for students and admins */}
-          {canUseGroupChat && (
-            <button
-              onClick={handleOpenGroupChat}
-              className="bg-green-600 text-white p-3 rounded-full shadow-xl hover:bg-green-700 focus:outline-none relative"
-              title="Class Group Chat"
+          {/* Group Chat Button - available for all roles */}
+          <button
+            onClick={handleOpenGroupChat}
+            className="bg-green-600 text-white p-3 rounded-full shadow-xl hover:bg-green-700 focus:outline-none relative"
+            title="Group Chat"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              {groups.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {groups.length}
-                </span>
-              )}
-            </button>
-          )}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+            {groups.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {groups.length}
+              </span>
+            )}
+          </button>
 
           {/* Regular Chat Button */}
           <button
@@ -1103,7 +1101,7 @@ const DashboardLayout = ({ children }) => {
         {isGroupChatOpen && (
           <div className="fixed bottom-28 right-4 z-[90] w-11/12 md:w-96 h-[500px] max-w-md mx-auto md:mx-0 left-0 right-0 md:left-auto md:right-4 bg-white rounded-lg shadow-2xl overflow-hidden animate-chat-open">
             <div className="flex justify-between items-center p-3 bg-green-600 text-white">
-              <h3 className="font-medium">Class Groups</h3>
+              <h3 className="font-medium">Group Chats</h3>
               <button
                 onClick={() => setIsGroupChatOpen(false)}
                 className="text-white hover:text-gray-200"

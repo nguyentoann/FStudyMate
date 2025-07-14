@@ -29,7 +29,7 @@ const MyCoursesPage = () => {
 
   return (
     <DashboardLayout>
-      <div className={darkMode ? "text-white" : ""}>
+      <div className={`${darkMode ? "text-white" : ""} pt-4`}>
         <h1 className="text-2xl font-bold mb-6">My Courses</h1>
 
         <div className="mb-8">

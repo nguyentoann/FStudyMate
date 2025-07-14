@@ -4,11 +4,12 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "users")
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
     
     @Id
@@ -44,11 +45,11 @@ public class User {
     private String phoneNumber;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
+    @JsonIgnore
     private List<Quiz> quizzes;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
+    @JsonIgnore
     private List<QuizTaken> quizTakens;
     
     @PrePersist
