@@ -320,8 +320,7 @@ const StudentDashboard = () => {
             <p className="text-3xl font-semibold">{stats.activeCourses}</p>
           </div>
         </div>
-        {/* Two-column layout for Progress Tracker and My Courses */}
-        // Trong phần return, thay thế phần My Courses bằng link đến trang mới
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Progress Tracker (1/3 width on large screens) */}
           <div className="lg:col-span-1">

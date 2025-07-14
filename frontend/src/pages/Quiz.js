@@ -1569,7 +1569,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                     d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
                   />
                 </svg>
-                Kết Quả Kiểm Tra
+                Test Results
               </h1>
             </div>
 
@@ -1579,9 +1579,9 @@ const QuizComponent = ({ maMon, maDe }) => {
                 <div className="text-7xl font-bold text-blue-500">
                   {percentage}%
                 </div>
-                <p className="text-lg mt-2 text-gray-300">/ {total} điểm</p>
+                <p className="text-lg mt-2 text-gray-300">/ {total} point</p>
                 <p className="text-sm mt-1 text-gray-400">
-                  Bạn đã đạt được {score} trên tổng số {total} điểm
+                  You have achieved{score} out of {total} points
                 </p>
               </div>
 
@@ -1599,7 +1599,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                   onClick={() => navigate("/quiz")}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors shadow-sm"
                 >
-                  Làm bài kiểm tra khác
+                  Take another test
                 </button>
               </div>
             </div>
@@ -1639,7 +1639,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                             : textColorClass
                         }`}
                       >
-                        Câu {index + 1}:
+                        Question {index + 1}:
                       </div>
                       <div
                         className={`text-xs font-medium py-1 px-2 rounded-full ${
@@ -1722,11 +1722,11 @@ const QuizComponent = ({ maMon, maDe }) => {
                           darkMode ? "text-red-400" : "text-red-600"
                         } font-medium`}
                       >
-                        Đáp án của bạn:{" "}
+                        Your answer:{" "}
                       </span>
                       {result.selected.length > 0
                         ? result.selected.join(", ")
-                        : "Không chọn đáp án"}
+                        : "No answer selected"}
                     </div>
 
                     {/* Correct answer */}
@@ -1740,7 +1740,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                           darkMode ? "text-green-400" : "text-green-600"
                         } font-medium`}
                       >
-                        Đáp án đúng:{" "}
+                        Correct answer:{" "}
                       </span>
                       {result.correct.join(", ")}
                     </div>
@@ -1757,7 +1757,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                             darkMode ? "text-gray-300" : "text-gray-700"
                           }`}
                         >
-                          Giải thích:
+                          Explain:
                         </div>
                         <div
                           className={`mt-1 ${
@@ -1825,7 +1825,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                 : "bg-yellow-100 text-yellow-700"
             } p-4 rounded-lg`}
           >
-            Không có câu hỏi nào cho mã môn và mã đề này.
+            There are no questions for this subject code and exam code.
           </div>
         </div>
       </div>
@@ -1906,11 +1906,11 @@ const QuizComponent = ({ maMon, maDe }) => {
 
                 <div className="flex justify-between text-sm text-gray-600 mb-6 animate-fade-in-up">
                   <div className={darkMode ? "text-gray-400" : ""}>
-                    Câu {currentIndex + 1} / {questions.length}
+                    Question {currentIndex + 1} / {questions.length}
                   </div>
                   <div className={darkMode ? "text-gray-400" : ""}>
                     {Object.keys(selectedAnswers).length} / {questions.length}{" "}
-                    câu đã trả lời
+                    question answered
                   </div>
                 </div>
 
@@ -2138,7 +2138,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300 animate-slide-in-left"
                     }`}
                   >
-                    <i className="fas fa-arrow-left mr-2"></i> Câu trước
+                    <i className="fas fa-arrow-left mr-2"></i> Previous sentence
                   </button>
 
                   <div className="flex gap-4">
@@ -2155,14 +2155,14 @@ const QuizComponent = ({ maMon, maDe }) => {
                           : "bg-blue-600 text-white hover:bg-blue-700"
                       }`}
                     >
-                      <i className="fas fa-check mr-2"></i> Kiểm tra
+                      <i className="fas fa-check mr-2"></i> Check
                     </button>
 
                     <button
                       onClick={handleNext}
                       className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 flex items-center transition-all duration-300 hover:scale-105 animate-slide-in-right"
                     >
-                      Câu tiếp theo <i className="fas fa-arrow-right ml-2"></i>
+                      Next sentence <i className="fas fa-arrow-right ml-2"></i>
                     </button>
 
                     {currentIndex === questions.length - 1 && (
@@ -2170,7 +2170,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                         onClick={handleSubmit}
                         className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center transition-all duration-300 hover:scale-105 animate-pulse-highlight"
                       >
-                        Nộp bài <i className="fas fa-check ml-2"></i>
+                        Submit <i className="fas fa-check ml-2"></i>
                       </button>
                     )}
                   </div>
@@ -2180,7 +2180,7 @@ const QuizComponent = ({ maMon, maDe }) => {
           </div>
 
           {/* Webcam feed in bottom left corner */}
-          <div className="fixed bottom-8 left-8 z-30">
+          {/* <div className="fixed bottom-8 left-8 z-30">
             <div className="relative">
               <video
                 ref={videoRef}
@@ -2227,7 +2227,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                 PROCTORING ACTIVE
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Out of bounds warning modal */}
@@ -2236,19 +2236,19 @@ const QuizComponent = ({ maMon, maDe }) => {
             <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4 animate-bounce-in">
               <div className="flex items-center mb-4 text-red-600">
                 <i className="fas fa-exclamation-triangle text-2xl mr-2"></i>
-                <h3 className="text-xl font-bold">Cảnh báo!</h3>
+                <h3 className="text-xl font-bold">Warning!</h3>
               </div>
               <p className="mb-4 text-gray-800">
-                Bạn đã di chuyển chuột ra ngoài vùng làm bài. Hành động này có
-                thể được coi là gian lận. Vui lòng di chuyển chuột quay lại vùng
-                làm bài (khung đỏ).
+                You have moved your mouse outside the test area. This action may
+                be considered cheating. Please move your mouse back to the test
+                area.
               </p>
               <div className="flex justify-end">
                 <button
                   onClick={() => setOutOfBounds(false)}
                   className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
                 >
-                  Tôi hiểu
+                  I get it
                 </button>
               </div>
             </div>
@@ -2297,23 +2297,23 @@ const QuizComponent = ({ maMon, maDe }) => {
                 darkMode ? "bg-gray-800" : "bg-white"
               } p-6 rounded-lg shadow-xl max-w-md w-full mx-4`}
             >
-              <h3 className="text-xl font-bold mb-4">Xác nhận nộp bài</h3>
+              <h3 className="text-xl font-bold mb-4">Confirm submission</h3>
               <p className="mb-4">
-                Bạn còn {questions.length - completedQuestions.size} câu chưa
-                hoàn thành. Bạn có muốn nộp bài ngay bây giờ không?
+                You have {questions.length - completedQuestions.size} unfinished
+                questions. Do you want to submit your question now?
               </p>
               <div className="flex justify-end gap-4">
                 <button
                   onClick={handleCancelSubmit}
                   className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
                 >
-                  Tiếp tục làm bài
+                  Continue working on the test
                 </button>
                 <button
                   onClick={handleConfirmSubmit}
                   className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
                 >
-                  Nộp bài
+                  Submit
                 </button>
               </div>
             </div>
