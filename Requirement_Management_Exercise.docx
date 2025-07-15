@@ -1,0 +1,31 @@
+REQUIREMENT MANAGEMENT EXERCISES
+
+Exercise 1: Assign Requirement Statuses
+
+| Item | Requirement | Status | Explanation |
+|------|-------------|--------|-------------|
+| 1 | "The system shall authenticate users via two-factor authentication." | Approved | Security requirement typically approved early as fundamental to system security |
+| 2 | "Add export-to-Excel functionality in reports." | Implemented | Functional enhancement that has been completed and is available |
+| 3 | "Integrate with the new CRM, pending vendor confirmation." | Deferred | On hold due to external dependencies (vendor confirmation) |
+| 4 | "The user shall receive an email confirmation after submitting an order." | Verified | Implemented and tested, confirmed working as specified |
+| 5 | "A dashboard shall display real-time KPIs – discussed but not confirmed." | Draft | Still in discussion phase, not formally approved |
+| 6 | "The mobile app shall support biometric login (fingerprint or face ID)." | Proposed | New feature proposal not yet evaluated or approved |
+| 7 | "The mobile app shall support biometric login (fingerprint or face ID)." | Approved | Evaluated and approved for implementation |
+| 8 | "All reports must be exportable to both PDF and CSV formats" | Implemented | Functionality completed and available in system |
+| 9 | "The application shall use AI to automatically categorize expenses." | Draft | Complex requirement needing detailed specification |
+| 10 | "Users shall be able to reset their password via email." | Verified | Security feature implemented and tested |
+
+Exercise 2: Identify Requirement Issue Types
+
+| Item | Requirement | Issue Type | Explanation |
+|------|-------------|------------|-------------|
+| 1 | "The system shall encrypt user passwords using Base64." | Incorrect requirement | Base64 is encoding, not encryption. Passwords should be hashed with secure algorithms |
+| 2 | "Should we allow users to log in with their Google account?" | Requirement question | Phrased as question rather than definitive requirement statement |
+| 3 | "The user shall be able to delete their account permanently." (Duplicate in REQ-027 and REQ-053) | Duplicate requirement | Same requirement appears in two different documents |
+| 4 | No documented requirement for logging failed login attempts | Missing requirement | Necessary security feature not originally specified but needed |
+| 5 | "Implement an auto-save feature for drafts every 2 minutes." (Removed from sprint) | Unneeded requirement | Removed from sprint plan, not currently needed |
+| 6 | "Should the search results be sorted by date or by relevance?" | Implementation question | Technical implementation detail needing clarification |
+| 7 | "The system shall support real-time messaging." (Offline accounting app) | Incorrect requirement | Incompatible with offline application's core purpose |
+| 8 | "Customers shall receive invoices via email." (Also: "The system shall email invoices to customers.") | Duplicate requirement | Same functionality described in two different ways |
+| 9 | No requirement specifying report export format | Missing requirement | Export requirement exists but lacks format specification |
+| 10 | "The system shall validate the user's phone number." (Uncertain if still necessary) | Unneeded requirement | May be obsolete after UI redesign | 
