@@ -157,10 +157,40 @@ const Login = () => {
     try {
       // Pass login as both username and email, let backend decide
       const response = await loginFn(login, password); // loginFn should handle username/email
+      
       // Use navigate to redirect based on role
-      if (response.data && response.data.role) {
-        navigate('/dashboard');
+      console.log('Login successful, response:', response);
+      
+      // The response itself is the user object from AuthContext.login
+      if (response && response.role) {
+        const role = response.role.toLowerCase();
+        console.log(`User authenticated with role: ${role}, redirecting to dashboard`);
+        
+        switch (role) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'lecturer':
+            navigate('/lecturer/dashboard');
+            break;
+          case 'student':
+            navigate('/student/dashboard');
+            break;
+          case 'guest':
+            navigate('/guest/dashboard');
+            break;
+          case 'outsrc_student':
+            navigate('/outsource/dashboard');
+            break;
+          default:
+            // Default to student dashboard if role is unknown
+            console.log(`Unknown role: ${role}, redirecting to default dashboard`);
+            navigate('/dashboard');
+            break;
+        }
       } else {
+        // Fallback to generic dashboard if no specific role found
+        console.log('User authenticated but no role found, redirecting to default dashboard');
         navigate('/dashboard');
       }
     } catch (error) {
