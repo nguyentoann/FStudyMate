@@ -4,7 +4,7 @@ This document provides detailed information about the API endpoints available in
 
 ## Base URL
 
-For local development: `http://localhost:8080/api`
+For local development: `https://localhost:8443/api`
 
 ## Authentication
 

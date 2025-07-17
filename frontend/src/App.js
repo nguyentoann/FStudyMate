@@ -19,9 +19,9 @@ import { AuthProvider } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import { GroupChatProvider } from "./context/GroupChatContext";
 import DirectWebRTCProvider from "./context/DirectWebRTCContext";
-import VideoCall from "./components/VideoCall";
-import IncomingCallNotification from "./components/IncomingCallNotification";
 import ThemeToggle from "./components/ThemeToggle";
+import EnhancedVideoCall from "./components/EnhancedVideoCall";
+import EnhancedIncomingCallNotification from "./components/EnhancedIncomingCallNotification";
 import ProtectedRoute from "./components/ProtectedRoute";
 import StudentDashboard from "./pages/dashboards/StudentDashboard";
 import LecturerDashboard from "./pages/dashboards/LecturerDashboard";
@@ -46,6 +46,7 @@ import "./styles/globals.css";
 import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
 import FeedbackPage from "./pages/help/FeedbackPage";
+import WebRTCCall from "./components/WebRTCCall";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -384,14 +385,24 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  
+                  {/* WebRTC Video Call */}
+                  <Route
+                    path="/webrtc"
+                    element={
+                      <ProtectedRoute>
+                        <WebRTCCall />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* 404 Route - must be last */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <ThemeToggle />
                 {/* Video Call Components */}
-                <VideoCall />
-                <IncomingCallNotification />
+                <EnhancedVideoCall />
+                <EnhancedIncomingCallNotification />
                 {/* {isDevelopment && <DeveloperTools />} */}
               </Router>
 

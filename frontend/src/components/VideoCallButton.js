@@ -7,7 +7,11 @@ const VideoCallButton = ({ userId, userName }) => {
   const handleStartCall = (e) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent triggering parent click events
-    startCall(userId, userName);
+    
+    // Ensure userId is converted to string
+    const userIdStr = String(userId);
+    console.log(`[VideoCallButton] Starting call to ${userName} (${userIdStr})`);
+    startCall(userIdStr, userName || userIdStr);
   };
   
   return (

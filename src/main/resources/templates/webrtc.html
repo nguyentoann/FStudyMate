@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FStudyMate WebRTC</title>
+    <script src="/webjars/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/2.3.4/stomp.min.js"></script>
+</head>
+<body>
+<style>
+    video{
+        width: 400px;
+        height: 400px;
+        background-color: black;
+    }
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .video-container {
+        display: flex;
+        gap: 20px;
+    }
+    fieldset {
+        padding: 15px;
+        margin: 10px 0;
+        width: 100%;
+        max-width: 400px;
+    }
+    button {
+        padding: 8px 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+    input {
+        padding: 8px;
+        margin-right: 10px;
+        width: 200px;
+    }
+</style>
+<div class="container">
+    <h1>FStudyMate WebRTC Video Call</h1>
+    
+    <div class="video-container">
+        <div>
+            <h3>Your Video</h3>
+            <video id="localVideo" autoplay muted></video>
+        </div>
+        <div>
+            <h3>Remote Video</h3>
+            <video id="remoteVideo" autoplay></video>
+        </div>
+    </div>
+    
+    <fieldset>
+        <legend>Connect</legend>
+        <input type="text" name="localId" id="localId" placeholder="Enter Your ID">
+        <button id="connectBtn">Connect</button>
+    </fieldset>
+    
+    <fieldset>
+        <legend>Make a Call</legend>
+        <input type="text" name="remoteId" id="remoteId" placeholder="Enter Remote ID">
+        <button id="callBtn">Call</button>
+    </fieldset>
+    
+    <button id="testConnection">Test Connection</button>
+</div>
+
+<script th:src="@{/js/webrtc.js}"></script>
+</body>
+</html> 
