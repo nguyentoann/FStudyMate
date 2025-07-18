@@ -42,6 +42,8 @@ import AppTheme from "./pages/AppTheme";
 import AboutUs from "./pages/AboutUs";
 import QuizHistory from "./pages/QuizHistory";
 import QuizDetails from "./pages/QuizDetails";
+import QuizReview from "./pages/QuizReview";
+import QuizContinue from "./pages/QuizContinue";
 import "./styles/globals.css";
 import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
@@ -156,6 +158,30 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <QuizDetails />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/review/:quizTakenId"
+                    element={
+                      <ProtectedRoute>
+                        <QuizReview />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/quiz/:quizId/continue"
+                    element={
+                      <ProtectedRoute>
+                        <QuizContinue />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/quiz/attempt/:quizTakenId"
+                    element={
+                      <ProtectedRoute>
+                        <Quiz />
                       </ProtectedRoute>
                     }
                   />

@@ -217,10 +217,16 @@ const QuizHistory = () => {
     return `${mins}m ${secs}s`;
   };
 
-  // View quiz details
+  // View quiz details or continue quiz
   const viewQuizDetails = (quizTakenId) => {
-    // Navigate to quiz details page
-    navigate(`/quiz-details/${quizTakenId}`);
+    // Navigate to quiz review page
+    navigate(`/review/${quizTakenId}`);
+  };
+
+  // Continue in-progress quiz
+  const continueQuiz = (quizId) => {
+    // Navigate to continue quiz page
+    navigate(`/quiz/${quizId}/continue`);
   };
 
   // Helper function to find user ID from various localStorage sources
@@ -435,12 +441,28 @@ const QuizHistory = () => {
                             {formatDuration(quiz.completionTime)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button
-                              onClick={() => viewQuizDetails(quiz.id)}
-                              className="text-indigo-600 hover:text-indigo-900"
-                            >
-                              View Details
-                            </button>
+                            {quiz.status === 'completed' ? (
+                              <button
+                                onClick={() => viewQuizDetails(quiz.id)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-4"
+                              >
+                                View Details
+                              </button>
+                            ) : quiz.status === 'in_progress' ? (
+                              <button
+                                onClick={() => continueQuiz(quiz.quizId)}
+                                className="text-green-600 hover:text-green-900 mr-4"
+                              >
+                                Continue
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => viewQuizDetails(quiz.id)}
+                                className="text-indigo-600 hover:text-indigo-900 mr-4"
+                              >
+                                View Details
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
