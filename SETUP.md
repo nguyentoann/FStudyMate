@@ -99,7 +99,7 @@ cd FStudyMate
    spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
 
    # Server Configuration
-   server.port=8443
+   server.port=8080
 
    # JWT Configuration
    jwt.secret=yourSecretKey
@@ -136,7 +136,7 @@ cd FStudyMate
    mvnw.cmd spring-boot:run
    ```
 
-   The backend will start on https://localhost:8443
+   The backend will start on http://localhost:8080
 
 ## Step 5: Set Up the Frontend
 
@@ -152,7 +152,7 @@ cd FStudyMate
 
 3. Create a `.env` file in the frontend directory:
    ```
-   REACT_APP_API_URL=https://localhost:8443/api
+   REACT_APP_API_URL=http://localhost:8080/api
    ```
 
 4. Start the React development server:
@@ -177,7 +177,7 @@ cd FStudyMate
   java -version
   ```
 
-- **Port Already in Use**: Change the port in `application.properties` if port 8443 is already in use
+- **Port Already in Use**: Change the port in `application.properties` if port 8080 is already in use
   ```properties
   server.port=8081
   ```

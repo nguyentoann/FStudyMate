@@ -198,7 +198,7 @@ npm run build
 java -jar -Dspring.profiles.active=prod target/FStudyMate-1.0-SNAPSHOT.jar
 ```
 
-The application will be available at https://localhost:8443
+The application will be available at http://localhost:8080
 
 ## 🏗️ Frontend Architecture
 

@@ -24,7 +24,7 @@ const CalendarPage = () => {
       setLoading(true);
       const response = await fetch(
         `${
-          process.env.REACT_APP_API_URL || "https://localhost:8443"
+          process.env.REACT_APP_API_URL || "http://localhost:8080"
         }/api/events/public/upcoming`
       );
       if (response.ok) {

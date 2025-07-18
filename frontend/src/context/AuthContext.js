@@ -8,7 +8,7 @@ import axios from 'axios';
 const API_EMERGENCY_URL = `${API_URL}/emergency`;
 
 // Remove the hardcoded API_URL constant
-// const API_URL = 'https://localhost:8443/api';
+// const API_URL = 'http://localhost:8080/api';
 
 const AuthContext = createContext(null);
 
