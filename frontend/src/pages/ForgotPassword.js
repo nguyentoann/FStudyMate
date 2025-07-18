@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // URL gốc của API
-const API_BASE_URL = process.env.REACT_APP_API_URL || "https://localhost:8443";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 /**
  * Trang quên mật khẩu

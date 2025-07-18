@@ -37,8 +37,13 @@ public class ClassSchedule {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Column(name = "room", length = 50)
-    private String room;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 16)
+    private Status status = Status.NotYet;
 
     @Column(name = "building", length = 50)
     private String building;
@@ -64,5 +69,9 @@ public class ClassSchedule {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public enum Status {
+        NotYet, Attended, Online, Absent
     }
 } 

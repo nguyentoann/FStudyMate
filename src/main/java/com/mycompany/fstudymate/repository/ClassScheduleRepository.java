@@ -1,6 +1,7 @@
 package com.mycompany.fstudymate.repository;
 
 import com.mycompany.fstudymate.model.ClassSchedule;
+import com.mycompany.fstudymate.model.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,4 +30,7 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, In
 
     @Query("SELECT DISTINCT cs.termId FROM ClassSchedule cs WHERE cs.isActive = true ORDER BY cs.termId DESC")
     List<Integer> findDistinctTermIds();
+
+    List<ClassSchedule> findByRoom(Room room);
+    List<ClassSchedule> findByStatus(ClassSchedule.Status status);
 } 

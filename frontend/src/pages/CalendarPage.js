@@ -4,12 +4,13 @@ import { useTheme } from "../context/ThemeContext";
 import DashboardLayout from "../components/DashboardLayout";
 import Calendar from "../components/Calendar";
 import EventsList from "../components/EventsList";
+import TeachingScheduleManager from "./admin/TeachingScheduleManager";
 import "./CalendarPage.css";
 
 const CalendarPage = () => {
   const { user } = useAuth();
   const { darkMode } = useTheme();
-  const [activeTab, setActiveTab] = useState("calendar"); // 'calendar' or 'events'
+  const [activeTab, setActiveTab] = useState("calendar"); // 'calendar', 'events', or 'schedule'
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,7 @@ const CalendarPage = () => {
       setLoading(true);
       const response = await fetch(
         `${
-          process.env.REACT_APP_API_URL || "https://localhost:8443"
+          process.env.REACT_APP_API_URL || "http://localhost:8080"
         }/api/events/public/upcoming`
       );
       if (response.ok) {
@@ -36,6 +37,11 @@ const CalendarPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if user is admin or lecturer
+  const isAdminOrLecturer = () => {
+    return user && (user.role === 'admin' || user.role === 'lecturer');
   };
 
   if (!user) {
@@ -86,6 +92,17 @@ const CalendarPage = () => {
             <i className="fas fa-calendar-day"></i>
             Campus Events
           </button>
+          {isAdminOrLecturer() && (
+            <button
+              className={`shadow-xl rounded-xl px-6 py-4 font-bold ${
+                activeTab === "schedule" ? "bg-sky-500" : "bg-white"
+              }`}
+              onClick={() => setActiveTab("schedule")}
+            >
+              <i className="fas fa-chalkboard-teacher"></i>
+              Teaching Schedule
+            </button>
+          )}
         </div>
 
         <div className="calendar-page-content">
@@ -93,9 +110,13 @@ const CalendarPage = () => {
             <div className="calendar-section">
               <Calendar />
             </div>
-          ) : (
+          ) : activeTab === "events" ? (
             <div className="events-section">
               <EventsList />
+            </div>
+          ) : (
+            <div className="teaching-schedule-section">
+              <TeachingScheduleManager />
             </div>
           )}
         </div>

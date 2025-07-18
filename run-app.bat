@@ -15,5 +15,5 @@ cd frontend
 start cmd /k "npm start"
 
 echo Both applications are running!
-echo Backend: https://localhost:8443 (accessible from other devices at http://YOUR_IP:8443)
+echo Backend: http://localhost:8080 (accessible from other devices at http://YOUR_IP:8080)
 echo Frontend: http://localhost:3000 

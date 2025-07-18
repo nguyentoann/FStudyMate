@@ -11,11 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -108,7 +110,171 @@ public class ScheduleService {
         return classScheduleRepository.findByClassIdAndTermId(classId, termId);
     }
 
+    public List<ClassSchedule> findByLecturerIdAndTermId(Integer lecturerId, Integer termId) {
+        return classScheduleRepository.findByLecturerIdAndTermId(lecturerId, termId);
+    }
+
+    /**
+     * Checks if there are any scheduling conflicts for a lecturer
+     * @param lecturerId The ID of the lecturer
+     * @param dayOfWeek The day of the week (1-7 where 1 is Monday)
+     * @param startTime The start time of the class
+     * @param endTime The end time of the class
+     * @param excludeScheduleId Optional schedule ID to exclude from checking (useful for updates)
+     * @return true if there is a conflict, false otherwise
+     */
+    public boolean hasLecturerScheduleConflict(Integer lecturerId, Integer dayOfWeek, 
+                                             LocalTime startTime, LocalTime endTime, 
+                                             Integer excludeScheduleId) {
+        // Safety check for null parameters
+        if (lecturerId == null || dayOfWeek == null || startTime == null || endTime == null) {
+            return false; // Can't determine conflict with null values
+        }
+        
+        List<ClassSchedule> lecturerSchedules = classScheduleRepository
+            .findByLecturerIdAndIsActiveTrueOrderByDayOfWeekAscStartTimeAsc(lecturerId);
+        
+        return lecturerSchedules.stream()
+            .filter(schedule -> 
+                schedule.getId() != null && 
+                excludeScheduleId != null && 
+                !schedule.getId().equals(excludeScheduleId)) // Exclude the current schedule if updating
+            .anyMatch(schedule -> 
+                schedule.getDayOfWeek() != null &&
+                schedule.getDayOfWeek().equals(dayOfWeek) && 
+                schedule.getStartTime() != null &&
+                schedule.getEndTime() != null &&
+                ((startTime.isBefore(schedule.getEndTime()) && endTime.isAfter(schedule.getStartTime())) ||
+                 startTime.equals(schedule.getStartTime()) || endTime.equals(schedule.getEndTime()))
+            );
+    }
+
+    /**
+     * Checks if there are any scheduling conflicts for a class
+     * @param classId The ID of the class
+     * @param dayOfWeek The day of the week (1-7 where 1 is Monday)
+     * @param startTime The start time of the class
+     * @param endTime The end time of the class
+     * @param excludeScheduleId Optional schedule ID to exclude from checking (useful for updates)
+     * @return true if there is a conflict, false otherwise
+     */
+    public boolean hasClassScheduleConflict(String classId, Integer dayOfWeek,
+                                          LocalTime startTime, LocalTime endTime,
+                                          Integer excludeScheduleId) {
+        // Safety check for null parameters
+        if (classId == null || dayOfWeek == null || startTime == null || endTime == null) {
+            return false; // Can't determine conflict with null values
+        }
+        
+        List<ClassSchedule> classSchedules = classScheduleRepository
+            .findByClassIdAndIsActiveTrueOrderByDayOfWeekAscStartTimeAsc(classId);
+        
+        return classSchedules.stream()
+            .filter(schedule -> 
+                schedule.getId() != null && 
+                excludeScheduleId != null && 
+                !schedule.getId().equals(excludeScheduleId))
+            .anyMatch(schedule -> 
+                schedule.getDayOfWeek() != null &&
+                schedule.getDayOfWeek().equals(dayOfWeek) && 
+                schedule.getStartTime() != null &&
+                schedule.getEndTime() != null &&
+                ((startTime.isBefore(schedule.getEndTime()) && endTime.isAfter(schedule.getStartTime())) ||
+                 startTime.equals(schedule.getStartTime()) || endTime.equals(schedule.getEndTime()))
+            );
+    }
+
+    /**
+     * Checks if there are any scheduling conflicts for a room
+     * @param roomId The ID of the room
+     * @param dayOfWeek The day of the week (1-7 where 1 is Monday)
+     * @param startTime The start time of the class
+     * @param endTime The end time of the class
+     * @param excludeScheduleId Optional schedule ID to exclude from checking (useful for updates)
+     * @return true if there is a conflict, false otherwise
+     */
+    public boolean hasRoomScheduleConflict(Integer roomId, Integer dayOfWeek,
+                                         LocalTime startTime, LocalTime endTime,
+                                         Integer excludeScheduleId) {
+        // Safety check for null parameters
+        if (roomId == null || dayOfWeek == null || startTime == null || endTime == null) {
+            return false; // Can't determine conflict with null values
+        }
+                                         
+        List<ClassSchedule> roomSchedules = classScheduleRepository.findAll().stream()
+            .filter(schedule -> 
+                schedule.getRoom() != null && 
+                schedule.getRoom().getId() != null &&
+                schedule.getRoom().getId().equals(roomId) &&
+                schedule.getIsActive() != null &&
+                schedule.getIsActive())
+            .collect(Collectors.toList());
+        
+        return roomSchedules.stream()
+            .filter(schedule -> 
+                schedule.getId() != null && 
+                excludeScheduleId != null && 
+                !schedule.getId().equals(excludeScheduleId))
+            .anyMatch(schedule -> 
+                schedule.getDayOfWeek() != null &&
+                schedule.getDayOfWeek().equals(dayOfWeek) && 
+                schedule.getStartTime() != null &&
+                schedule.getEndTime() != null &&
+                ((startTime.isBefore(schedule.getEndTime()) && endTime.isAfter(schedule.getStartTime())) ||
+                 startTime.equals(schedule.getStartTime()) || endTime.equals(schedule.getEndTime()))
+            );
+    }
+
+    /**
+     * Validates a new schedule for conflicts
+     * @param schedule The schedule to validate
+     * @return A map containing conflict information, empty if no conflicts
+     */
+    public Map<String, Boolean> validateScheduleForConflicts(ClassSchedule schedule) {
+        Map<String, Boolean> conflicts = new HashMap<>();
+        Integer scheduleId = schedule.getId(); // Will be null for new schedules
+        
+        // Initialize with no conflicts
+        conflicts.put("lecturerConflict", false);
+        conflicts.put("classConflict", false);
+        conflicts.put("roomConflict", false);
+        
+        // Validate required fields
+        if (schedule.getLecturerId() == null || schedule.getClassId() == null || 
+            schedule.getDayOfWeek() == null || schedule.getStartTime() == null || 
+            schedule.getEndTime() == null || schedule.getRoom() == null) {
+            return conflicts; // Return no conflicts if missing fields
+        }
+        
+        boolean lecturerConflict = hasLecturerScheduleConflict(
+            schedule.getLecturerId(), schedule.getDayOfWeek(),
+            schedule.getStartTime(), schedule.getEndTime(), scheduleId
+        );
+        
+        boolean classConflict = hasClassScheduleConflict(
+            schedule.getClassId(), schedule.getDayOfWeek(),
+            schedule.getStartTime(), schedule.getEndTime(), scheduleId
+        );
+        
+        boolean roomConflict = false;
+        // Only check room conflicts if room is provided and has a valid ID
+        if (schedule.getRoom() != null && schedule.getRoom().getId() != null) {
+            roomConflict = hasRoomScheduleConflict(
+                schedule.getRoom().getId(), schedule.getDayOfWeek(),
+                schedule.getStartTime(), schedule.getEndTime(), scheduleId
+            );
+        }
+        
+        conflicts.put("lecturerConflict", lecturerConflict);
+        conflicts.put("classConflict", classConflict);
+        conflicts.put("roomConflict", roomConflict);
+        
+        return conflicts;
+    }
+
     public ClassSchedule createClassSchedule(ClassSchedule schedule) {
+        // Đảm bảo schedule.getRoom() là Room entity hợp lệ
+        // Đảm bảo schedule.getStatus() là giá trị hợp lệ
         return classScheduleRepository.save(schedule);
     }
 
@@ -127,6 +293,7 @@ public class ScheduleService {
             schedule.setStartTime(scheduleDetails.getStartTime());
             schedule.setEndTime(scheduleDetails.getEndTime());
             schedule.setRoom(scheduleDetails.getRoom());
+            schedule.setStatus(scheduleDetails.getStatus());
             schedule.setBuilding(scheduleDetails.getBuilding());
             schedule.setTermId(scheduleDetails.getTermId());
             schedule.setIsActive(scheduleDetails.getIsActive());
@@ -187,5 +354,9 @@ public class ScheduleService {
     public Map<String, Object> getTodaySchedule(Integer userId, String classId) {
         LocalDate today = LocalDate.now();
         return getWeeklySchedule(userId, classId, today);
+    }
+
+    public List<ClassSchedule> getAllClassSchedules() {
+        return classScheduleRepository.findAll();
     }
 } 

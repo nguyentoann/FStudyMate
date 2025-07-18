@@ -1,6 +1,9 @@
 package com.mycompany.fstudymate.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,6 +12,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "users")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
     
@@ -17,32 +23,38 @@ public class User {
     @Column(name = "id")
     private Integer id;
     
-    @Column(name = "username", nullable = false, unique = true)
+    @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
     
-    @Column(name = "password_hash", nullable = false)
-    private String password;
-    
-    @Column(name = "email", unique = true)
+    @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
     
-    @Column(name = "full_name")
-    private String fullName;
+    @Column(name = "password_hash", nullable = false, length = 255)
+    private String passwordHash;
     
-    @Column(name = "role")
+    @Column(name = "role", length = 255)
     private String role;
     
-    @Column(name = "class_id")
-    private String classId;
+    @Column(name = "full_name", nullable = false, length = 100)
+    private String fullName;
     
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
     
-    @Column(name = "profile_image_url")
+    @Column(name = "profile_image_url", length = 255)
     private String profileImageUrl;
     
-    @Column(name = "phone_number")
-    private String phoneNumber;
+    @Column(name = "class_id", length = 20)
+    private String classId;
+    
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+    
+    @Column(name = "verified")
+    private Boolean verified = false;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
@@ -54,117 +66,12 @@ public class User {
     
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
     
-    // Getters and Setters
-    
-    public Integer getId() {
-        return id;
-    }
-    
-    public void setId(Integer id) {
-        this.id = id;
-    }
-    
-    public String getUsername() {
-        return username;
-    }
-    
-    public void setUsername(String username) {
-        this.username = username;
-    }
-    
-    public String getPassword() {
-        return password;
-    }
-    
-    public void setPassword(String password) {
-        this.password = password;
-    }
-    
-    public String getEmail() {
-        return email;
-    }
-    
-    public void setEmail(String email) {
-        this.email = email;
-    }
-    
-    public String getFullName() {
-        return fullName;
-    }
-    
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-    
-    public String getRole() {
-        return role;
-    }
-    
-    public void setRole(String role) {
-        this.role = role;
-    }
-    
-    public String getClassId() {
-        return classId;
-    }
-    
-    public void setClassId(String classId) {
-        this.classId = classId;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public String getProfileImageUrl() {
-        return profileImageUrl;
-    }
-    
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
-    }
-    
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-    
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-    
-    public List<Quiz> getQuizzes() {
-        return quizzes;
-    }
-    
-    public void setQuizzes(List<Quiz> quizzes) {
-        this.quizzes = quizzes;
-    }
-    
-    public List<QuizTaken> getQuizTakens() {
-        return quizTakens;
-    }
-    
-    public void setQuizTakens(List<QuizTaken> quizTakens) {
-        this.quizTakens = quizTakens;
-    }
-    
-    // Constructors
-    
-    public User() {
-    }
-    
-    public User(String username, String password, String email, String fullName, String role) {
-        this.username = username;
-        this.password = password;
-        this.email = email;
-        this.fullName = fullName;
-        this.role = role;
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 } 

@@ -374,21 +374,23 @@ CREATE TABLE `class_schedules` (
   `day_of_week` int(1) NOT NULL COMMENT '1=Monday, 2=Tuesday, ..., 7=Sunday',
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
-  `room` varchar(50) DEFAULT NULL,
+  `room_id` int(11) NOT NULL,
   `building` varchar(50) DEFAULT NULL,
   `semester` varchar(20) NOT NULL,
   `academic_year` varchar(10) NOT NULL,
+  `status` enum('Not yet','Attended','Online','Absent') NOT NULL DEFAULT 'Not yet',
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `term_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_subject_id` (`subject_id`),
   KEY `idx_class_id` (`class_id`),
   KEY `idx_lecturer_id` (`lecturer_id`),
-  KEY `idx_day_time` (`day_of_week`,`start_time`),
+  KEY `idx_room_id` (`room_id`),
+  KEY `idx_day_time` (`day_of_week`, `start_time`),
+  CONSTRAINT `fk_class_schedules_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE,
   CONSTRAINT `fk_class_schedules_lecturer` FOREIGN KEY (`lecturer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_class_schedules_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE
+  CONSTRAINT `fk_class_schedules_room` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -822,6 +824,23 @@ CREATE TABLE `role_permissions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `rooms`
+--
+
+DROP TABLE IF EXISTS `rooms`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `rooms` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `location` varchar(100),
+  `capacity` int(11),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `students`
 --
 
@@ -892,49 +911,4 @@ CREATE TABLE `user_sessions` (
   `is_expired` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_user_sessions_user_id` (`user_id`),
-  KEY `idx_user_sessions_token` (`session_token`),
-  KEY `idx_user_sessions_last_activity` (`last_activity`),
-  KEY `idx_user_sessions_created_at` (`created_at`),
-  KEY `idx_user_session_token` (`session_token`),
-  KEY `idx_user_session_last_activity` (`last_activity`),
-  KEY `idx_user_session_user_id` (`user_id`),
-  CONSTRAINT `user_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3874 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `users`
---
-
-DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
-  `role` varchar(255) DEFAULT NULL,
-  `full_name` varchar(100) NOT NULL,
-  `phone_number` varchar(20) DEFAULT NULL,
-  `profile_image_url` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `verified` tinyint(1) DEFAULT 0,
-  `class_id` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=3220 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
--- Dump completed on 2025-07-14  2:25:48
+  KEY `idx_user_sessions_token` (`
