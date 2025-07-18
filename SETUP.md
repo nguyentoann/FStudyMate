@@ -99,7 +99,7 @@ cd FStudyMate
    spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
 
    # Server Configuration
-   server.port=8443
+   server.port=8080
 
    # JWT Configuration
    jwt.secret=yourSecretKey
