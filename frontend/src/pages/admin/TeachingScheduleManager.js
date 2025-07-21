@@ -146,32 +146,44 @@ function TeachingScheduleManager() {
       const data = await response.json();
       console.log('Raw schedule data from API:', data);
       
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('First schedule item:', data[0]);
+      // Ensure data is an array
+      const scheduleData = Array.isArray(data) ? data : [];
+      
+      if (scheduleData.length > 0) {
+        console.log('First schedule item:', scheduleData[0]);
         console.log('Schedule time format example:', 
-          `startTime: ${data[0].startTime}, endTime: ${data[0].endTime}`);
+          `startTime: ${scheduleData[0].startTime}, endTime: ${scheduleData[0].endTime}`);
       } else {
-        console.warn('No schedule data returned from API');
+        console.warn('No schedule data returned from API or data is not an array');
       }
       
-      setSchedules(data || []);
+      setSchedules(scheduleData);
     } catch (error) {
       console.error('Error fetching schedules:', error);
       toast.error('Failed to load schedules');
+      // Set schedules to empty array on error
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAdd = (dayOfWeek, slot) => {
+  const handleAdd = (dayIdx, slot) => {
+    // Calculate the date for this day
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday of current week
+    const specificDate = new Date(startOfWeek);
+    specificDate.setDate(startOfWeek.getDate() + dayIdx);
+    
     const timeSlot = TIME_SLOTS[slot];
     setEditData({
-      dayOfWeek,
       slot,
       startTime: timeSlot.start,
       endTime: timeSlot.end,
       isEdit: false,
-      termId: selectedTerm
+      termId: selectedTerm,
+      specificDate: specificDate.toISOString().split('T')[0] // YYYY-MM-DD format
     });
     setShowModal(true);
   };
@@ -186,7 +198,7 @@ function TeachingScheduleManager() {
       try {
         await api.delete(`/api/schedule/class/${id}`);
         toast.success('Schedule deleted successfully');
-      fetchSchedules();
+    fetchSchedules();
       } catch (error) {
         console.error('Error deleting schedule:', error);
         toast.error('Failed to delete schedule');
@@ -217,17 +229,23 @@ function TeachingScheduleManager() {
       const normalizedEndTime = normalizeTime(formData.endTime);
       
       // Create a complete payload that matches what the backend expects
-      const payload = {
+    const payload = {
         subjectId: parseInt(formData.subjectId),
         classId: formData.classId,
         lecturerId: parseInt(formData.lecturerId),
-        dayOfWeek: parseInt(formData.dayOfWeek),
         startTime: normalizedStartTime,
         endTime: normalizedEndTime,
         status: formData.status || 'NotYet',
         building: formData.building || '',
         termId: parseInt(formData.termId || selectedTerm),
-        room: roomObject
+        roomId: roomObject.id,
+        // Add recurring schedule info
+        isRecurring: formData.isRecurring || false,
+        recurrenceType: formData.recurrenceType || 'weekly',
+        recurrenceCount: parseInt(formData.recurrenceCount || 1),
+        // Add specific date info
+        specificDate: formData.specificDate || null,
+        isOneTimeChange: formData.isOneTimeChange || false
       };
       
       // Include ID only when editing
@@ -260,14 +278,22 @@ function TeachingScheduleManager() {
         toast.success('Schedule updated successfully');
     } else {
         console.log('Creating new schedule...');
-        // For creating a new schedule, format payload with room_id
-        const createPayload = {
-          ...payload,
-          room_id: roomObject.id,
-          room: undefined // Remove room object for create
-        };
-        await api.post('/api/schedule/class', createPayload);
-        toast.success('New schedule created successfully');
+        
+        // For one-time changes, use a different endpoint
+        if (formData.isOneTimeChange) {
+          await api.post('/api/schedule/class/one-time', payload);
+          toast.success('One-time schedule change created successfully');
+        } 
+        // For recurring schedules, use a different endpoint
+        else if (formData.isRecurring) {
+          await api.post('/api/schedule/class/recurring', payload);
+          toast.success(`Recurring schedule created for ${formData.recurrenceCount} occurrences`);
+        } 
+        // For regular schedules
+        else {
+          await api.post('/api/schedule/class', payload);
+          toast.success('New schedule created successfully');
+        }
     }
     setShowModal(false);
     fetchSchedules();
@@ -288,14 +314,32 @@ function TeachingScheduleManager() {
 
   // Find a subject name by ID
   const getSubjectName = (subjectId) => {
-    const subject = subjects.find(s => s.id === subjectId);
-    return subject ? `${subject.code} - ${subject.name}` : `Subject ${subjectId}`;
+    if (!subjectId) return 'Unknown Subject';
+    
+    const subject = subjects.find(s => s.id === parseInt(subjectId));
+    if (subject) {
+      return `${subject.code} - ${subject.name}`;
+    }
+    
+    return `Subject ${subjectId}`;
   };
 
   // Find a lecturer name by ID
   const getLecturerName = (lecturerId) => {
     const lecturer = lecturers.find(l => l.id === lecturerId);
     return lecturer ? lecturer.fullName : `Lecturer ${lecturerId}`;
+  };
+
+  // Find a subject code by ID
+  const getSubjectCode = (subjectId) => {
+    if (!subjectId) return 'Unknown Code';
+    
+    const subject = subjects.find(s => s.id === parseInt(subjectId));
+    if (subject) {
+      return subject.code;
+    }
+    
+    return `Code ${subjectId}`;
   };
 
   // Helper to normalize time format (HH:MM:SS -> HH:MM)
@@ -312,13 +356,30 @@ function TeachingScheduleManager() {
   const generateWeekMatrix = useCallback(() => {
     console.log('Generating week matrix with schedules:', schedules);
     
+    // Ensure schedules is an array
+    const schedulesArray = Array.isArray(schedules) ? schedules : [];
+    
+    // Create a date range for the current week
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday of current week
+    
     // First try to match schedules to specific time slots
     const matrix = SLOTS.map(slot => 
       WEEKDAYS.map((_, dayIdx) => {
+        // Calculate the date for this day
+        const currentDate = new Date(startOfWeek);
+        currentDate.setDate(startOfWeek.getDate() + dayIdx);
+        const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
         // Match schedules for this day and slot
-        const daySchedules = schedules.filter(s => {
-          // Match by day of week (1-based index)
-          const dayMatches = s.dayOfWeek === dayIdx + 1;
+        const daySchedules = schedulesArray.filter(s => {
+          // Match by specific date if available
+          let dayMatches = false;
+          if (s.specificDate) {
+            // Compare the date strings
+            dayMatches = s.specificDate.split('T')[0] === dateStr;
+          }
           
           if (!dayMatches) return false;
           
@@ -353,13 +414,19 @@ function TeachingScheduleManager() {
     const hasSchedules = matrix.some(row => row.some(cell => cell !== null));
     
     // If no schedules matched by time slots, use a fallback approach
-    if (!hasSchedules && schedules.length > 0) {
+    if (!hasSchedules && schedulesArray.length > 0) {
       console.log('No schedules matched time slots, using fallback display');
       
-      // Group schedules by day of week
+      // Group schedules by date
       const schedulesByDay = {};
-      schedules.forEach(s => {
-        const day = s.dayOfWeek - 1; // Convert to 0-based index
+      schedulesArray.forEach(s => {
+        if (!s.specificDate) return;
+        
+        // Get the day of week (0-6) from the specific date
+        const date = new Date(s.specificDate);
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ...
+        const day = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert to 0-based index (0 = Monday, 6 = Sunday)
+        
         if (!schedulesByDay[day]) {
           schedulesByDay[day] = [];
         }
@@ -514,7 +581,7 @@ function TeachingScheduleManager() {
                               borderLeftWidth: '4px'
                             }}
                           >
-                            <div className="schedule-subject">{getSubjectName(schedule.subjectId)}</div>
+                            <div className="schedule-subject">{getSubjectCode(schedule.subjectId)}</div>
                             <div className="schedule-class">Class: {schedule.classId}</div>
                             <div className="schedule-lecturer">
                               <i className="fas fa-user-tie"></i> {getLecturerName(schedule.lecturerId)}
@@ -551,7 +618,7 @@ function TeachingScheduleManager() {
                         (userRole === 'admin' || userRole === 'lecturer') && (
                           <button 
                             className="add-schedule-btn"
-                            onClick={() => handleAdd(dayIdx + 1, slot)}
+                            onClick={() => handleAdd(dayIdx, slot)}
                           >
                             <i className="fas fa-plus"></i>
                           </button>
@@ -636,11 +703,17 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
     status: data.status || 'NotYet',
     startTime: data.startTime || '',
     endTime: data.endTime || '',
-    dayOfWeek: data.dayOfWeek || 1,
     slot: data.slot || 1,
     building: data.building || '',
     termId: data.termId || 1,
     isEdit: data.isEdit || false,
+    // New fields for recurring schedules
+    isRecurring: data.isRecurring || false,
+    recurrenceType: data.recurrenceType || 'weekly',
+    recurrenceCount: data.recurrenceCount || 1,
+    specificDate: data.specificDate || new Date().toISOString().split('T')[0],
+    // For one-time schedule changes
+    isOneTimeChange: data.isOneTimeChange || false
   });
 
   const [conflicts, setConflicts] = useState({
@@ -650,6 +723,7 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
   });
 
   const [isChecking, setIsChecking] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // Apply slot time when slot changes
   const handleSlotChange = (e) => {
@@ -665,8 +739,11 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    const { name, value, type, checked } = e.target;
+    setForm({ 
+      ...form, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
   };
 
   const checkForConflicts = async () => {
@@ -695,13 +772,18 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
         subjectId: parseInt(form.subjectId),
         classId: form.classId,
         lecturerId: parseInt(form.lecturerId),
-        dayOfWeek: parseInt(form.dayOfWeek),
         startTime: form.startTime,
         endTime: form.endTime,
         status: form.status || 'NotYet',
         building: form.building || '',
         termId: parseInt(form.termId),
-        room: roomObject
+        room: roomObject,
+        // Include recurring schedule info
+        isRecurring: form.isRecurring,
+        recurrenceType: form.recurrenceType,
+        recurrenceCount: parseInt(form.recurrenceCount),
+        specificDate: form.specificDate,
+        isOneTimeChange: form.isOneTimeChange
       };
       
       // If we're editing, include the id
@@ -731,7 +813,7 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
     // Check for conflicts when form values change (debounced)
     const timer = setTimeout(checkForConflicts, 500);
     return () => clearTimeout(timer);
-  }, [form.subjectId, form.classId, form.lecturerId, form.roomId, form.dayOfWeek, form.startTime, form.endTime]);
+  }, [form.subjectId, form.classId, form.lecturerId, form.roomId, form.startTime, form.endTime, form.specificDate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -839,23 +921,48 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
             </div>
           </div>
           
+          {/* Schedule Type Selection */}
+          <div className="form-row schedule-type-selection">
+            <div className="form-group">
+              <label>Schedule Type:</label>
+              <div className="radio-group">
+                <label>
+                  <input 
+                    type="radio" 
+                    name="isOneTimeChange" 
+                    checked={!form.isOneTimeChange} 
+                    onChange={() => setForm({...form, isOneTimeChange: false})}
+                  />
+                  Regular Schedule
+                </label>
+                <label>
+                  <input 
+                    type="radio" 
+                    name="isOneTimeChange" 
+                    checked={form.isOneTimeChange} 
+                    onChange={() => setForm({...form, isOneTimeChange: true})}
+                  />
+                  One-time Change
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          {/* Date Selection - Always show date field now */}
           <div className="form-row">
             <div className="form-group">
-              <label>Day:</label>
-              <select
-                name="dayOfWeek"
-                value={form.dayOfWeek}
+              <label>Date:</label>
+              <input
+                type="date"
+                name="specificDate"
+                value={form.specificDate}
                 onChange={handleChange}
                 required
-              >
-                {WEEKDAYS.map((day, idx) => (
-                  <option key={day} value={idx + 1}>
-                    {day}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-            
+          </div>
+          
+          <div className="form-row">
             <div className="form-group">
               <label>Slot:</label>
               <select
@@ -895,7 +1002,7 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
                 required
               />
             </div>
-        </div>
+          </div>
           
           <div className="form-row">
             <div className="form-group">
@@ -907,7 +1014,7 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
                 onChange={handleChange}
                 placeholder="Building name/code"
               />
-        </div>
+            </div>
             
             <div className="form-group">
               <label>Status:</label>
@@ -921,8 +1028,8 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
-        </div>
-        </div>
+            </div>
+          </div>
           
           <div className="form-row">
             <div className="form-group">
@@ -938,8 +1045,69 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
                   <option key={term.id} value={term.id}>{term.name}</option>
                 ))}
               </select>
+            </div>
+          </div>
+          
+          {/* Advanced Options Toggle */}
+          <div className="form-row">
+            <button 
+              type="button" 
+              className="toggle-advanced-btn"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            >
+              {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
+            </button>
+          </div>
+          
+          {/* Advanced Options */}
+          {showAdvancedOptions && !form.isOneTimeChange && (
+            <div className="advanced-options">
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      name="isRecurring" 
+                      checked={form.isRecurring}
+                      onChange={handleChange}
+                    />
+                    Recurring Schedule
+                  </label>
         </div>
         </div>
+              
+              {form.isRecurring && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Recurrence Type:</label>
+                      <select
+                        name="recurrenceType"
+                        value={form.recurrenceType}
+                        onChange={handleChange}
+                      >
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+        </div>
+                    
+                    <div className="form-group">
+                      <label>Number of Occurrences:</label>
+                      <input
+                        type="number"
+                        name="recurrenceCount"
+                        value={form.recurrenceCount}
+                        onChange={handleChange}
+                        min="1"
+                        max="52"
+                      />
+        </div>
+        </div>
+                </>
+              )}
+        </div>
+          )}
           
           <div className="form-actions">
             <button 

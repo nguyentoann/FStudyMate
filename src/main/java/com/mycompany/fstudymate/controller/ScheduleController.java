@@ -195,69 +195,59 @@ public class ScheduleController {
     }
 
     @PostMapping("/class")
-    public ResponseEntity<ClassSchedule> createClassSchedule(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> createClassSchedule(@RequestBody Map<String, Object> payload) {
         try {
-            logger.info("Creating class schedule with payload: {}", payload);
-            
-            // Validate that required fields are present
-            if (!payload.containsKey("room_id") || payload.get("room_id") == null) {
-                logger.error("Room ID is missing or null in the request");
-                return ResponseEntity.badRequest().body(null);
-            }
-            
-            Integer roomId = (Integer) payload.get("room_id");
-            
-            // Find the room by ID
-            Room room = roomRepository.findById(roomId).orElse(null);
-            if (room == null) {
-                logger.error("Room with ID {} not found", roomId);
-                return ResponseEntity.badRequest().body(null);
-            }
-            
-            // Create new schedule
             ClassSchedule schedule = new ClassSchedule();
-            schedule.setRoom(room);
             
-            // Set status
-            String statusStr = (String) payload.get("status");
-            schedule.setStatus(ClassSchedule.Status.valueOf(statusStr != null ? statusStr : "NotYet"));
-            
-            // Set other fields from payload
             if (payload.containsKey("subjectId")) schedule.setSubjectId((Integer) payload.get("subjectId"));
             if (payload.containsKey("classId")) schedule.setClassId((String) payload.get("classId"));
             if (payload.containsKey("lecturerId")) schedule.setLecturerId((Integer) payload.get("lecturerId"));
-            if (payload.containsKey("dayOfWeek")) schedule.setDayOfWeek((Integer) payload.get("dayOfWeek"));
-            if (payload.containsKey("building")) schedule.setBuilding((String) payload.get("building"));
-            if (payload.containsKey("termId")) schedule.setTermId((Integer) payload.get("termId"));
-            if (payload.containsKey("isActive")) schedule.setIsActive((Boolean) payload.get("isActive"));
-            else schedule.setIsActive(true); // Default to active
             
-            // Parse time fields
             if (payload.containsKey("startTime")) {
                 String startTimeStr = (String) payload.get("startTime");
                 schedule.setStartTime(LocalTime.parse(startTimeStr));
             }
+            
             if (payload.containsKey("endTime")) {
                 String endTimeStr = (String) payload.get("endTime");
                 schedule.setEndTime(LocalTime.parse(endTimeStr));
             }
             
-            // Validate required fields
-            if (schedule.getSubjectId() == null || schedule.getClassId() == null || 
-                schedule.getLecturerId() == null || schedule.getDayOfWeek() == null || 
-                schedule.getStartTime() == null || schedule.getEndTime() == null || 
-                schedule.getRoom() == null || schedule.getTermId() == null) {
-                logger.error("Missing required fields for creating schedule");
-                return ResponseEntity.badRequest().body(null);
+            if (payload.containsKey("roomId")) {
+                Integer roomId = (Integer) payload.get("roomId");
+                Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+                schedule.setRoom(room);
             }
             
-            ClassSchedule createdSchedule = scheduleService.createClassSchedule(schedule);
-            logger.info("Schedule created successfully with ID: {}", createdSchedule.getId());
-            return ResponseEntity.ok(createdSchedule);
+            if (payload.containsKey("status")) schedule.setStatus(ClassSchedule.Status.valueOf((String) payload.get("status")));
+            if (payload.containsKey("building")) schedule.setBuilding((String) payload.get("building"));
+            if (payload.containsKey("termId")) schedule.setTermId((Integer) payload.get("termId"));
+            if (payload.containsKey("isActive")) schedule.setIsActive((Boolean) payload.get("isActive"));
+            
+            if (payload.containsKey("specificDate")) {
+                String specificDateStr = (String) payload.get("specificDate");
+                schedule.setSpecificDate(LocalDate.parse(specificDateStr));
+            }
+            
+            if (payload.containsKey("isRecurring")) schedule.setIsRecurring((Boolean) payload.get("isRecurring"));
+            if (payload.containsKey("recurrenceCount")) schedule.setRecurrenceCount((Integer) payload.get("recurrenceCount"));
+            
+            // Validate for conflicts
+            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(schedule, null);
+            
+            if (conflicts.get("lecturerConflict") || conflicts.get("classConflict") || conflicts.get("roomConflict")) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("conflicts", conflicts);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+            }
+            
+            ClassSchedule savedSchedule = scheduleService.createSchedule(schedule);
+            return ResponseEntity.ok(savedSchedule);
         } catch (Exception e) {
-            logger.error("Error creating class schedule", e);
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error creating class schedule: " + e.getMessage());
         }
     }
 
@@ -273,61 +263,62 @@ public class ScheduleController {
     }
 
     @PutMapping("/class/{id}")
-    public ResponseEntity<ClassSchedule> updateClassSchedule(
-            @PathVariable Integer id,
-            @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> updateClassSchedule(@PathVariable Integer id, @RequestBody Map<String, Object> payload) {
         try {
-            Optional<ClassSchedule> existingScheduleOpt = scheduleService.getClassScheduleById(id);
-            if (!existingScheduleOpt.isPresent()) {
+            ClassSchedule existingSchedule = scheduleService.getScheduleById(id);
+            if (existingSchedule == null) {
                 return ResponseEntity.notFound().build();
-            }
-            
-            ClassSchedule existingSchedule = existingScheduleOpt.get();
-            
-            // Update fields from payload
-            if (payload.containsKey("room_id")) {
-                Integer roomId = (Integer) payload.get("room_id");
-                Room room = roomRepository.findById(roomId).orElse(null);
-                if (room == null) return ResponseEntity.badRequest().build();
-                existingSchedule.setRoom(room);
-            }
-            
-            if (payload.containsKey("status")) {
-                String statusStr = (String) payload.get("status");
-                existingSchedule.setStatus(ClassSchedule.Status.valueOf(statusStr));
             }
             
             if (payload.containsKey("subjectId")) existingSchedule.setSubjectId((Integer) payload.get("subjectId"));
             if (payload.containsKey("classId")) existingSchedule.setClassId((String) payload.get("classId"));
             if (payload.containsKey("lecturerId")) existingSchedule.setLecturerId((Integer) payload.get("lecturerId"));
-            if (payload.containsKey("dayOfWeek")) existingSchedule.setDayOfWeek((Integer) payload.get("dayOfWeek"));
+            
             if (payload.containsKey("startTime")) {
                 String startTimeStr = (String) payload.get("startTime");
                 existingSchedule.setStartTime(LocalTime.parse(startTimeStr));
             }
+            
             if (payload.containsKey("endTime")) {
                 String endTimeStr = (String) payload.get("endTime");
                 existingSchedule.setEndTime(LocalTime.parse(endTimeStr));
             }
+            
+            if (payload.containsKey("roomId")) {
+                Integer roomId = (Integer) payload.get("roomId");
+                Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+                existingSchedule.setRoom(room);
+            }
+            
+            if (payload.containsKey("status")) existingSchedule.setStatus(ClassSchedule.Status.valueOf((String) payload.get("status")));
             if (payload.containsKey("building")) existingSchedule.setBuilding((String) payload.get("building"));
             if (payload.containsKey("termId")) existingSchedule.setTermId((Integer) payload.get("termId"));
+            if (payload.containsKey("isActive")) existingSchedule.setIsActive((Boolean) payload.get("isActive"));
             
-            // Check for conflicts
-            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(existingSchedule);
-            boolean hasConflicts = conflicts.values().stream().anyMatch(conflict -> conflict);
-            
-            if (hasConflicts) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            if (payload.containsKey("specificDate")) {
+                String specificDateStr = (String) payload.get("specificDate");
+                existingSchedule.setSpecificDate(LocalDate.parse(specificDateStr));
             }
             
-            ClassSchedule updatedSchedule = scheduleService.updateClassSchedule(id, existingSchedule);
-            if (updatedSchedule != null) {
-                return ResponseEntity.ok(updatedSchedule);
+            if (payload.containsKey("isRecurring")) existingSchedule.setIsRecurring((Boolean) payload.get("isRecurring"));
+            if (payload.containsKey("recurrenceCount")) existingSchedule.setRecurrenceCount((Integer) payload.get("recurrenceCount"));
+            
+            // Validate for conflicts
+            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(existingSchedule, id);
+            
+            if (conflicts.get("lecturerConflict") || conflicts.get("classConflict") || conflicts.get("roomConflict")) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("conflicts", conflicts);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
             }
-            return ResponseEntity.notFound().build();
+            
+            ClassSchedule updatedSchedule = scheduleService.updateSchedule(id, existingSchedule);
+            return ResponseEntity.ok(updatedSchedule);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error updating class schedule: " + e.getMessage());
         }
     }
 
@@ -408,87 +399,208 @@ public class ScheduleController {
     @PostMapping("/class/validate-conflicts")
     public ResponseEntity<Map<String, Boolean>> validateScheduleConflicts(@RequestBody Map<String, Object> payload) {
         try {
-            logger.info("Validating conflicts with payload: {}", payload);
-            
             ClassSchedule schedule = new ClassSchedule();
             
-            // Extract and set room information
-            if (payload.containsKey("room") && payload.get("room") != null) {
-                Map<String, Object> roomData = (Map<String, Object>) payload.get("room");
-                Integer roomId = (Integer) roomData.get("id");
-                if (roomId == null) {
-                    logger.error("Room ID is null in the room object");
-                    Map<String, Boolean> errorResponse = new HashMap<>();
-                    errorResponse.put("error", true);
-                    return ResponseEntity.badRequest().body(errorResponse);
-                }
-                Room room = roomRepository.findById(roomId).orElse(null);
-                if (room == null) {
-                    logger.error("Room with ID {} not found", roomId);
-                    Map<String, Boolean> errorResponse = new HashMap<>();
-                    errorResponse.put("error", true);
-                    return ResponseEntity.badRequest().body(errorResponse);
-                }
-                schedule.setRoom(room);
-            } else if (payload.containsKey("room_id") && payload.get("room_id") != null) {
-                Integer roomId = (Integer) payload.get("room_id");
-                Room room = roomRepository.findById(roomId).orElse(null);
-                if (room == null) {
-                    logger.error("Room with ID {} not found", roomId);
-                    Map<String, Boolean> errorResponse = new HashMap<>();
-                    errorResponse.put("error", true);
-                    return ResponseEntity.badRequest().body(errorResponse);
-                }
-                schedule.setRoom(room);
-            } else {
-                logger.error("No room or room_id provided in the payload");
-                Map<String, Boolean> errorResponse = new HashMap<>();
-                errorResponse.put("error", true);
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
-            
-            // Set other schedule fields
-            if (payload.containsKey("id")) schedule.setId((Integer) payload.get("id"));
             if (payload.containsKey("subjectId")) schedule.setSubjectId((Integer) payload.get("subjectId"));
             if (payload.containsKey("classId")) schedule.setClassId((String) payload.get("classId"));
             if (payload.containsKey("lecturerId")) schedule.setLecturerId((Integer) payload.get("lecturerId"));
-            if (payload.containsKey("dayOfWeek")) schedule.setDayOfWeek((Integer) payload.get("dayOfWeek"));
-            if (payload.containsKey("status")) {
-                String statusStr = (String) payload.get("status");
-                schedule.setStatus(ClassSchedule.Status.valueOf(statusStr));
-            }
-            if (payload.containsKey("building")) schedule.setBuilding((String) payload.get("building"));
-            if (payload.containsKey("termId")) schedule.setTermId((Integer) payload.get("termId"));
             
-            // Parse time fields
             if (payload.containsKey("startTime")) {
                 String startTimeStr = (String) payload.get("startTime");
                 schedule.setStartTime(LocalTime.parse(startTimeStr));
             }
+            
             if (payload.containsKey("endTime")) {
                 String endTimeStr = (String) payload.get("endTime");
                 schedule.setEndTime(LocalTime.parse(endTimeStr));
             }
             
-            // Validate required fields
-            if (schedule.getDayOfWeek() == null || schedule.getStartTime() == null || 
-                schedule.getEndTime() == null || schedule.getRoom() == null) {
-                logger.error("Missing required fields for schedule validation");
-                Map<String, Boolean> errorResponse = new HashMap<>();
-                errorResponse.put("error", true);
-                errorResponse.put("missingFields", true);
-                return ResponseEntity.badRequest().body(errorResponse);
+            if (payload.containsKey("roomId")) {
+                Integer roomId = (Integer) payload.get("roomId");
+                Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+                schedule.setRoom(room);
+            } else if (payload.containsKey("room") && payload.get("room") instanceof Map) {
+                Map<String, Object> roomData = (Map<String, Object>) payload.get("room");
+                Integer roomId = (Integer) roomData.get("id");
+                Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+                schedule.setRoom(room);
             }
             
-            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(schedule);
-            logger.info("Conflict validation completed: {}", conflicts);
+            if (payload.containsKey("status")) schedule.setStatus(ClassSchedule.Status.valueOf((String) payload.get("status")));
+            if (payload.containsKey("building")) schedule.setBuilding((String) payload.get("building"));
+            if (payload.containsKey("termId")) schedule.setTermId((Integer) payload.get("termId"));
+            
+            // Handle specific date
+            if (payload.containsKey("specificDate")) {
+                String specificDateStr = (String) payload.get("specificDate");
+                if (specificDateStr != null && !specificDateStr.isEmpty()) {
+                    schedule.setSpecificDate(LocalDate.parse(specificDateStr));
+                }
+            }
+            
+            // Handle recurring schedule info
+            if (payload.containsKey("isRecurring")) schedule.setIsRecurring((Boolean) payload.get("isRecurring"));
+            if (payload.containsKey("recurrenceCount")) schedule.setRecurrenceCount((Integer) payload.get("recurrenceCount"));
+            
+            // Get schedule ID if it's an update
+            Integer scheduleId = null;
+            if (payload.containsKey("id")) {
+                scheduleId = (Integer) payload.get("id");
+            }
+            
+            // Validate for conflicts
+            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(schedule, scheduleId);
             return ResponseEntity.ok(conflicts);
         } catch (Exception e) {
             logger.error("Error validating schedule conflicts", e);
-            e.printStackTrace();
             Map<String, Boolean> errorResponse = new HashMap<>();
             errorResponse.put("error", true);
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/class/one-time")
+    public ResponseEntity<?> createOneTimeClassSchedule(@RequestBody Map<String, Object> payload) {
+        try {
+            ClassSchedule schedule = new ClassSchedule();
+            
+            if (payload.containsKey("subjectId")) schedule.setSubjectId((Integer) payload.get("subjectId"));
+            if (payload.containsKey("classId")) schedule.setClassId((String) payload.get("classId"));
+            if (payload.containsKey("lecturerId")) schedule.setLecturerId((Integer) payload.get("lecturerId"));
+            
+            if (payload.containsKey("startTime")) {
+                String startTimeStr = (String) payload.get("startTime");
+                schedule.setStartTime(LocalTime.parse(startTimeStr));
+            }
+            
+            if (payload.containsKey("endTime")) {
+                String endTimeStr = (String) payload.get("endTime");
+                schedule.setEndTime(LocalTime.parse(endTimeStr));
+            }
+            
+            if (payload.containsKey("roomId")) {
+                Integer roomId = (Integer) payload.get("roomId");
+                Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+                schedule.setRoom(room);
+            }
+            
+            if (payload.containsKey("status")) schedule.setStatus(ClassSchedule.Status.valueOf((String) payload.get("status")));
+            if (payload.containsKey("building")) schedule.setBuilding((String) payload.get("building"));
+            if (payload.containsKey("termId")) schedule.setTermId((Integer) payload.get("termId"));
+            if (payload.containsKey("isActive")) schedule.setIsActive((Boolean) payload.get("isActive"));
+            
+            // Specific date is required for one-time schedules
+            if (payload.containsKey("specificDate")) {
+                String specificDateStr = (String) payload.get("specificDate");
+                schedule.setSpecificDate(LocalDate.parse(specificDateStr));
+            } else {
+                return ResponseEntity.badRequest().body("Specific date is required for one-time schedules");
+            }
+            
+            // Validate for conflicts
+            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(schedule, null);
+            
+            if (conflicts.get("lecturerConflict") || conflicts.get("classConflict") || conflicts.get("roomConflict")) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("conflicts", conflicts);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+            }
+            
+            ClassSchedule savedSchedule = scheduleService.createOneTimeSchedule(schedule);
+            return ResponseEntity.ok(savedSchedule);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error creating one-time class schedule: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/class/recurring")
+    public ResponseEntity<?> createRecurringClassSchedule(@RequestBody Map<String, Object> payload) {
+        try {
+            ClassSchedule baseSchedule = new ClassSchedule();
+            
+            if (payload.containsKey("subjectId")) baseSchedule.setSubjectId((Integer) payload.get("subjectId"));
+            if (payload.containsKey("classId")) baseSchedule.setClassId((String) payload.get("classId"));
+            if (payload.containsKey("lecturerId")) baseSchedule.setLecturerId((Integer) payload.get("lecturerId"));
+            
+            if (payload.containsKey("startTime")) {
+                String startTimeStr = (String) payload.get("startTime");
+                baseSchedule.setStartTime(LocalTime.parse(startTimeStr));
+            }
+            
+            if (payload.containsKey("endTime")) {
+                String endTimeStr = (String) payload.get("endTime");
+                baseSchedule.setEndTime(LocalTime.parse(endTimeStr));
+            }
+            
+            if (payload.containsKey("roomId")) {
+                Integer roomId = (Integer) payload.get("roomId");
+                Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+                baseSchedule.setRoom(room);
+            }
+            
+            if (payload.containsKey("status")) baseSchedule.setStatus(ClassSchedule.Status.valueOf((String) payload.get("status")));
+            if (payload.containsKey("building")) baseSchedule.setBuilding((String) payload.get("building"));
+            if (payload.containsKey("termId")) baseSchedule.setTermId((Integer) payload.get("termId"));
+            if (payload.containsKey("isActive")) baseSchedule.setIsActive((Boolean) payload.get("isActive"));
+            
+            // Set recurring flag
+            baseSchedule.setIsRecurring(true);
+            
+            // Set recurrence count
+            if (payload.containsKey("recurrenceCount")) {
+                baseSchedule.setRecurrenceCount((Integer) payload.get("recurrenceCount"));
+            } else {
+                baseSchedule.setRecurrenceCount(1); // Default to 1 if not specified
+            }
+            
+            // Validate the base schedule for conflicts
+            Map<String, Boolean> conflicts = scheduleService.validateScheduleForConflicts(baseSchedule, null);
+            
+            if (conflicts.get("lecturerConflict") || conflicts.get("classConflict") || conflicts.get("roomConflict")) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("conflicts", conflicts);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+            }
+            
+            List<ClassSchedule> createdSchedules = scheduleService.createRecurringSchedules(baseSchedule);
+            return ResponseEntity.ok(createdSchedules);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error creating recurring class schedules: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/class/{classId}/date/{date}")
+    public ResponseEntity<List<ClassSchedule>> getClassSchedulesByDate(
+            @PathVariable String classId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            List<ClassSchedule> schedules = scheduleService.getClassSchedulesByDate(classId, date);
+            return ResponseEntity.ok(schedules);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/class/date-range")
+    public ResponseEntity<List<ClassSchedule>> getClassSchedulesByDateRange(
+            @RequestParam String classId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            List<ClassSchedule> schedules = scheduleService.getClassSchedulesByDateRange(classId, startDate, endDate);
+            return ResponseEntity.ok(schedules);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
     }
 } 

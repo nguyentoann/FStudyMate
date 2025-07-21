@@ -371,7 +371,6 @@ CREATE TABLE `class_schedules` (
   `subject_id` int(11) NOT NULL,
   `class_id` varchar(20) NOT NULL,
   `lecturer_id` int(11) NOT NULL,
-  `day_of_week` int(1) NOT NULL COMMENT '1=Monday, 2=Tuesday, ..., 7=Sunday',
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
   `room_id` int(11) NOT NULL,
@@ -382,17 +381,23 @@ CREATE TABLE `class_schedules` (
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `specific_date` DATE DEFAULT NULL,
+  `is_recurring` BOOLEAN DEFAULT FALSE,
+  `recurrence_count` INT DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `idx_subject_id` (`subject_id`),
   KEY `idx_class_id` (`class_id`),
   KEY `idx_lecturer_id` (`lecturer_id`),
   KEY `idx_room_id` (`room_id`),
-  KEY `idx_day_time` (`day_of_week`, `start_time`),
+  KEY `idx_day_time` (`start_time`),
   CONSTRAINT `fk_class_schedules_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE,
   CONSTRAINT `fk_class_schedules_lecturer` FOREIGN KEY (`lecturer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_class_schedules_room` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+-- Remove day_of_week column from class_schedules table
+ALTER TABLE class_schedules DROP COLUMN IF EXISTS day_of_week;
 
 --
 -- Table structure for table `class_tasks`

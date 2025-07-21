@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
+import DetailedTimeTable from '../../components/DetailedTimeTable';
 import './StudentScheduleView.css';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -22,6 +23,93 @@ const TIME_SLOTS = {
   8: { start: '19:30', end: '21:00' },
 };
 
+// Schedule Detail Modal Component
+const ScheduleDetailModal = ({ schedule, subjects, lecturers, onClose }) => {
+  if (!schedule) return null;
+  
+  const getSubjectName = (subjectId) => {
+    if (!subjectId) return 'Unknown Subject';
+    const subject = subjects.find(s => s.id === parseInt(subjectId));
+    return subject ? `${subject.code} - ${subject.name}` : `Subject ${subjectId}`;
+  };
+  
+  const getLecturerName = (lecturerId) => {
+    if (!lecturerId) return 'Unknown Lecturer';
+    const lecturer = lecturers.find(l => l.id === parseInt(lecturerId));
+    return lecturer ? lecturer.fullName : `Lecturer ${lecturerId}`;
+  };
+  
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    // If it's already in HH:MM format
+    if (timeString.length === 5) return timeString;
+    // If it's in HH:MM:SS format
+    if (timeString.length === 8) return timeString.substring(0, 5);
+    return timeString;
+  };
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return date.toLocaleDateString();
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  // Get subject code
+  const getSubjectCode = (subjectId) => {
+    if (!subjectId) return '';
+    const subject = subjects.find(s => s.id === parseInt(subjectId));
+    return subject ? subject.code : '';
+  };
+  
+  // Get subject name only (without code)
+  const getSubjectNameOnly = (subjectId) => {
+    if (!subjectId) return 'Unknown Subject';
+    const subject = subjects.find(s => s.id === parseInt(subjectId));
+    return subject ? subject.name : `Subject ${subjectId}`;
+  };
+
+  const subjectCode = getSubjectCode(schedule.subjectId);
+  const subjectName = getSubjectNameOnly(schedule.subjectId);
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>{subjectCode}</h2>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="modal-body">
+          <div className="schedule-detail-item subject-name">
+            {subjectName}
+          </div>
+          <div className="schedule-detail-item">
+            <strong>Class:</strong> {schedule.classId || 'N/A'}
+          </div>
+          <div className="schedule-detail-item">
+            <strong>Room:</strong> {schedule.room || 'N/A'}
+          </div>
+          <div className="schedule-detail-item">
+            <strong>Lecturer:</strong> {getLecturerName(schedule.lecturerId)}
+          </div>
+          <div className="schedule-detail-item">
+            <strong>Time:</strong> {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+          </div>
+          {schedule.specificDate && (
+            <div className="schedule-detail-item">
+              <strong>Date:</strong> {formatDate(schedule.specificDate)}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function StudentScheduleView() {
   const [schedules, setSchedules] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -31,6 +119,39 @@ function StudentScheduleView() {
   const [loading, setLoading] = useState(true);
   const [studentClass, setStudentClass] = useState(null);
   const initialFetchDone = React.useRef(false);
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    const endDate = new Date();
+    endDate.setDate(today.getDate() + 6); // Default to one week
+    return {
+      startDate: today,
+      endDate: endDate
+    };
+  });
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+
+  // Handle date range changes
+  const handleDateRangeChange = (e) => {
+    const { name, value } = e.target;
+    try {
+      // Create a new date object from the input value
+      const newDate = value ? new Date(value) : new Date();
+      
+      // Validate the date
+      if (isNaN(newDate.getTime())) {
+        console.error('Invalid date:', value);
+        return; // Don't update state with invalid date
+      }
+      
+      setDateRange(prev => ({
+        ...prev,
+        [name]: newDate
+      }));
+    } catch (error) {
+      console.error('Error parsing date:', error);
+    }
+  };
 
   // Get current user info from localStorage
   useEffect(() => {
@@ -43,60 +164,56 @@ function StudentScheduleView() {
 
   // Fetch all necessary data on component mount
   useEffect(() => {
-    const fetchAllData = async () => {
-      setLoading(true);
-      try {
-        const [subjectsRes, lecturersRes, termsRes] = await Promise.all([
-          api.get('/api/subjects'),
-          api.get('/api/users/lecturers'),
-          api.get('/api/schedule/terms')
-        ]);
-        
-        setSubjects(subjectsRes.data || []);
-        setLecturers(lecturersRes.data || []);
-        
-        // Handle terms data
-        let termsData = termsRes.data || [];
-        if (termsData.length === 0) {
-          // Create default terms for the UI if none are returned from the backend
-          termsData = [
-            { id: 1, name: 'Term 1' },
-            { id: 2, name: 'Term 2' },
-            { id: 3, name: 'Term 3' }
-          ];
-          console.log('No terms found in the backend, using default terms');
-        }
-        
-        setTerms(termsData);
-        
-        // Set the selected term at the end to trigger only one fetch
-        const defaultTermId = termsData.length > 0 ? termsData[0].id : 1;
-        console.log(`Setting default term ID: ${defaultTermId}`);
-        setSelectedTerm(defaultTermId);
-        
-        console.log('Initial data loaded, ready for schedule fetch');
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load necessary data');
-      } finally {
-        setLoading(false);
+    if (studentClass) {
+      fetchAllData();
+    }
+  }, [studentClass]);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [subjectsRes, lecturersRes, termsRes] = await Promise.all([
+        api.get('/api/subjects'),
+        api.get('/api/users/lecturers'),
+        api.get('/api/schedule/terms')
+      ]);
+      
+      setSubjects(subjectsRes.data || []);
+      setLecturers(lecturersRes.data || []);
+      
+      // Handle terms data
+      let termsData = termsRes.data || [];
+      if (termsData.length === 0) {
+        // Create default terms for the UI if none are returned from the backend
+        termsData = [
+          { id: 1, name: 'Term 1' },
+          { id: 2, name: 'Term 2' },
+          { id: 3, name: 'Term 3' }
+        ];
+        console.log('No terms found in the backend, using default terms');
       }
-    };
-    
-    fetchAllData();
-  }, []);
+      
+      setTerms(termsData);
+      
+      // No need to set selected term as we'll fetch all schedules
+      console.log('Initial data loaded, ready for schedule fetch');
+      
+      // Fetch schedules once we have the necessary data
+      fetchSchedules();
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load necessary data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch schedules when term changes
   useEffect(() => {
-    if (selectedTerm && !loading && studentClass) {
-      // Only fetch once on initial load
-      if (!initialFetchDone.current) {
-        console.log('Initial component setup complete, fetching schedules...');
-        initialFetchDone.current = true;
-        fetchSchedules();
-      }
+    if (selectedTerm && studentClass && !loading) {
+      fetchSchedules();
     }
-  }, [selectedTerm, loading, studentClass]);
+  }, [selectedTerm]);
 
   const fetchSchedules = async () => {
     if (!studentClass) {
@@ -106,7 +223,19 @@ function StudentScheduleView() {
     
     setLoading(true);
     try {
-      const url = `/api/schedule/class/${studentClass}/term/${selectedTerm}`;
+      // Get the current date
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - today.getDay() + 1); // Monday of current week
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6); // Sunday of current week
+      
+      // Format dates for API
+      const formattedStartDate = startDate.toISOString().split('T')[0];
+      const formattedEndDate = endDate.toISOString().split('T')[0];
+      
+      // Fetch schedules for date range
+      const url = `/api/schedule/class/date-range?classId=${studentClass}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
       
       console.log(`Fetching schedules from: ${url}`);
       const response = await fetch(`http://localhost:8080${url}`);
@@ -134,27 +263,62 @@ function StudentScheduleView() {
 
   // Find a subject name by ID
   const getSubjectName = (subjectId) => {
-    const subject = subjects.find(s => s.id === subjectId);
-    return subject ? `${subject.code} - ${subject.name}` : `Subject ${subjectId}`;
+    if (!subjectId) return 'Unknown Subject';
+    
+    const subject = subjects.find(s => s.id === parseInt(subjectId));
+    if (subject) {
+      return `${subject.code} - ${subject.name}`;
+    }
+    
+    // If we don't have subject details, just show the ID
+    return `Subject ${subjectId}`;
   };
-
+  
   // Find a lecturer name by ID
   const getLecturerName = (lecturerId) => {
-    const lecturer = lecturers.find(l => l.id === lecturerId);
-    return lecturer ? lecturer.fullName : `Lecturer ${lecturerId}`;
+    if (!lecturerId) return '';
+    
+    const lecturer = lecturers.find(l => l.id === parseInt(lecturerId));
+    if (lecturer) {
+      return lecturer.fullName;
+    }
+    
+    // Don't show lecturer ID to students
+    return '';
   };
 
   // Create weekly schedule matrix
   const generateWeekMatrix = useCallback(() => {
     console.log('Generating week matrix with schedules:', schedules);
     
-    // First try to match schedules to specific time slots
-    const matrix = SLOTS.map(slot => 
+    // Ensure schedules is an array
+    const schedulesArray = Array.isArray(schedules) ? schedules : [];
+    
+    // Create a date range for the current week
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday of current week
+    
+    // Create a matrix with days as columns and time slots as rows
+    const timeSlotKeys = Object.keys(TIME_SLOTS).map(Number);
+    const matrix = timeSlotKeys.map(slot => 
       WEEKDAYS.map((_, dayIdx) => {
+        // Calculate the date for this day
+        const currentDate = new Date(startOfWeek);
+        currentDate.setDate(startOfWeek.getDate() + dayIdx);
+        const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
         // Match schedules for this day and slot
-        const daySchedules = schedules.filter(s => {
-          // Match by day of week (1-based index)
-          const dayMatches = s.dayOfWeek === dayIdx + 1;
+        const daySchedules = schedulesArray.filter(s => {
+          if (!s) return false;
+          
+          // Match by specific date if available
+          let dayMatches = false;
+          if (s.specificDate) {
+            // Compare the date strings
+            const scheduleDate = s.specificDate.split('T')[0];
+            dayMatches = scheduleDate === dateStr;
+          }
           
           if (!dayMatches) return false;
           
@@ -185,44 +349,6 @@ function StudentScheduleView() {
       })
     );
     
-    // Check if we have any schedules in the matrix
-    const hasSchedules = matrix.some(row => row.some(cell => cell !== null));
-    
-    // If no schedules matched by time slots, use a fallback approach
-    if (!hasSchedules && schedules.length > 0) {
-      console.log('No schedules matched time slots, using fallback display');
-      
-      // Group schedules by day of week
-      const schedulesByDay = {};
-      schedules.forEach(s => {
-        const day = s.dayOfWeek - 1; // Convert to 0-based index
-        if (!schedulesByDay[day]) {
-          schedulesByDay[day] = [];
-        }
-        schedulesByDay[day].push(s);
-      });
-      
-      // Place schedules in the first few slots based on their day
-      return SLOTS.map((slot, slotIdx) => 
-        WEEKDAYS.map((_, dayIdx) => {
-          // Only use the first few slots for the fallback
-          if (slotIdx < 3 && schedulesByDay[dayIdx] && schedulesByDay[dayIdx].length > 0) {
-            // Get schedules for this day and distribute them across slots
-            const daySchedules = schedulesByDay[dayIdx];
-            const startIdx = slotIdx * 2;
-            const endIdx = startIdx + 2;
-            const slotSchedules = daySchedules.slice(startIdx, endIdx);
-            
-            // Remove used schedules
-            schedulesByDay[dayIdx] = daySchedules.slice(endIdx);
-            
-            return slotSchedules.length > 0 ? slotSchedules : null;
-          }
-          return null;
-        })
-      );
-    }
-    
     return matrix;
   }, [schedules]);
 
@@ -231,8 +357,73 @@ function StudentScheduleView() {
   const handleTermChange = (e) => {
     const newTermId = e.target.value ? parseInt(e.target.value) : null;
     setSelectedTerm(newTermId);
-    if (newTermId) {
-      initialFetchDone.current = false; // Reset to force a fetch with the new term
+    
+    if (newTermId && studentClass) {
+      // Fetch schedules for the selected term
+      fetchSchedulesForTerm(studentClass, newTermId);
+    }
+  };
+  
+  const fetchSchedulesForTerm = async (classId, termId) => {
+    setLoading(true);
+    try {
+      const url = `/api/schedule/class/${classId}/term/${termId}`;
+      
+      console.log(`Fetching schedules for term ${termId} from: ${url}`);
+      const response = await fetch(`http://localhost:8080${url}`);
+      const data = await response.json();
+      console.log(`Received ${data.length} schedules for term ${termId}`);
+      
+      setSchedules(data || []);
+    } catch (error) {
+      console.error('Error fetching schedules for term:', error);
+      toast.error('Failed to load schedules for the selected term');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSchedulesForDateRange = async (classId, startDate, endDate) => {
+    setLoading(true);
+    try {
+      // Ensure we have valid dates
+      const validStartDate = startDate instanceof Date && !isNaN(startDate) ? startDate : new Date();
+      const validEndDate = endDate instanceof Date && !isNaN(endDate) ? endDate : new Date();
+      
+      // Format dates for API
+      const formattedStartDate = validStartDate.toISOString().split('T')[0];
+      const formattedEndDate = validEndDate.toISOString().split('T')[0];
+      
+      const url = `/api/schedule/class/date-range?classId=${classId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+      
+      console.log(`Fetching schedules for date range from: ${url}`);
+      const response = await fetch(`http://localhost:8080${url}`);
+      const data = await response.json();
+      console.log(`Received ${data.length} schedules for date range`);
+      
+      setSchedules(data || []);
+    } catch (error) {
+      console.error('Error fetching schedules for date range:', error);
+      toast.error('Failed to load schedules for the selected date range');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle schedule click
+  const handleScheduleClick = (schedule) => {
+    try {
+      if (!schedule) {
+        console.error('Schedule is undefined or null');
+        return;
+      }
+      
+      // Set the selected schedule and show the modal
+      setSelectedSchedule(schedule);
+      setShowScheduleModal(true);
+    } catch (error) {
+      console.error('Error handling schedule click:', error);
+      toast.info('Schedule details not available');
     }
   };
 
@@ -259,10 +450,38 @@ function StudentScheduleView() {
             </select>
           </div>
           
+          <div className="date-range-selector">
+            <div className="filter-item">
+              <label>Start Date:</label>
+              <input 
+                type="date" 
+                name="startDate"
+                value={dateRange.startDate.toISOString().split('T')[0]}
+                onChange={handleDateRangeChange}
+              />
+            </div>
+            
+            <div className="filter-item">
+              <label>End Date:</label>
+              <input 
+                type="date" 
+                name="endDate"
+                value={dateRange.endDate.toISOString().split('T')[0]}
+                onChange={handleDateRangeChange}
+              />
+            </div>
+            
+            <button 
+              className="date-range-btn"
+              onClick={() => fetchSchedulesForDateRange(studentClass, dateRange.startDate, dateRange.endDate)}
+            >
+              View Date Range
+            </button>
+          </div>
+          
           <button 
             className="refresh-btn"
             onClick={() => {
-              initialFetchDone.current = false;
               fetchSchedules();
             }}
           >
@@ -272,64 +491,26 @@ function StudentScheduleView() {
       </div>
       
       <div className="schedule-grid-container">
-        <table className="schedule-grid">
-          <thead>
-            <tr>
-              <th>Slot</th>
-              {WEEKDAYS.map(day => <th key={day}>{day}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {SLOTS.map((slot, i) => (
-              <tr key={slot}>
-                <td className="slot-info">
-                  <div>Slot {slot}</div>
-                  <div className="time-range">
-                    {TIME_SLOTS[slot] && (
-                      <small>{TIME_SLOTS[slot].start} - {TIME_SLOTS[slot].end}</small>
-                    )}
-                  </div>
-                </td>
-                {WEEKDAYS.map((_, dayIdx) => {
-                  const cellSchedules = weekMatrix[i][dayIdx];
-                  
-                  return (
-                    <td key={dayIdx} className="schedule-cell">
-                      {cellSchedules ? (
-                        cellSchedules.map(schedule => (
-                          <div 
-                            key={schedule.id} 
-                            className="schedule-item"
-                            style={{ 
-                              borderColor: STATUS_COLORS[schedule.status] || '#ccc',
-                              borderLeftWidth: '4px'
-                            }}
-                          >
-                            <div className="schedule-subject">{getSubjectName(schedule.subjectId)}</div>
-                            <div className="schedule-lecturer">
-                              <i className="fas fa-user-tie"></i> {getLecturerName(schedule.lecturerId)}
-                            </div>
-                            <div className="schedule-room">
-                              <i className="fas fa-door-open"></i> {schedule.room ? schedule.room.name : 'No Room'}
-                              {schedule.building && ` (${schedule.building})`}
-                            </div>
-                            <div className="schedule-time">
-                              {schedule.startTime} - {schedule.endTime}
-                            </div>
-                            <div className="schedule-status" style={{ color: STATUS_COLORS[schedule.status] }}>
-                              {schedule.status}
-                            </div>
-                          </div>
-                        ))
-                      ) : null}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DetailedTimeTable
+          schedules={schedules}
+          timeSlots={TIME_SLOTS}
+          getSubjectName={getSubjectName}
+          getLecturerName={getLecturerName}
+          userRole="student"
+          onScheduleClick={handleScheduleClick}
+          subjects={subjects}
+        />
       </div>
+
+      {/* Schedule Detail Modal */}
+      {showScheduleModal && (
+        <ScheduleDetailModal
+          schedule={selectedSchedule}
+          subjects={subjects}
+          lecturers={lecturers}
+          onClose={() => setShowScheduleModal(false)}
+        />
+      )}
     </div>
   );
 }
