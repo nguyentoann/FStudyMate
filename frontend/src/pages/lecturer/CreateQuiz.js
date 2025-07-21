@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,7 @@ import {
   updateQuiz 
 } from '../../services/api';
 import { API_URL } from '../../services/config';
+import axios from 'axios';
 
 // Function to generate a default exam code based on subject
 const generateDefaultExamCode = (subjectName) => {
@@ -46,6 +47,15 @@ const CreateQuiz = () => {
   const [maMonList, setMaMonList] = useState([]);
   const [maDeList, setMaDeList] = useState([]);
   
+  // New state for question bank
+  const [questionBanks, setQuestionBanks] = useState([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedQuestionBank, setSelectedQuestionBank] = useState(null);
+  const [bankQuestions, setBankQuestions] = useState([]);
+  const [selectedBankQuestions, setSelectedBankQuestions] = useState([]);
+  const [showQuestionBankModal, setShowQuestionBankModal] = useState(false);
+  const [randomQuestionCount, setRandomQuestionCount] = useState(5);
+  
   // Quiz metadata
   const [quizData, setQuizData] = useState({
     title: '',
@@ -53,13 +63,17 @@ const CreateQuiz = () => {
     maMon: '',
     maDe: '',
     timeLimit: 30,
-    randomizeQuestions: false,
     showResults: true,
     passingScore: 60,
     status: 'draft',
     password: '',
     securityLevel: 0
   });
+  
+  // Classes for the quiz
+  const [classes, setClasses] = useState([]);
+  const [selectedClassIds, setSelectedClassIds] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(false);
   
   // Questions state
   const [questions, setQuestions] = useState([]);
@@ -73,18 +87,149 @@ const CreateQuiz = () => {
     { id: 'code-execution', label: 'Code Execution' },
   ]);
   
+  // State for subject search
+  const [subjectSearch, setSubjectSearch] = useState('');
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  
   useEffect(() => {
     fetchSubjects();
     fetchMaMonList();
+    fetchTeacherClasses();
     
     // If editing an existing quiz, fetch its data
     if (id) {
       fetchQuizById(id);
-    } else {
-      // Start with one empty question for new quizzes
-      addNewQuestion();
     }
   }, [id]);
+
+  // Update subject search value when quiz data has subject selected
+  useEffect(() => {
+    if (quizData.maMon) {
+      const selectedSubject = subjects.find(s => s.code === quizData.maMon);
+      if (selectedSubject) {
+        setSubjectSearch(`${selectedSubject.code} - ${selectedSubject.name}`);
+      }
+    }
+  }, [quizData.maMon, subjects]);
+  
+  // Add click outside handler for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowSubjectDropdown(false);
+      }
+    };
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+  
+  // Function to fetch classes managed by the lecturer
+  const fetchTeacherClasses = async () => {
+    try {
+      setLoadingClasses(true);
+      // Get user ID from auth context
+      if (!user || !user.id) {
+        console.error('No user ID available for fetching classes');
+        setLoadingClasses(false);
+        return;
+      }
+      
+      const response = await axios.get(`${API_URL}/classes/lecturer/${user.id}`);
+      console.log('Fetched lecturer classes:', response.data);
+      setClasses(response.data);
+      setLoadingClasses(false);
+    } catch (error) {
+      console.error('Error fetching lecturer classes:', error);
+      setLoadingClasses(false);
+    }
+  };
+  
+  // New function to fetch question banks
+  const fetchQuestionBanks = async (subjectId = '') => {
+    try {
+      setLoading(true);
+      let url = subjectId 
+        ? `${API_URL}/question-banks/subject/${subjectId}` 
+        : `${API_URL}/question-banks`;
+        
+      const response = await axios.get(url);
+      setQuestionBanks(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching question banks:', error);
+      setError('Failed to load question banks. Please try again later.');
+      setLoading(false);
+    }
+  };
+  
+  // New function to fetch bank questions
+  const fetchBankQuestions = async (bankId) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/question-banks/${bankId}`);
+      setBankQuestions(response.data.questions || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching bank questions:', error);
+      setError('Failed to load questions from bank. Please try again later.');
+      setLoading(false);
+    }
+  };
+  
+  // Function to fetch random questions from a question bank
+  const fetchRandomQuestions = async (bankId, count) => {
+    try {
+      setLoading(true);
+      const url = `${API_URL}/question-banks/${bankId}/random?count=${count}`;
+      console.log('Fetching random questions from URL:', url);
+      
+      const response = await axios.get(url);
+      console.log('Random questions response:', response.data);
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Ensure all questions have valid text field
+        const validQuestions = response.data.map(q => {
+          if (!q.questionText) {
+            q.questionText = ''; // Set default empty string if null
+          }
+          return q;
+        });
+        
+        console.log('Valid questions:', validQuestions);
+        
+        setBankQuestions(validQuestions);
+        // Auto-select all random questions
+        setSelectedBankQuestions(validQuestions);
+      } else {
+        setBankQuestions([]);
+        setSelectedBankQuestions([]);
+        setError('Failed to get random questions. Please try again.');
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching random questions:', error);
+      setError('Failed to get random questions. Please try again later.');
+      setLoading(false);
+    }
+  };
+  
+  // Handler for class selection
+  const handleClassSelect = (e) => {
+    const value = e.target.value;
+    const isChecked = e.target.checked;
+    
+    if (isChecked) {
+      setSelectedClassIds(prev => [...prev, value]);
+    } else {
+      setSelectedClassIds(prev => prev.filter(id => id !== value));
+    }
+  };
+  
+
   
   const fetchSubjects = async () => {
     try {
@@ -141,7 +286,9 @@ const CreateQuiz = () => {
         timeLimit: data.quiz.timeLimit || 30,
         password: data.quiz.password || '',
         securityLevel: data.quiz.securityLevel || 0,
-        status: 'draft'
+        status: 'draft',
+        showResults: true,
+        passingScore: 60
       });
       
       // Fetch MaDe list for the selected MaMon
@@ -184,23 +331,114 @@ const CreateQuiz = () => {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    // If changing maMon, fetch the corresponding MaDe list and suggest a default exam code
-    if (name === 'maMon') {
-      fetchMaDeList(value);
-      // Generate default exam code based on selected subject
-      const defaultExamCode = generateDefaultExamCode(value);
-      // Reset maDe when maMon changes and suggest a default
-      setQuizData({
-        ...quizData,
-        maMon: value,
-        maDe: defaultExamCode
-      });
+    setQuizData({
+      ...quizData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const handleSubjectChange = (e) => {
+    const value = e.target.value;
+    
+    // Update maMon in quizData
+    setQuizData(prevData => {
+      // First update the maMon
+      const updatedData = {
+        ...prevData,
+        maMon: value
+      };
+      
+      // If there's a value, also update maDe with a default exam code
+      if (value) {
+        fetchMaDeList(value);
+        const defaultExamCode = generateDefaultExamCode(value);
+        updatedData.maDe = defaultExamCode;
+      }
+      
+      return updatedData;
+    });
+  };
+
+  // New handler for subject selection for question banks
+  const handleSubjectIdChange = (e) => {
+    const subjectId = e.target.value;
+    setSelectedSubjectId(subjectId);
+    setSelectedQuestionBank(null);
+    setBankQuestions([]);
+    
+    // Fetch question banks for selected subject
+    if (subjectId) {
+      fetchQuestionBanks(subjectId);
     } else {
-      setQuizData({
-        ...quizData,
-        [name]: type === 'checkbox' ? checked : value
-      });
+      fetchQuestionBanks();
     }
+  };
+  
+  // New handler for question bank selection
+  const handleQuestionBankSelect = (bank) => {
+    setSelectedQuestionBank(bank);
+    fetchBankQuestions(bank.id);
+  };
+  
+  // New handler to toggle question selection
+  const toggleQuestionSelection = (question) => {
+    setSelectedBankQuestions(prevSelected => {
+      const isSelected = prevSelected.some(q => q.id === question.id);
+      
+      if (isSelected) {
+        // Remove from selection
+        return prevSelected.filter(q => q.id !== question.id);
+      } else {
+        // Add to selection
+        return [...prevSelected, question];
+      }
+    });
+  };
+  
+  // New handler to add selected questions to quiz
+  const addSelectedQuestionsToQuiz = () => {
+    console.log('Selected bank questions:', selectedBankQuestions);
+    
+    // Convert bank questions to quiz question format
+    const newQuestions = selectedBankQuestions.map((bankQuestion) => {
+      // Extract options from bank question
+      const options = bankQuestion.answers.map((answer, index) => ({
+        id: String.fromCharCode(97 + index), // a, b, c, d...
+        text: answer.answerText || ''
+      }));
+      
+      // Find correct answers (those with positive fraction)
+      const correctAnswers = bankQuestion.answers
+        .filter(answer => parseFloat(answer.fraction) > 0)
+        .map((_, index) => String.fromCharCode(97 + index));
+      
+      // Ensure question text is not null or undefined
+      const questionText = bankQuestion.questionText || '';
+      
+      console.log(`Converting bank question: id=${bankQuestion.id}, text="${questionText.substring(0, 30)}..."`);
+      
+      return {
+        id: questions.length + Math.random(),
+        type: bankQuestion.questionType === 'multichoice' ? 
+              (bankQuestion.singleAnswer ? 'single-choice' : 'multiple-choice') : 
+              'multiple-choice',
+        text: questionText,
+        options: options,
+        correctAnswer: correctAnswers.length === 1 ? correctAnswers[0] : 'a',
+        correctAnswers: correctAnswers.length > 1 ? correctAnswers : undefined,
+        points: 10,
+        explanation: bankQuestion.explanation || ''
+      };
+    });
+    
+    console.log('Converted questions:', newQuestions);
+    
+    // Add new questions to the quiz
+    setQuestions([...questions, ...newQuestions]);
+    
+    // Close modal and reset selection
+    setShowQuestionBankModal(false);
+    setSelectedBankQuestions([]);
   };
   
   const handleQuestionChange = (e) => {
@@ -468,6 +706,10 @@ const CreateQuiz = () => {
   };
   
   const saveQuiz = async (asDraft = true) => {
+    // Thêm console.log để debug
+    console.log('saveQuiz called with asDraft =', asDraft);
+    console.log('Current questions:', questions);
+    
     // Validate quiz data
     if (!quizData.title.trim()) {
       setError('Please enter a quiz title');
@@ -485,15 +727,29 @@ const CreateQuiz = () => {
     }
     
     // Validate questions
-    const invalidQuestions = questions.filter(q => !q.text.trim());
+    if (questions.length === 0) {
+      setError('Please add at least one question');
+      return;
+    }
+    
+    // Debug log trước khi validate
+    questions.forEach((q, index) => {
+      console.log(`Question ${index+1} text: "${q.text}", length: ${q.text ? q.text.length : 0}, type: ${typeof q.text}`);
+    });
+    
+    const invalidQuestions = questions.filter(q => !q.text || q.text.trim() === '');
     if (invalidQuestions.length > 0) {
-      setError(`Please fill in all question texts (Question ${questions.indexOf(invalidQuestions[0]) + 1} is empty)`);
+      const invalidIndex = questions.indexOf(invalidQuestions[0]);
+      console.log('Found invalid question at index:', invalidIndex);
+      console.log('Invalid question:', invalidQuestions[0]);
+      setError(`Please fill in all question texts (Question ${invalidIndex + 1} is empty)`);
       return;
     }
     
     // For multiple choice, validate options
     const multipleChoiceQuestionsWithEmptyOptions = questions.filter(
-      q => (q.type === 'multiple-choice' || q.type === 'single-choice') && q.options.some(opt => !opt.text.trim())
+      q => (q.type === 'multiple-choice' || q.type === 'single-choice') && 
+           q.options && q.options.some(opt => !opt.text.trim())
     );
     
     if (multipleChoiceQuestionsWithEmptyOptions.length > 0) {
@@ -532,7 +788,7 @@ const CreateQuiz = () => {
           
           // Convert correctAnswers array to comma-separated string
           // Map option IDs (a, b, c) to uppercase labels (A, B, C)
-          const correctAnswerString = q.correctAnswers.map(optionId => {
+          const correctAnswerString = (q.correctAnswers || []).map(optionId => {
             // Find the index of the option with this id
             const optionIndex = q.options.findIndex(opt => opt.id === optionId);
             // Map to uppercase letter if found, otherwise use the original id
@@ -599,17 +855,20 @@ const CreateQuiz = () => {
       
       const quizPayload = {
         title: quizData.title,
-        description: quizData.description,
-        userId: user.id,
+        description: quizData.description || '',
+        userId: user?.id,
         maMon: quizData.maMon,
         maDe: quizData.maDe,
         isAiGenerated: false,
         password: quizData.password || null,
-        timeLimit: quizData.timeLimit || 30,
-        securityLevel: quizData.securityLevel || 0,
+        timeLimit: parseInt(quizData.timeLimit) || 30,
+        securityLevel: parseInt(quizData.securityLevel) || 0,
         status: asDraft ? 'draft' : 'active',
-        questions: formattedQuestions
+        questions: formattedQuestions,
+        classIds: selectedClassIds
       };
+      
+      console.log('Sending quiz payload:', JSON.stringify(quizPayload));
       
       let response;
       if (id) {
@@ -618,8 +877,10 @@ const CreateQuiz = () => {
         response = await createQuiz(quizPayload);
       }
       
-      if (!response || !response.success) {
-        throw new Error('Failed to save quiz');
+      console.log('Quiz save response:', response);
+      
+      if (!response || (response && !response.success && !response.id)) {
+        throw new Error('Failed to save quiz: ' + JSON.stringify(response));
       }
       
       setSuccess(`Quiz ${asDraft ? 'saved as draft' : 'published'} successfully!`);
@@ -630,14 +891,52 @@ const CreateQuiz = () => {
       }, 2000);
     } catch (error) {
       console.error('Error saving quiz:', error);
-      setError('Failed to save quiz. Please try again later.');
+      setError('Failed to save quiz: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
   };
   
   const renderQuestionEditor = () => {
-    if (questions.length === 0) return null;
+    if (questions.length === 0) {
+      return (
+        <div className="mb-8 bg-white rounded-lg shadow p-6 text-center">
+          <h3 className="text-lg font-medium mb-4">No Questions Added Yet</h3>
+          <p className="text-gray-600 mb-4">Start by adding questions to your quiz</p>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={addNewQuestion}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Add New Question
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowQuestionBankModal(true);
+                // Nếu đã chọn subject rồi thì dùng subject đó
+                if (quizData.maMon) {
+                  // Tìm subject ID dựa trên mã môn đã chọn
+                  const selectedSubject = subjects.find(s => s.code === quizData.maMon);
+                  if (selectedSubject) {
+                    setSelectedSubjectId(selectedSubject.id.toString());
+                    fetchQuestionBanks(selectedSubject.id);
+                  } else {
+                    fetchQuestionBanks();
+                  }
+                } else {
+                  fetchQuestionBanks();
+                }
+              }}
+              className="px-4 py-2 block w-full bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            >
+              Add Questions from Question Bank
+            </button>
+          </div>
+        </div>
+      );
+    }
     
     const currentQuestion = questions[currentQuestionIndex];
     
@@ -664,6 +963,32 @@ const CreateQuiz = () => {
               Delete
             </button>
           </div>
+        </div>
+        
+        {/* Add button to open question bank modal */}
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              setShowQuestionBankModal(true);
+              // Nếu đã chọn subject rồi thì dùng subject đó
+              if (quizData.maMon) {
+                // Tìm subject ID dựa trên mã môn đã chọn
+                const selectedSubject = subjects.find(s => s.code === quizData.maMon);
+                if (selectedSubject) {
+                  setSelectedSubjectId(selectedSubject.id.toString());
+                  fetchQuestionBanks(selectedSubject.id);
+                } else {
+                  fetchQuestionBanks();
+                }
+              } else {
+                fetchQuestionBanks();
+              }
+            }}
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+          >
+            Add Questions from Question Bank
+          </button>
         </div>
         
         {previewMode ? (
@@ -791,7 +1116,7 @@ const CreateQuiz = () => {
               </label>
               <textarea
                 name="text"
-                value={currentQuestion.text}
+                value={currentQuestion.text || ''}
                 onChange={handleQuestionChange}
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 rows="3"
@@ -1041,20 +1366,105 @@ const CreateQuiz = () => {
               <label className="block text-gray-700 text-sm font-medium mb-1">
                 Subject*
               </label>
-              <select
-                name="maMon"
-                value={quizData.maMon}
-                onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              >
-                <option value="">Select a subject</option>
-                {maMonList.map((maMon) => (
-                  <option key={maMon} value={maMon}>
-                    {maMon}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={dropdownRef}>
+                <input
+                  type="text"
+                  placeholder="Search subjects..."
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={subjectSearch}
+                  onChange={(e) => {
+                    setSubjectSearch(e.target.value);
+                    setShowSubjectDropdown(true);
+                    // Clear selected subject if input is cleared
+                    if (e.target.value === '') {
+                      setQuizData({
+                        ...quizData,
+                        maMon: ''
+                      });
+                    }
+                  }}
+                  onClick={() => setShowSubjectDropdown(true)}
+                />
+                {showSubjectDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {loading ? (
+                      <div className="p-3 text-center text-gray-500">
+                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-indigo-500 mr-2 align-middle"></div>
+                        Loading subjects...
+                      </div>
+                    ) : (
+                      <>
+                        {quizData.maMon && (
+                          <div 
+                            className="p-2 bg-gray-50 text-red-500 hover:bg-red-50 cursor-pointer border-b"
+                            onClick={() => {
+                              setQuizData({
+                                ...quizData,
+                                maMon: '',
+                                maDe: ''
+                              });
+                              setSubjectSearch('');
+                            }}
+                          >
+                            Clear Selection
+                          </div>
+                        )}
+                        {subjects
+                          .filter(subject => 
+                            subject.code.toLowerCase().includes(subjectSearch.toLowerCase()) || 
+                            subject.name.toLowerCase().includes(subjectSearch.toLowerCase())
+                          ).length === 0 ? (
+                          <div className="p-2 text-gray-500 text-center italic">
+                            No subjects found
+                          </div>
+                        ) : (
+                          subjects
+                            .filter(subject => 
+                              subject.code.toLowerCase().includes(subjectSearch.toLowerCase()) || 
+                              subject.name.toLowerCase().includes(subjectSearch.toLowerCase())
+                            )
+                            .map((subject) => (
+                              <div 
+                                key={subject.id} 
+                                className={`p-2 hover:bg-indigo-50 cursor-pointer ${quizData.maMon === subject.code ? 'bg-indigo-100' : ''}`}
+                                onClick={() => {
+                                  const selectedCode = subject.code;
+                                  setQuizData({
+                                    ...quizData,
+                                    maMon: selectedCode
+                                  });
+                                  if (selectedCode) {
+                                    fetchMaDeList(selectedCode);
+                                    const defaultExamCode = generateDefaultExamCode(selectedCode);
+                                    setQuizData(prevData => ({
+                                      ...prevData,
+                                      maDe: defaultExamCode
+                                    }));
+                                  }
+                                  setSubjectSearch(`${subject.code} - ${subject.name}`);
+                                  setShowSubjectDropdown(false);
+                                }}
+                              >
+                                {subject.code} - {subject.name}
+                              </div>
+                            ))
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                  <button 
+                    type="button"
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div className="mb-4">
@@ -1107,21 +1517,38 @@ const CreateQuiz = () => {
               </div>
             </div>
             
+            {/* Class selection */}
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-1">
+                Assign Quiz to Classes
+              </label>
+              {loadingClasses ? (
+                <div className="p-2 text-gray-500">Loading classes...</div>
+              ) : classes.length > 0 ? (
+                <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                  {classes.map(classItem => (
+                    <div key={classItem.class_id} className="mb-1">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          value={classItem.class_id}
+                          checked={selectedClassIds.includes(classItem.class_id)}
+                          onChange={handleClassSelect}
+                          className="form-checkbox h-4 w-4 text-indigo-600"
+                        />
+                        <span className="ml-2">{classItem.class_name}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-2 text-gray-500 border rounded-md">
+                  No classes found. You can still create the quiz and assign classes later.
+                </div>
+              )}
+            </div>
+            
             <div className="mb-4 space-y-3">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="randomizeQuestions"
-                  name="randomizeQuestions"
-                  checked={quizData.randomizeQuestions}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="randomizeQuestions" className="ml-2 block text-sm text-gray-700">
-                  Randomize question order
-                </label>
-              </div>
-              
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -1221,7 +1648,10 @@ const CreateQuiz = () => {
               <>
                 <button
                   type="button"
-                  onClick={() => saveQuiz(true)}
+                  onClick={() => {
+                    console.log("Save Draft button clicked");
+                    saveQuiz(true);
+                  }}
                   disabled={isSaving}
                   className="px-4 py-2 border border-indigo-300 text-indigo-700 rounded-md hover:bg-indigo-50"
                 >
@@ -1229,7 +1659,10 @@ const CreateQuiz = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => saveQuiz(false)}
+                  onClick={() => {
+                    console.log("Publish Quiz button clicked");
+                    saveQuiz(false);
+                  }}
                   disabled={isSaving}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
                 >
@@ -1250,6 +1683,152 @@ const CreateQuiz = () => {
           </div>
         </div>
       </div>
+      
+      {/* Question Bank Modal */}
+      {showQuestionBankModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <h2 className="text-xl font-semibold mb-4">Select Questions from Question Bank</h2>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Filter by Subject:</label>
+              <select 
+                className="w-full p-2 border rounded"
+                value={selectedSubjectId}
+                onChange={handleSubjectIdChange}
+              >
+                <option value="">All Subjects</option>
+                {subjects.map(subject => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.code} - {subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="bg-gray-50 p-3 rounded border">
+                <h3 className="font-medium mb-2">Question Banks</h3>
+                {loading ? (
+                  <div className="text-center py-4">Loading...</div>
+                ) : (
+                  <ul className="max-h-60 overflow-y-auto divide-y">
+                    {questionBanks.length > 0 ? (
+                      questionBanks.map(bank => (
+                        <li 
+                          key={bank.id} 
+                          className={`p-2 hover:bg-gray-100 cursor-pointer ${selectedQuestionBank?.id === bank.id ? 'bg-blue-100' : ''}`}
+                          onClick={() => handleQuestionBankSelect(bank)}
+                        >
+                          <div className="font-medium">{bank.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {bank.subject ? `${bank.subject.code} - ${bank.subject.name}` : 'No Subject'}
+                          </div>
+                        </li>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        No question banks found
+                      </div>
+                    )}
+                  </ul>
+                )}
+                
+                {/* Random question selection */}
+                {selectedQuestionBank && (
+                  <div className="mt-4 border-t pt-4">
+                    <h3 className="font-medium mb-2">Get Random Questions</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs mb-1">Number of Questions:</label>
+                        <div className="flex">
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={randomQuestionCount}
+                            onChange={(e) => setRandomQuestionCount(parseInt(e.target.value) || 5)}
+                            className="flex-1 p-2 border rounded-l text-sm"
+                          />
+                          <button
+                            className="bg-indigo-500 text-white px-3 py-2 rounded-r text-sm hover:bg-indigo-600"
+                            onClick={() => fetchRandomQuestions(selectedQuestionBank.id, randomQuestionCount)}
+                          >
+                            Get
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="col-span-2 bg-gray-50 p-3 rounded border">
+                <h3 className="font-medium mb-2">Questions</h3>
+                {loading ? (
+                  <div className="text-center py-4">Loading...</div>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto">
+                    {bankQuestions.length > 0 ? (
+                      <ul className="divide-y">
+                        {bankQuestions.map(question => (
+                          <li key={question.id} className="p-2 hover:bg-gray-100">
+                            <label className="flex items-start">
+                              <input 
+                                type="checkbox" 
+                                className="mt-1 mr-2"
+                                checked={selectedBankQuestions.some(q => q.id === question.id)}
+                                onChange={() => toggleQuestionSelection(question)}
+                              />
+                              <div>
+                                <div dangerouslySetInnerHTML={{ __html: question.questionText }} />
+                                {question.answers && question.answers.length > 0 && (
+                                  <div className="ml-4 mt-1">
+                                    <div className="text-xs text-gray-500 mb-1">Answers:</div>
+                                    <ul className="text-sm">
+                                      {question.answers.map((answer, idx) => (
+                                        <li key={answer.id} className={parseFloat(answer.fraction) > 0 ? 'text-green-600' : ''}>
+                                          {idx + 1}. <span dangerouslySetInnerHTML={{ __html: answer.answerText }} />
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        {selectedQuestionBank ? 'No questions in this bank' : 'Select a question bank to view questions'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <button 
+                type="button"
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+                onClick={() => setShowQuestionBankModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+                disabled={selectedBankQuestions.length === 0}
+                onClick={addSelectedQuestionsToQuiz}
+              >
+                Add {selectedBankQuestions.length} Questions to Quiz
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

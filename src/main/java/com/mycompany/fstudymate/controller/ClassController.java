@@ -264,6 +264,40 @@ public class ClassController {
         }
     }
     
+    /**
+     * Get classes for a lecturer (used in the quiz creation flow)
+     */
+    @GetMapping("/lecturer/{lecturerId}")
+    public ResponseEntity<List<Map<String, Object>>> getClassesByLecturer(@PathVariable Integer lecturerId) {
+        try {
+            // First check if user exists and is a lecturer
+            Optional<User> userOpt = userRepository.findById(lecturerId);
+            if (!userOpt.isPresent() || !"LECTURER".equalsIgnoreCase(userOpt.get().getRole())) {
+                return ResponseEntity.ok(new ArrayList<>()); // Return empty list if not a lecturer
+            }
+            
+            // Get classes where user is homeroom teacher
+            List<Class> classes = classService.getClassesByHomeroomTeacher(lecturerId);
+            
+            // Convert to response format
+            List<Map<String, Object>> response = classes.stream().map(classObj -> {
+                Map<String, Object> classMap = new HashMap<>();
+                classMap.put("class_id", classObj.getClassId());
+                classMap.put("class_name", classObj.getClassName());
+                classMap.put("current_students", classObj.getCurrentStudents());
+                classMap.put("max_students", classObj.getMaxStudents());
+                classMap.put("is_active", classObj.getIsActive());
+                
+                return classMap;
+            }).collect(Collectors.toList());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
     @GetMapping("/available")
     public ResponseEntity<List<Class>> getAvailableClasses() {
         try {

@@ -3,7 +3,6 @@ package com.mycompany.fstudymate.controller;
 import dao.QuizDAO;
 import dao.QuestionDAO;
 import model.Quiz;
-import model.Question;
 import model.QuizPermission;
 
 import org.springframework.http.HttpStatus;
@@ -15,6 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.logging.Logger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import connection.ConnectionPool;
+import connection.DBUtils;
 
 @RestController
 @RequestMapping("/api/quizzes")
@@ -79,7 +84,7 @@ public class QuizController {
             
             // Handle questions if provided
             List<Map<String, Object>> questions = (List<Map<String, Object>>) payload.getOrDefault("questions", new ArrayList<>());
-            List<Question> questionObjects = new ArrayList<>();
+            List<model.Question> questionObjects = new ArrayList<>();
             
             for (Map<String, Object> questionData : questions) {
                 String questionImg = (String) questionData.getOrDefault("questionImg", "");
@@ -88,7 +93,7 @@ public class QuizController {
                 String correct = (String) questionData.get("correct");
                 String explanation = (String) questionData.getOrDefault("explanation", "");
                 
-                Question question = new Question(0, maMon, maDe, questionImg, questionText, slDapAn, correct, explanation);
+                model.Question question = new model.Question(0, maMon, maDe, questionImg, questionText, slDapAn, correct, explanation);
                 questionObjects.add(question);
             }
             
@@ -133,6 +138,119 @@ public class QuizController {
         }
     }
     
+    /**
+     * Get quizzes for a specific lecturer
+     */
+    @GetMapping("/lecturer/{lecturerId}")
+    public ResponseEntity<?> getLecturerQuizzes(@PathVariable Integer lecturerId) {
+        try {
+            if (lecturerId == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Missing required lecturerId parameter"
+                ));
+            }
+            
+            logger.info("Fetching quizzes for lecturer: " + lecturerId);
+            
+            // Get quizzes created by this lecturer
+            List<Quiz> quizzes = QuizDAO.getQuizzesByUserId(lecturerId);
+            
+            // Enhance quiz data with additional information
+            List<Map<String, Object>> enhancedQuizzes = new ArrayList<>();
+            
+            for (Quiz quiz : quizzes) {
+                Map<String, Object> enhancedQuiz = new HashMap<>();
+                enhancedQuiz.put("id", quiz.getId());
+                enhancedQuiz.put("title", quiz.getTitle());
+                enhancedQuiz.put("description", quiz.getDescription());
+                enhancedQuiz.put("subjectCode", quiz.getMaMon());
+                enhancedQuiz.put("examCode", quiz.getMaDe());
+                // Quiz doesn't have status field, so assume active for now
+                enhancedQuiz.put("status", "active");
+                enhancedQuiz.put("timeLimit", quiz.getTimeLimit());
+                enhancedQuiz.put("createdAt", quiz.getCreatedAt());
+                enhancedQuiz.put("updatedAt", quiz.getUpdatedAt());
+                
+                // Get count of questions
+                int totalQuestions = countQuestionsByQuizId(quiz.getId());
+                enhancedQuiz.put("totalQuestions", totalQuestions);
+                
+                // Get count of attempts
+                int attempts = countAttemptsByQuizId(quiz.getId());
+                enhancedQuiz.put("attempts", attempts);
+                
+                enhancedQuizzes.add(enhancedQuiz);
+            }
+            
+            return ResponseEntity.ok(enhancedQuizzes);
+            
+        } catch (Exception e) {
+            logger.severe("Error fetching lecturer quizzes: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "Server error: " + e.getMessage()
+            ));
+        }
+    }
+    
+    // Helper method to count questions for a quiz
+    private int countQuestionsByQuizId(int quizId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        int count = 0;
+        
+        try {
+            String sql = "SELECT COUNT(*) FROM Questions WHERE quiz_id = ?";
+            ps = connection.prepareStatement(sql);
+            ps.setInt(1, quizId);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error counting questions: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return count;
+    }
+    
+    // Helper method to count quiz attempts
+    private int countAttemptsByQuizId(int quizId) {
+        ConnectionPool pool = ConnectionPool.getInstance();
+        Connection connection = pool.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        int count = 0;
+        
+        try {
+            String sql = "SELECT COUNT(*) FROM QuizTaken WHERE quiz_id = ?";
+            ps = connection.prepareStatement(sql);
+            ps.setInt(1, quizId);
+            rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error counting attempts: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            DBUtils.closeResultSet(rs);
+            DBUtils.closePreparedStatement(ps);
+            pool.freeConnection(connection);
+        }
+        
+        return count;
+    }
+    
     @GetMapping("/{quizId}")
     public ResponseEntity<?> getQuizById(@PathVariable int quizId) {
         try {
@@ -145,7 +263,7 @@ public class QuizController {
             }
             
             // Get questions for quiz
-            List<Question> questions = QuestionDAO.getQuestionsByQuizId(quizId);
+            List<model.Question> questions = QuestionDAO.getQuestionsByQuizId(quizId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("quiz", quiz);
@@ -222,11 +340,11 @@ public class QuizController {
                     
                     if (questionId != null && questionId > 0) {
                         // Update existing question
-                        Question question = new Question(questionId, maMon, maDe, questionImg, questionText, slDapAn, correct, explanation);
+                        model.Question question = new model.Question(questionId, maMon, maDe, questionImg, questionText, slDapAn, correct, explanation);
                         QuestionDAO.updateQuestion(question);
                     } else {
                         // Create new question
-                        Question question = new Question(0, maMon, maDe, questionImg, questionText, slDapAn, correct, explanation);
+                        model.Question question = new model.Question(0, maMon, maDe, questionImg, questionText, slDapAn, correct, explanation);
                         QuestionDAO.createQuestion(question, quizId);
                     }
                 }
