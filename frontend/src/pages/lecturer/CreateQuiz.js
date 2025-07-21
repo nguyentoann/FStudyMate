@@ -54,6 +54,7 @@ const CreateQuiz = () => {
   const [bankQuestions, setBankQuestions] = useState([]);
   const [selectedBankQuestions, setSelectedBankQuestions] = useState([]);
   const [showQuestionBankModal, setShowQuestionBankModal] = useState(false);
+  const [randomQuestionCount, setRandomQuestionCount] = useState(5);
   
   // Quiz metadata
   const [quizData, setQuizData] = useState({
@@ -175,6 +176,43 @@ const CreateQuiz = () => {
     } catch (error) {
       console.error('Error fetching bank questions:', error);
       setError('Failed to load questions from bank. Please try again later.');
+      setLoading(false);
+    }
+  };
+  
+  // Function to fetch random questions from a question bank
+  const fetchRandomQuestions = async (bankId, count) => {
+    try {
+      setLoading(true);
+      const url = `${API_URL}/question-banks/${bankId}/random?count=${count}`;
+      console.log('Fetching random questions from URL:', url);
+      
+      const response = await axios.get(url);
+      console.log('Random questions response:', response.data);
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Ensure all questions have valid text field
+        const validQuestions = response.data.map(q => {
+          if (!q.questionText) {
+            q.questionText = ''; // Set default empty string if null
+          }
+          return q;
+        });
+        
+        console.log('Valid questions:', validQuestions);
+        
+        setBankQuestions(validQuestions);
+        // Auto-select all random questions
+        setSelectedBankQuestions(validQuestions);
+      } else {
+        setBankQuestions([]);
+        setSelectedBankQuestions([]);
+        setError('Failed to get random questions. Please try again.');
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching random questions:', error);
+      setError('Failed to get random questions. Please try again later.');
       setLoading(false);
     }
   };
@@ -1694,6 +1732,34 @@ const CreateQuiz = () => {
                       </div>
                     )}
                   </ul>
+                )}
+                
+                {/* Random question selection */}
+                {selectedQuestionBank && (
+                  <div className="mt-4 border-t pt-4">
+                    <h3 className="font-medium mb-2">Get Random Questions</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs mb-1">Number of Questions:</label>
+                        <div className="flex">
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={randomQuestionCount}
+                            onChange={(e) => setRandomQuestionCount(parseInt(e.target.value) || 5)}
+                            className="flex-1 p-2 border rounded-l text-sm"
+                          />
+                          <button
+                            className="bg-indigo-500 text-white px-3 py-2 rounded-r text-sm hover:bg-indigo-600"
+                            onClick={() => fetchRandomQuestions(selectedQuestionBank.id, randomQuestionCount)}
+                          >
+                            Get
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
               
