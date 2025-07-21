@@ -1,0 +1,253 @@
+.student-schedule-view {
+  padding: 20px;
+}
+
+.page-title {
+  color: #2563eb;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.schedule-controls {
+  margin-bottom: 20px;
+  background-color: #f9fafb;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filter-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-item label {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.filter-item select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  min-width: 180px;
+}
+
+.refresh-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.refresh-btn:hover {
+  background-color: #2563eb;
+}
+
+.schedule-grid-container {
+  overflow-x: auto;
+}
+
+.schedule-grid {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-grid th {
+  background-color: #3b82f6;
+  color: white;
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.schedule-grid td {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  vertical-align: top;
+  height: 120px;
+  width: 14%;
+}
+
+.slot-info {
+  background-color: #f3f4f6;
+  text-align: center;
+  width: 100px !important;
+}
+
+.time-range {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.schedule-cell {
+  position: relative;
+  min-width: 150px;
+}
+
+.schedule-item {
+  background-color: white;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+  border-left: 4px solid #3b82f6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-size: 0.9rem;
+}
+
+.schedule-subject {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.schedule-lecturer, .schedule-room, .schedule-time, .schedule-status {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #3b82f6;
+}
+
+.date-range-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+}
+
+.date-range-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.date-range-btn:hover {
+  background-color: #2563eb;
+}
+
+input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #f97316;
+  font-weight: 700;
+}
+
+.subject-name {
+  font-size: 1.2rem;
+  color: #111827;
+  font-weight: 500;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 12px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-close:hover {
+  color: #1f2937;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.schedule-detail-item {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.schedule-detail-item strong {
+  color: #4b5563;
+  margin-right: 8px;
+}
+
+@media (max-width: 768px) {
+  .filter-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .schedule-grid th, .schedule-grid td {
+    padding: 6px;
+  }
+  
+  .schedule-item {
+    padding: 6px;
+  }
+} 

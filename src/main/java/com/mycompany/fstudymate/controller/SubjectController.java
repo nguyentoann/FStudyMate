@@ -1,53 +1,73 @@
 package com.mycompany.fstudymate.controller;
 
-import dao.SubjectDAO;
-import model.Subject;
-import org.springframework.http.HttpStatus;
+import com.mycompany.fstudymate.model.Subject;
+import com.mycompany.fstudymate.repository.SubjectRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/subjects")
 public class SubjectController {
 
+    @Autowired
+    private SubjectRepository subjectRepository;
+
     @GetMapping
     public ResponseEntity<List<Subject>> getAllSubjects() {
-        try {
-            // Use real data from database
-            List<Subject> subjects = SubjectDAO.getAllSubjects();
-            return new ResponseEntity<>(subjects, HttpStatus.OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        List<Subject> subjects = subjectRepository.findAllByActiveTrue();
+        return ResponseEntity.ok(subjects);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Subject> getSubjectById(@PathVariable int id) {
-        try {
-            Subject subject = SubjectDAO.getSubjectById(id);
-            if (subject == null) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            return new ResponseEntity<>(subject, HttpStatus.OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<Subject> getSubjectById(@PathVariable Integer id) {
+        Optional<Subject> subject = subjectRepository.findById(id);
+        return subject.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/term/{termNo}")
+    public ResponseEntity<List<Subject>> getSubjectsByTerm(@PathVariable Integer termNo) {
+        List<Subject> subjects = subjectRepository.findByTermNo(termNo);
+        return ResponseEntity.ok(subjects);
     }
 
     @PostMapping
     public ResponseEntity<Subject> createSubject(@RequestBody Subject subject) {
-        try {
-            // In a real implementation, you would save to database
-            // For now, we'll just return the subject with an ID
-            subject.setId(1);
-            return new ResponseEntity<>(subject, HttpStatus.CREATED);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        Subject savedSubject = subjectRepository.save(subject);
+        return ResponseEntity.ok(savedSubject);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Subject> updateSubject(
+            @PathVariable Integer id,
+            @RequestBody Subject subjectDetails) {
+        
+        return subjectRepository.findById(id)
+                .map(existingSubject -> {
+                    existingSubject.setCode(subjectDetails.getCode());
+                    existingSubject.setName(subjectDetails.getName());
+                    existingSubject.setActive(subjectDetails.getActive());
+                    existingSubject.setTermNo(subjectDetails.getTermNo());
+                    
+                    Subject updatedSubject = subjectRepository.save(existingSubject);
+                    return ResponseEntity.ok(updatedSubject);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSubject(@PathVariable Integer id) {
+        return subjectRepository.findById(id)
+                .map(subject -> {
+                    // Soft delete - just set active to false
+                    subject.setActive(false);
+                    subjectRepository.save(subject);
+                    return ResponseEntity.ok().<Void>build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 } 

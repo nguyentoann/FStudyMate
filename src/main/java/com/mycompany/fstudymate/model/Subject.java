@@ -19,14 +19,14 @@ public class Subject {
     @Column(name = "ID")
     private Integer id;
     
-    @Column(name = "Code")
+    @Column(name = "Code", nullable = false, length = 20)
     private String code;
     
-    @Column(name = "Name")
+    @Column(name = "Name", nullable = false, length = 100)
     private String name;
     
     @Column(name = "Active")
-    private Boolean active;
+    private Boolean active = true;
     
     @Column(name = "TermNo")
     private Integer termNo;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../services/config';
@@ -23,14 +23,32 @@ const PersonalScheduleModal = ({ isOpen, onClose, schedule, selectedDate, onSave
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Safely format a date to the required format
+  const safeFormatDate = (dateValue, defaultValue = '') => {
+    try {
+      if (!dateValue) return defaultValue;
+      
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date:', dateValue);
+        return defaultValue;
+      }
+      
+      return format(date, "yyyy-MM-dd'T'HH:mm");
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return defaultValue;
+    }
+  };
+
   useEffect(() => {
     if (schedule) {
       // Editing existing schedule
       setFormData({
         title: schedule.title || '',
         description: schedule.description || '',
-        startTime: schedule.startTime ? format(new Date(schedule.startTime), "yyyy-MM-dd'T'HH:mm") : '',
-        endTime: schedule.endTime ? format(new Date(schedule.endTime), "yyyy-MM-dd'T'HH:mm") : '',
+        startTime: schedule.startTime ? safeFormatDate(schedule.startTime) : '',
+        endTime: schedule.endTime ? safeFormatDate(schedule.endTime) : '',
         type: schedule.type || 'OTHER',
         location: schedule.location || '',
         color: schedule.color || '#3B82F6',
@@ -38,7 +56,7 @@ const PersonalScheduleModal = ({ isOpen, onClose, schedule, selectedDate, onSave
         recurrencePattern: schedule.recurrencePattern || '',
         reminderMinutes: schedule.reminderMinutes || 15
       });
-    } else if (selectedDate) {
+    } else if (selectedDate && isValid(selectedDate)) {
       // Creating new schedule with selected date
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       setFormData({

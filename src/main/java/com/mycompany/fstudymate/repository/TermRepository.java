@@ -4,12 +4,12 @@ import com.mycompany.fstudymate.model.Term;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface TermRepository extends JpaRepository<Term, Integer> {
     
-    Optional<Term> findByName(String name);
+    List<Term> findAllByOrderByIdAsc();
     
-    boolean existsByName(String name);
+    Term findByName(String name);
 } 
