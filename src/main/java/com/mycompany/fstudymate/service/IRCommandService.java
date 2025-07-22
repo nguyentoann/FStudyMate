@@ -25,9 +25,44 @@ public interface IRCommandService {
     List<IRCommand> findCommandsByDeviceType(String deviceType);
     
     /**
+     * Get commands by device type (alias for findCommandsByDeviceType)
+     */
+    List<IRCommand> getCommandsByDeviceType(String deviceType);
+    
+    /**
+     * Get commands by brand
+     */
+    List<IRCommand> getCommandsByBrand(String brand);
+    
+    /**
+     * Get commands by device type and brand
+     */
+    List<IRCommand> getCommandsByDeviceTypeAndBrand(String deviceType, String brand);
+    
+    /**
      * Find commands by device type and category
      */
     List<IRCommand> findCommandsByDeviceTypeAndCategory(String deviceType, String category);
+    
+    /**
+     * Get commands by category
+     */
+    List<IRCommand> getCommandsByCategory(String category);
+    
+    /**
+     * Get commands by device type, brand and category
+     */
+    List<IRCommand> getCommandsByDeviceTypeBrandAndCategory(String deviceType, String brand, String category);
+    
+    /**
+     * Get AC commands by mode and temperature
+     */
+    List<IRCommand> getAcCommandsByModeAndTemperature(String brand, String mode, Integer temperature);
+    
+    /**
+     * Get AC commands by mode
+     */
+    List<IRCommand> getAcCommandsByMode(String brand, String mode);
     
     /**
      * Save a new IR command
@@ -38,6 +73,11 @@ public interface IRCommandService {
      * Update an existing IR command
      */
     IRCommand updateCommand(IRCommand command);
+    
+    /**
+     * Update an existing IR command with ID
+     */
+    IRCommand updateCommand(Integer id, IRCommand command);
     
     /**
      * Delete an IR command
