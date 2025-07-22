@@ -348,16 +348,8 @@ export const createLesson = async (lessonData) => {
     }
     
     const response = await api.post('/api/lessons', lessonData);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Server response:', errorText);
-      throw new Error(`Failed to create lesson: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    
-    const responseData = await response.json();
-    console.log('Lesson created successfully:', responseData);
-    return responseData;
+    console.log('Lesson created successfully:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Error creating lesson:', error);
     throw error;
@@ -376,23 +368,15 @@ export const getLessons = async (subjectId = null) => {
     }
     
     const url = numericSubjectId !== null
-      ? `${API_BASE_URL}/api/lessons?subjectId=${numericSubjectId}`
-      : `${API_BASE_URL}/api/lessons`;
+      ? `/api/lessons?subjectId=${numericSubjectId}`
+      : `/api/lessons`;
       
     console.log(`[API] Fetching lessons from URL: ${url} (subjectId: ${numericSubjectId})`);
     
     const response = await api.get(url);
+    console.log(`[API] Lessons fetched successfully. Count: ${response.data.length}`, response.data);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[API] Error fetching lessons: ${response.status} ${response.statusText}. Response:`, errorText);
-      throw new Error('Failed to fetch lessons');
-    }
-    
-    const data = await response.json();
-    console.log(`[API] Lessons fetched successfully. Count: ${data.length}`, data);
-    
-    return data;
+    return response.data;
   } catch (error) {
     console.error('[API] Error in getLessons():', error);
     throw error;
@@ -402,12 +386,7 @@ export const getLessons = async (subjectId = null) => {
 export const getLessonById = async (lessonId) => {
   try {
     const response = await api.get(`/api/lessons/${lessonId}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch lesson');
-    }
-    
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching lesson:', error);
     throw error;
@@ -417,12 +396,7 @@ export const getLessonById = async (lessonId) => {
 export const updateLesson = async (lessonId, lessonData) => {
   try {
     const response = await api.put(`/api/lessons/${lessonId}`, lessonData);
-    
-    if (!response.ok) {
-      throw new Error('Failed to update lesson');
-    }
-    
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error updating lesson:', error);
     throw error;
@@ -432,12 +406,7 @@ export const updateLesson = async (lessonId, lessonData) => {
 export const deleteLesson = async (lessonId) => {
   try {
     const response = await api.delete(`/api/lessons/${lessonId}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to delete lesson');
-    }
-    
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error deleting lesson:', error);
     throw error;
@@ -447,12 +416,8 @@ export const deleteLesson = async (lessonId) => {
 export const getSubjects = async () => {
   try {
     const response = await api.get('/api/subjects');
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch subjects');
-    }
-    
-    return await response.json();
+    console.log('[API] Subjects fetched:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Error fetching subjects:', error);
     throw error;
