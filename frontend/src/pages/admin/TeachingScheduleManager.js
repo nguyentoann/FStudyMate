@@ -136,18 +136,17 @@ function TeachingScheduleManager() {
       if (filterLecturerId && selectedTerm) {
         url = `/api/schedule/class/lecturer/${filterLecturerId}/term/${selectedTerm}`;
       } else if (filterClassId && selectedTerm) {
-        url = `/api/schedule/class/${filterClassId}/term/${selectedTerm}`;
+        url = `/api/schedule/class/term/${selectedTerm}`;
       }
       
       console.log(`Fetching schedules from: ${url}`);
       
-      // Use direct fetch API for debugging
-      const response = await fetch(`http://localhost:8080${url}`);
-      const data = await response.json();
-      console.log('Raw schedule data from API:', data);
+      // Use the api service instead of direct fetch with hardcoded URL
+      const response = await api.get(url);
+      console.log('Raw schedule data from API:', response.data);
       
       // Ensure data is an array
-      const scheduleData = Array.isArray(data) ? data : [];
+      const scheduleData = Array.isArray(response.data) ? response.data : [];
       
       if (scheduleData.length > 0) {
         console.log('First schedule item:', scheduleData[0]);
@@ -451,7 +450,7 @@ function TeachingScheduleManager() {
           }
           return null;
         })
-      );
+  );
     }
     
     return matrix;
@@ -527,12 +526,12 @@ function TeachingScheduleManager() {
             className="debug-btn"
             onClick={async () => {
               try {
-                const response = await fetch('http://localhost:8080/api/schedule/class/all');
-                const data = await response.json();
-                console.log('Debug - Raw schedule data:', data);
-                if (Array.isArray(data) && data.length > 0) {
-                  alert(`Found ${data.length} schedules. Check console for details.`);
-                  setSchedules(data);
+                const debugResponse = await api.get('/api/schedule/class/all');
+                const debugData = debugResponse.data;
+                console.log('Debug - Raw schedule data:', debugData);
+                if (Array.isArray(debugData) && debugData.length > 0) {
+                  alert(`Found ${debugData.length} schedules. Check console for details.`);
+                  setSchedules(debugData);
                 } else {
                   alert('No schedules found in API response');
                 }
@@ -614,7 +613,7 @@ function TeachingScheduleManager() {
                         )}
                       </div>
                         ))
-                      ) : (
+                    ) : (
                         (userRole === 'admin' || userRole === 'lecturer') && (
                           <button 
                             className="add-schedule-btn"

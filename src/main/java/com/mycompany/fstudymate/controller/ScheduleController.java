@@ -217,7 +217,7 @@ public class ScheduleController {
                 Integer roomId = (Integer) payload.get("roomId");
                 Room room = roomRepository.findById(roomId)
                     .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
-                schedule.setRoom(room);
+            schedule.setRoom(room);
             }
             
             if (payload.containsKey("status")) schedule.setStatus(ClassSchedule.Status.valueOf((String) payload.get("status")));

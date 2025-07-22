@@ -322,3 +322,121 @@
     transform: translateY(0) scale(1);
   }
 } 
+
+/* Kiểm tra nếu file đã có .modal-overlay, nếu không thì thêm vào */
+
+/* Thêm style cho detail-item trong modal */
+.modal-body {
+  padding: 20px;
+}
+
+.detail-item {
+  margin-bottom: 15px;
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+}
+
+.dark .detail-item {
+  border-bottom-color: #4b5563;
+}
+
+.detail-label {
+  font-weight: 500;
+  width: 100px;
+  color: #4b5563;
+}
+
+.dark .detail-label {
+  color: #d1d5db;
+}
+
+.detail-value {
+  flex: 1;
+  color: #111827;
+}
+
+.dark .detail-value {
+  color: #f9fafb;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.notyet {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.status-badge.attended {
+  background-color: #d1fae5;
+  color: #10b981;
+}
+
+.status-badge.online {
+  background-color: #dbeafe;
+  color: #3b82f6;
+}
+
+.status-badge.absent {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark .modal-footer {
+  border-top-color: #4b5563;
+} 
+
+.meeting-link {
+  display: inline-block;
+  padding: 8px 15px;
+  background-color: #dbeafe;
+  color: #3b82f6;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.meeting-link:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.dark .meeting-link {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+.dark .meeting-link:hover {
+  background-color: #2563eb;
+  color: white;
+}
+
+.detail-note {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #92400e;
+}
+
+.dark .detail-note {
+  background-color: #78350f;
+  border-left-color: #f59e0b;
+  color: #fde68a;
+} 
