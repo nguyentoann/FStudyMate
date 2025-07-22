@@ -15,6 +15,7 @@ import JokeNotification from "./JokeNotification";
 import WebRTCDebugger from "./WebRTCDebugger";
 import NotificationButton from "./NotificationButton";
 import InactivityWarning from "./InactivityWarning";
+import FAQButton from "./FAQButton";
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -473,10 +474,7 @@ const DashboardLayout = ({ children }) => {
           {openSubmenu === "help" && (
             <div className="pl-7 mt-1 space-y-1">
               <GlareHover {...glareProps} style={menuItemStyle}>
-                <Link
-                  to="/help/faq"
-                  className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
-                >
+                <div className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md">
                   <svg
                     className="w-4 h-4 mr-2 text-gray-500"
                     fill="none"
@@ -490,8 +488,8 @@ const DashboardLayout = ({ children }) => {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  FAQ/Usage
-                </Link>
+                  <FAQButton buttonText="FAQ/Usage" className="p-0 m-0" />
+                </div>
               </GlareHover>
               <GlareHover {...glareProps} style={menuItemStyle}>
                 <Link
