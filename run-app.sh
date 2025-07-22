@@ -54,6 +54,14 @@ sleep 3
 
 echo "Starting React frontend..."
 cd frontend
+
+export DANGEROUSLY_DISABLE_HOST_CHECK=true
+export HOST=0.0.0.0
+export WDS_SOCKET_PORT=0
+export WDS_SOCKET_HOST=0.0.0.0
+export GENERATE_SOURCEMAP=false
+
+
 npm start &
 FRONTEND_PID=$!
 echo $FRONTEND_PID > "$PID_DIR/frontend.pid"
