@@ -231,11 +231,11 @@ public class ScheduleService {
     /**
      * Validates a new schedule for conflicts
      * @param schedule The schedule to validate
+     * @param scheduleId Optional schedule ID to exclude from conflict checks
      * @return A map containing conflict information, empty if no conflicts
      */
-    public Map<String, Boolean> validateScheduleForConflicts(ClassSchedule schedule) {
+    public Map<String, Boolean> validateScheduleForConflicts(ClassSchedule schedule, Integer scheduleId) {
         Map<String, Boolean> conflicts = new HashMap<>();
-        Integer scheduleId = schedule.getId(); // Will be null for new schedules
         
         // Initialize with no conflicts
         conflicts.put("lecturerConflict", false);
@@ -244,18 +244,24 @@ public class ScheduleService {
         
         // Validate required fields
         if (schedule.getLecturerId() == null || schedule.getClassId() == null || 
-            schedule.getDayOfWeek() == null || schedule.getStartTime() == null || 
-            schedule.getEndTime() == null || schedule.getRoom() == null) {
+            schedule.getStartTime() == null || schedule.getEndTime() == null || 
+            schedule.getRoom() == null) {
             return conflicts; // Return no conflicts if missing fields
         }
         
+        // Get day of week value from schedule's specificDate if available
+        Integer dayOfWeek = schedule.getDayOfWeekValue();
+        if (dayOfWeek == null) {
+            return conflicts; // Return no conflicts if missing day of week
+        }
+        
         boolean lecturerConflict = hasLecturerScheduleConflict(
-            schedule.getLecturerId(), schedule.getDayOfWeek(),
+            schedule.getLecturerId(), dayOfWeek,
             schedule.getStartTime(), schedule.getEndTime(), scheduleId
         );
         
         boolean classConflict = hasClassScheduleConflict(
-            schedule.getClassId(), schedule.getDayOfWeek(),
+            schedule.getClassId(), dayOfWeek,
             schedule.getStartTime(), schedule.getEndTime(), scheduleId
         );
         
@@ -263,7 +269,7 @@ public class ScheduleService {
         // Only check room conflicts if room is provided and has a valid ID
         if (schedule.getRoom() != null && schedule.getRoom().getId() != null) {
             roomConflict = hasRoomScheduleConflict(
-                schedule.getRoom().getId(), schedule.getDayOfWeek(),
+                schedule.getRoom().getId(), dayOfWeek,
                 schedule.getStartTime(), schedule.getEndTime(), scheduleId
             );
         }
@@ -292,7 +298,6 @@ public class ScheduleService {
             schedule.setSubjectId(scheduleDetails.getSubjectId());
             schedule.setClassId(scheduleDetails.getClassId());
             schedule.setLecturerId(scheduleDetails.getLecturerId());
-            schedule.setDayOfWeek(scheduleDetails.getDayOfWeek());
             schedule.setStartTime(scheduleDetails.getStartTime());
             schedule.setEndTime(scheduleDetails.getEndTime());
             schedule.setRoom(scheduleDetails.getRoom());
@@ -300,6 +305,9 @@ public class ScheduleService {
             schedule.setBuilding(scheduleDetails.getBuilding());
             schedule.setTermId(scheduleDetails.getTermId());
             schedule.setIsActive(scheduleDetails.getIsActive());
+            schedule.setSpecificDate(scheduleDetails.getSpecificDate());
+            schedule.setIsRecurring(scheduleDetails.getIsRecurring());
+            schedule.setRecurrenceCount(scheduleDetails.getRecurrenceCount());
             return classScheduleRepository.save(schedule);
         }
         return null;
