@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IR Device Control Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .status.error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .device-card {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .online {
+            background-color: #dff0d8;
+        }
+        .offline {
+            background-color: #f2dede;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IR Device Control Test Page</h1>
+        
+        <div class="card">
+            <h2>Device Status</h2>
+            <div class="form-group">
+                <label for="deviceId">Device ID</label>
+                <input type="text" id="deviceId" value="ESP32_SIMULATOR" placeholder="Enter device ID">
+                <button onclick="checkDeviceStatus()">Check Status</button>
+            </div>
+            <div id="statusResult" class="status"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Send Command</h2>
+            <div class="form-group">
+                <label for="commandDeviceId">Device ID</label>
+                <input type="text" id="commandDeviceId" value="ESP32_SIMULATOR" placeholder="Enter device ID">
+            </div>
+            <div class="form-group">
+                <label for="commandType">Command Type</label>
+                <select id="commandType">
+                    <option value="nec">NEC</option>
+                    <option value="samsung">Samsung</option>
+                    <option value="raw" selected>Raw</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="commandCode">Command Code</label>
+                <textarea id="commandCode" rows="4">[9724,9776,9724,9724,4576,2496,364,364,364,936,364,936,364,364,364,936,364,364,364,364,364,364,364,364,364,936,364,364,364,364,364,364,364,364,364,936,364,364,364,936,364,936,364,364,364,364,364,936,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,936,364,364,364,364,364,364,364,364,364,364,364,364,364,364,364,936,364,364,364,364,364,364,364,364,364,364,364,364,364,936,364,364,364,936,364,364,364,364,364,364,364,364,364,936,364,364,364,936,364,364,364,364,364,364,364,19994,4576,19994]</textarea>
+            </div>
+            <div class="form-group">
+                <label for="commandDesc">Description</label>
+                <input type="text" id="commandDesc" value="Power On" placeholder="Enter command description">
+            </div>
+            <button onclick="sendCommand()">Send Command</button>
+            <div id="commandResult" class="status"></div>
+        </div>
+        
+        <div class="card">
+            <h2>All Devices</h2>
+            <button onclick="getAllDevices()">Refresh Devices</button>
+            <div id="devicesList"></div>
+        </div>
+    </div>
+
+    <script>
+        function checkDeviceStatus() {
+            const deviceId = document.getElementById('deviceId').value;
+            if (!deviceId) {
+                showStatus('statusResult', 'Please enter a device ID', false);
+                return;
+            }
+            
+            fetch(`/api/device/${deviceId}/status`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const statusDiv = document.getElementById('statusResult');
+                    statusDiv.innerHTML = '';
+                    statusDiv.classList.remove('success', 'error');
+                    
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(data, null, 2);
+                    
+                    statusDiv.classList.add(data.online ? 'success' : 'error');
+                    statusDiv.appendChild(pre);
+                })
+                .catch(error => {
+                    showStatus('statusResult', `Error: ${error.message}`, false);
+                });
+        }
+        
+        function sendCommand() {
+            const deviceId = document.getElementById('commandDeviceId').value;
+            const type = document.getElementById('commandType').value;
+            const code = document.getElementById('commandCode').value;
+            const description = document.getElementById('commandDesc').value;
+            
+            if (!deviceId || !type || !code) {
+                showStatus('commandResult', 'Please fill in all fields', false);
+                return;
+            }
+            
+            const command = {
+                type: type,
+                code: code,
+                description: description
+            };
+            
+            fetch(`/api/device/${deviceId}/command`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(command)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showStatus('commandResult', `Command sent successfully! ID: ${data.id}`, true);
+                })
+                .catch(error => {
+                    showStatus('commandResult', `Error: ${error.message}`, false);
+                });
+        }
+        
+        function getAllDevices() {
+            fetch('/api/device/devices')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(devices => {
+                    const devicesList = document.getElementById('devicesList');
+                    devicesList.innerHTML = '';
+                    
+                    if (devices.length === 0) {
+                        devicesList.innerHTML = '<p>No devices found</p>';
+                        return;
+                    }
+                    
+                    devices.forEach(device => {
+                        const deviceCard = document.createElement('div');
+                        deviceCard.className = `device-card ${device.online ? 'online' : 'offline'}`;
+                        
+                        const status = device.online ? 'Online' : 'Offline';
+                        const lastSeen = device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never';
+                        
+                        deviceCard.innerHTML = `
+                            <h3>${device.deviceId}</h3>
+                            <p>Status: ${status}</p>
+                            <p>Last Seen: ${lastSeen}</p>
+                            <p>Pending Commands: ${device.pendingCommands || 0}</p>
+                        `;
+                        
+                        devicesList.appendChild(deviceCard);
+                    });
+                })
+                .catch(error => {
+                    const devicesList = document.getElementById('devicesList');
+                    devicesList.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                });
+        }
+        
+        function showStatus(elementId, message, isSuccess) {
+            const statusDiv = document.getElementById(elementId);
+            statusDiv.textContent = message;
+            statusDiv.classList.remove('success', 'error');
+            statusDiv.classList.add(isSuccess ? 'success' : 'error');
+        }
+        
+        // Load devices on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            getAllDevices();
+        });
+    </script>
+</body>
+</html> 

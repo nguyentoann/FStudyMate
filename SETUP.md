@@ -1,4 +1,4 @@
-# FStudyMate Development Setup Guide
+# FStudyMate Development Setup Guidef
 
 This guide provides step-by-step instructions for setting up the FStudyMate development environment on your local machine.
 

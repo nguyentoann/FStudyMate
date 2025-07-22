@@ -724,6 +724,56 @@ const DashboardLayout = ({ children }) => {
             </Link>
           </GlareHover>
         )}
+
+        {/* Room Management Link for Admin */}
+        {user?.role === "admin" && (
+          <GlareHover {...glareProps} style={menuItemStyle}>
+            <Link
+              to="/admin/room-management"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
+            >
+              <svg
+                className="w-5 h-5 mr-2 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+              Room Management
+            </Link>
+          </GlareHover>
+        )}
+
+        {/* Room Control Link for Admin */}
+        {(user?.role === "admin" || user?.role === "lecturer") && (
+          <GlareHover {...glareProps} style={menuItemStyle}>
+            <Link
+              to="/admin/room-control"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
+            >
+              <svg
+                className="w-5 h-5 mr-2 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Room Controls
+            </Link>
+          </GlareHover>
+        )}
       </>
     );
   };

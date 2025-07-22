@@ -16,6 +16,8 @@ import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import { useNavigate } from 'react-router-dom';
 import { Tabs } from 'antd';
 import QuizGeneratorModal from '../../components/QuizGeneratorModal';
+import ClassroomControls from '../../components/ClassroomControls';
+import axios from 'axios';
 
 // Helper functions for video embedding
 const isVideoUrl = (url) => {
@@ -902,6 +904,13 @@ const LecturerDashboard = () => {
             <p className="text-2xl font-bold">{stats.totalLessons}</p>
           </div>
         </div>
+        
+        {/* Classroom Controls for IR Devices */}
+        {user?.role === 'LECTURER' && (
+          <div className="mb-8">
+            <ClassroomControls classId={user?.classId} />
+          </div>
+        )}
         
         {/* Course Materials Management */}
         <div className="bg-white rounded-lg shadow mb-8">

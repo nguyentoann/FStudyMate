@@ -1,0 +1,1 @@
+ALTER TABLE `rooms` ADD COLUMN `floor` varchar(20) DEFAULT NULL AFTER `location`; 

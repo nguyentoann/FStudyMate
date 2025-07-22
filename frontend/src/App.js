@@ -49,6 +49,8 @@ import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
 import FeedbackPage from "./pages/help/FeedbackPage";
 import WebRTCCall from "./components/WebRTCCall";
+import RoomManagement from "./pages/admin/RoomManagement";
+import RoomControlPanel from "./pages/admin/RoomControlPanel";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -279,6 +281,22 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={["admin"]}>
                         <UserEdit />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/room-management"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <RoomManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/room-control"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin", "lecturer"]}>
+                        <RoomControlPanel />
                       </ProtectedRoute>
                     }
                   />
