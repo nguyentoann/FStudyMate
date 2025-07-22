@@ -1015,19 +1015,7 @@ function ScheduleModal({ rooms, subjects, classes, lecturers, data, onSave, onCl
               />
             </div>
             
-            <div className="form-group">
-              <label>Status:</label>
-              <select
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                required
-              >
-                {STATUS_OPTIONS.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
+
           </div>
           
           <div className="form-row">
