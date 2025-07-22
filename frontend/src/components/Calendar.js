@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../services/config';
 import PersonalScheduleModal from './PersonalScheduleModal';
 import EventModal from './EventModal';
+import ScheduleDetailModal from './ScheduleDetailModal';
 import './Calendar.css';
 
 const Calendar = () => {
@@ -21,6 +22,7 @@ const Calendar = () => {
   const [error, setError] = useState(null);
   const [showPersonalModal, setShowPersonalModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -213,7 +215,10 @@ const Calendar = () => {
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
-    setShowPersonalModal(true);
+    // Chỉ cho phép thêm lịch cá nhân nếu không phải là sinh viên
+    if (user.role !== 'student') {
+      setShowPersonalModal(true);
+    }
   };
 
   const handleScheduleClick = (schedule) => {
@@ -268,7 +273,14 @@ const Calendar = () => {
       }
       
       setSelectedSchedule(safeSchedule);
-      setShowPersonalModal(true);
+      
+      // Nếu là sinh viên, hiển thị modal chi tiết chỉ đọc
+      // Ngược lại, hiển thị modal chỉnh sửa
+      if (user.role === 'student') {
+        setShowDetailModal(true);
+      } else {
+        setShowPersonalModal(true);
+      }
     } catch (err) {
       console.error('Error in handleScheduleClick:', err);
     }
@@ -423,17 +435,17 @@ const Calendar = () => {
                     (typeof item.room === 'object' ? item.room.name : item.room) : '';
                   
                   return (
-                    <div
-                      key={`${item.id || index}-${day.toISOString()}`}
+                  <div
+                    key={`${item.id || index}-${day.toISOString()}`}
                       className="week-schedule-item-compact"
-                      onClick={() => {
-                        if (item.type) {
-                          handleScheduleClick(item);
-                        } else {
-                          handleEventClick(item);
-                        }
-                      }}
-                    >
+                    onClick={() => {
+                      if (item.type) {
+                        handleScheduleClick(item);
+                      } else {
+                        handleEventClick(item);
+                      }
+                    }}
+                  >
                       <div className="subject-code">{subjectCode}</div>
                       <div className="time-range">{timeRange}</div>
                       {roomName && <div className="room-info">At room {roomName}</div>}
@@ -639,27 +651,29 @@ const Calendar = () => {
           </button>
         </div>
 
-        <div className="calendar-actions">
-          <button 
-            className="add-schedule-btn"
-            onClick={() => {
-              setSelectedDate(new Date());
-              setSelectedSchedule(null);
-              setShowPersonalModal(true);
-            }}
-          >
-            Add Schedule
-          </button>
-          <button 
-            className="add-event-btn"
-            onClick={() => {
-              setSelectedEvent(null);
-              setShowEventModal(true);
-            }}
-          >
-            Add Event
-          </button>
-        </div>
+        {user.role !== 'student' && (
+          <div className="calendar-actions">
+            <button 
+              className="add-schedule-btn"
+              onClick={() => {
+                setSelectedDate(new Date());
+                setSelectedSchedule(null);
+                setShowPersonalModal(true);
+              }}
+            >
+              Add Schedule
+            </button>
+            <button 
+              className="add-event-btn"
+              onClick={() => {
+                setSelectedEvent(null);
+                setShowEventModal(true);
+              }}
+            >
+              Add Event
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Calendar Content */}
@@ -701,8 +715,22 @@ const Calendar = () => {
           }}
         />
       )}
+      
+      {/* Thêm modal chi tiết mới */}
+      {showDetailModal && (
+        <ScheduleDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedSchedule(null);
+          }}
+          schedule={selectedSchedule}
+          subjects={subjects}
+          lecturers={lecturers}
+        />
+      )}
     </div>
   );
 };
 
-export default Calendar;
+export default Calendar; 
