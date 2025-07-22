@@ -50,6 +50,7 @@ import "./styles/globals.css";
 import Course from "./pages/Course";
 import ClassManagement from "./pages/admin/ClassManagement";
 import FeedbackPage from "./pages/help/FeedbackPage";
+import FAQPage from "./pages/help/FAQPage";
 import WebRTCCall from "./components/WebRTCCall";
 import RoomManagement from "./pages/admin/RoomManagement";
 import RoomControlPanel from "./pages/admin/RoomControlPanel";
@@ -434,6 +435,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <FeedbackPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/help/faq"
+                    element={
+                      <ProtectedRoute>
+                        <FAQPage />
                       </ProtectedRoute>
                     }
                   />
