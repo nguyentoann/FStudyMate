@@ -18,6 +18,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Ensure all URLs start with /api/ unless they already do
+    if (config.url && !config.url.startsWith('/api/') && !config.url.startsWith('http')) {
+      config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+    }
+    
     return config;
   },
   (error) => {
@@ -89,7 +95,7 @@ const DEBUG_QUIZ_SUBMISSIONS = false;
 export const getAllMaMon = async () => {
   try {
     console.log('[API] Fetching all subject codes (MaMon)');
-    const response = await api.get('/questions/mamon');
+    const response = await api.get('/api/questions/mamon');
     console.log(`[API] Fetched ${response.data ? response.data.length : 0} subjects`);
     
     // Ensure we always return an array, even if the server response is null/undefined
@@ -122,10 +128,10 @@ export const getMaDeByMaMon = async (maMon) => {
     const role = currentUser?.role || '';
     const classId = currentUser?.classId || '';
     
-    console.log(`[API] Request URL: ${API_BASE_URL}/questions/made/${formattedMaMon} with role=${role}, classId=${classId}`);
+    console.log(`[API] Request URL: ${API_BASE_URL}/api/questions/made/${formattedMaMon} with role=${role}, classId=${classId}`);
     
     // The API endpoint has changed to /api/questions/made/{maMon} from Spring
-    const response = await api.get(`/questions/made/${formattedMaMon}`, {
+    const response = await api.get(`/api/questions/made/${formattedMaMon}`, {
       params: {
         role: role,
         classId: classId
@@ -162,7 +168,7 @@ export const getQuestions = async (maMon, maDe, random = false) => {
     const classId = currentUser?.classId || '';
     
     // This endpoint should be /api/questions/{maMon}/{maDe} from Spring
-    const url = `${API_BASE_URL}/questions/${formattedMaMon}/${formattedMaDe}`;
+    const url = `${API_BASE_URL}/api/questions/${formattedMaMon}/${formattedMaDe}`;
     const params = { 
       option: random ? 'random' : undefined,
       role: role,
@@ -294,7 +300,7 @@ export const generateAIQuiz = async (lessonId, numQuestions = 20, difficulty = '
     
     console.log(`[API] Generating AI quiz for lesson ${lessonId} with userId ${userId}, classId ${classId}`);
     
-    const response = await api.post('/questions/generate-ai-quiz', { 
+    const response = await api.post('/api/questions/generate-ai-quiz', { 
       lessonId,
       numQuestions,
       difficulty,
@@ -341,7 +347,7 @@ export const createLesson = async (lessonData) => {
       lessonData.viewCount = 0;
     }
     
-    const response = await api.post('/lessons', lessonData);
+    const response = await api.post('/api/lessons', lessonData);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -370,8 +376,8 @@ export const getLessons = async (subjectId = null) => {
     }
     
     const url = numericSubjectId !== null
-      ? `${API_BASE_URL}/lessons?subjectId=${numericSubjectId}`
-      : `${API_BASE_URL}/lessons`;
+      ? `${API_BASE_URL}/api/lessons?subjectId=${numericSubjectId}`
+      : `${API_BASE_URL}/api/lessons`;
       
     console.log(`[API] Fetching lessons from URL: ${url} (subjectId: ${numericSubjectId})`);
     
@@ -395,7 +401,7 @@ export const getLessons = async (subjectId = null) => {
 
 export const getLessonById = async (lessonId) => {
   try {
-    const response = await api.get(`/lessons/${lessonId}`);
+    const response = await api.get(`/api/lessons/${lessonId}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch lesson');
@@ -410,7 +416,7 @@ export const getLessonById = async (lessonId) => {
 
 export const updateLesson = async (lessonId, lessonData) => {
   try {
-    const response = await api.put(`/lessons/${lessonId}`, lessonData);
+    const response = await api.put(`/api/lessons/${lessonId}`, lessonData);
     
     if (!response.ok) {
       throw new Error('Failed to update lesson');
@@ -425,7 +431,7 @@ export const updateLesson = async (lessonId, lessonData) => {
 
 export const deleteLesson = async (lessonId) => {
   try {
-    const response = await api.delete(`/lessons/${lessonId}`);
+    const response = await api.delete(`/api/lessons/${lessonId}`);
     
     if (!response.ok) {
       throw new Error('Failed to delete lesson');
@@ -440,7 +446,7 @@ export const deleteLesson = async (lessonId) => {
 
 export const getSubjects = async () => {
   try {
-    const response = await api.get('/subjects');
+    const response = await api.get('/api/subjects');
     
     if (!response.ok) {
       throw new Error('Failed to fetch subjects');
@@ -653,7 +659,7 @@ export const createQuiz = async (quizData) => {
   try {
     console.log('Creating quiz with data:', JSON.stringify(quizData));
     
-    const response = await api.post('/quizzes', quizData);
+    const response = await api.post('/api/quizzes', quizData);
     return response.data;
   } catch (error) {
     console.error('Error creating quiz:', error);
@@ -663,7 +669,7 @@ export const createQuiz = async (quizData) => {
 
 export const getUserQuizzes = async () => {
   try {
-    const response = await api.get('/quizzes');
+    const response = await api.get('/api/quizzes');
     return response.data;
   } catch (error) {
     console.error('Error fetching user quizzes:', error);
@@ -673,7 +679,7 @@ export const getUserQuizzes = async () => {
 
 export const getQuizById = async (quizId) => {
   try {
-    const response = await api.get(`/quizzes/${quizId}`);
+    const response = await api.get(`/api/quizzes/${quizId}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching quiz ${quizId}:`, error);
@@ -683,7 +689,7 @@ export const getQuizById = async (quizId) => {
 
 export const updateQuiz = async (quizId, quizData) => {
   try {
-    const response = await api.put(`/quizzes/${quizId}`, quizData);
+    const response = await api.put(`/api/quizzes/${quizId}`, quizData);
     return response.data;
   } catch (error) {
     console.error(`Error updating quiz ${quizId}:`, error);
@@ -693,7 +699,7 @@ export const updateQuiz = async (quizId, quizData) => {
 
 export const deleteQuiz = async (quizId) => {
   try {
-    const response = await api.delete(`/quizzes/${quizId}`);
+    const response = await api.delete(`/api/quizzes/${quizId}`);
     return response.data;
   } catch (error) {
     console.error(`Error deleting quiz ${quizId}:`, error);
@@ -703,7 +709,7 @@ export const deleteQuiz = async (quizId) => {
 
 export const getQuizPermissions = async (quizId) => {
   try {
-    const response = await api.get(`/quizzes/${quizId}/permissions`);
+    const response = await api.get(`/api/quizzes/${quizId}/permissions`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching permissions for quiz ${quizId}:`, error);
@@ -713,7 +719,7 @@ export const getQuizPermissions = async (quizId) => {
 
 export const addQuizPermission = async (quizId, classId) => {
   try {
-    const response = await api.post(`/quizzes/${quizId}/permissions`, {
+    const response = await api.post(`/api/quizzes/${quizId}/permissions`, {
       classId: classId
     });
     return response.data;
@@ -725,7 +731,7 @@ export const addQuizPermission = async (quizId, classId) => {
 
 export const removeQuizPermission = async (quizId, permissionId) => {
   try {
-    const response = await api.delete(`/quizzes/${quizId}/permissions/${permissionId}`);
+    const response = await api.delete(`/api/quizzes/${quizId}/permissions/${permissionId}`);
     return response.data;
   } catch (error) {
     console.error(`Error removing permission ${permissionId} for quiz ${quizId}:`, error);
@@ -742,7 +748,7 @@ export const getQuizMetadata = async (maMon, maDe) => {
     const formattedMaDe = encodeURIComponent(maDe.toString().trim());
     
     // Fix: Change endpoint from /quizzes/metadata to /questions/quizzes/metadata
-    const response = await api.get(`/questions/quizzes/metadata`, {
+    const response = await api.get(`/api/questions/quizzes/metadata`, {
       params: { 
         maMon: formattedMaMon,
         maDe: formattedMaDe
@@ -788,7 +794,7 @@ export const getQuizMetadataForSubject = async (maMon) => {
     const formattedMaMon = encodeURIComponent(maMon.toString().trim());
     
     // Fix the API endpoint URL to match the backend controller mapping at /api/questions/quizzes/subject-metadata
-    const response = await api.get(`/questions/quizzes/subject-metadata`, {
+    const response = await api.get(`/api/questions/quizzes/subject-metadata`, {
       params: { maMon: formattedMaMon }
     });
     
@@ -820,7 +826,7 @@ export const startQuiz = async (quizId) => {
       throw error;
     }
     
-    const response = await api.post('/quiz-attempts/start', null, {
+    const response = await api.post('/api/quiz-attempts/start', null, {
       params: {
         userId: user.id,
         quizId
@@ -855,7 +861,7 @@ export const submitQuiz = async (quizTakenId, answers) => {
       });
     }
     
-    const response = await api.post(`/quiz-attempts/${quizTakenId}/submit`, answers);
+    const response = await api.post(`/api/quiz-attempts/${quizTakenId}/submit`, answers);
     
     if (DEBUG_QUIZ_SUBMISSIONS) {
       console.log("DEBUG [submitQuiz] Response:", response.data);
@@ -877,7 +883,7 @@ export const submitQuiz = async (quizTakenId, answers) => {
 
 export const abandonQuiz = async (quizTakenId) => {
   try {
-    const response = await api.post(`/quiz-attempts/${quizTakenId}/abandon`);
+    const response = await api.post(`/api/quiz-attempts/${quizTakenId}/abandon`);
     return response.data;
   } catch (error) {
     console.error('Error abandoning quiz:', error);
@@ -887,7 +893,7 @@ export const abandonQuiz = async (quizTakenId) => {
 
 export const logQuizActivity = async (quizTakenId, eventType, details) => {
   try {
-    const response = await api.post(`/quiz-attempts/${quizTakenId}/log`, null, {
+    const response = await api.post(`/api/quiz-attempts/${quizTakenId}/log`, null, {
       params: {
         eventType,
         details
@@ -905,7 +911,7 @@ export const getUserQuizHistory = async (userId = null) => {
     // If userId is provided directly, use it
     if (userId) {
       console.log(`Using provided user ID: ${userId} for quiz history`);
-      const response = await api.get(`/quiz-attempts/user/${userId}`);
+      const response = await api.get(`/api/quiz-attempts/user/${userId}`);
       return response.data;
     }
     
@@ -917,7 +923,7 @@ export const getUserQuizHistory = async (userId = null) => {
     }
     
     console.log(`Using user ID from localStorage: ${user.id} for quiz history`);
-    const response = await api.get(`/quiz-attempts/user/${user.id}`);
+    const response = await api.get(`/api/quiz-attempts/user/${user.id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching user quiz history:', error);
@@ -927,7 +933,7 @@ export const getUserQuizHistory = async (userId = null) => {
 
 export const getQuizStatistics = async (quizId) => {
   try {
-    const response = await api.get(`/quiz-attempts/quiz/${quizId}/stats`);
+    const response = await api.get(`/api/quiz-attempts/quiz/${quizId}/stats`);
     return response.data;
   } catch (error) {
     console.error('Error fetching quiz statistics:', error);
@@ -937,7 +943,7 @@ export const getQuizStatistics = async (quizId) => {
 
 export const getQuizLeaderboard = async (quizId, limit = 10) => {
   try {
-    const response = await api.get(`/quiz-attempts/quiz/${quizId}/leaderboard`, {
+    const response = await api.get(`/api/quiz-attempts/quiz/${quizId}/leaderboard`, {
       params: { limit }
     });
     return response.data;
@@ -955,7 +961,7 @@ export const getInProgressQuizzes = async () => {
       throw new Error('You must be logged in to view in-progress quizzes');
     }
     
-    const response = await api.get(`/quiz-attempts/in-progress/${user.id}`);
+    const response = await api.get(`/api/quiz-attempts/in-progress/${user.id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching in-progress quizzes:', error);
@@ -965,7 +971,7 @@ export const getInProgressQuizzes = async () => {
 
 export const getQuizAttempt = async (quizTakenId) => {
   try {
-    const response = await api.get(`/quiz-attempts/${quizTakenId}`);
+    const response = await api.get(`/api/quiz-attempts/${quizTakenId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching quiz attempt:', error);
@@ -983,7 +989,7 @@ export const getClassLeaderboard = async (quizId) => {
       console.warn('[API] No class ID found for leaderboard, using generic leaderboard');
     }
     
-    const response = await api.get(`/quiz-attempts/class-leaderboard`, {
+    const response = await api.get(`/api/quiz-attempts/class-leaderboard`, {
       params: { quizId, classId }
     });
     
