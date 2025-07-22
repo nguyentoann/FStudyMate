@@ -32,6 +32,8 @@ import LandingPage from "./pages/LandingPage";
 import QuizGamePage from "./pages/QuizGamePage";
 import VerifyOtp from "./pages/VerifyOtp";
 import CalendarPage from "./pages/CalendarPage";
+import TeachingScheduleManager from "./pages/admin/TeachingScheduleManager";
+import StudentScheduleView from "./pages/student/StudentScheduleView";
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -371,6 +373,22 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <CalendarPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/schedule"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin", "lecturer"]}>
+                        <TeachingScheduleManager />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/schedule"
+                    element={
+                      <ProtectedRoute allowedRoles={["student"]}>
+                        <StudentScheduleView />
                       </ProtectedRoute>
                     }
                   />

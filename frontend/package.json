@@ -91,5 +91,6 @@
     "postcss": "^8.5.3",
     "react-app-rewired": "^2.2.1",
     "webpack-bundle-analyzer": "^4.10.1"
-  }
+  },
+  "proxy": "http://localhost:8080"
 }

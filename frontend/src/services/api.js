@@ -1,31 +1,95 @@
 import axios from 'axios';
-import { API_URL } from './config';
 
-// Add DEBUG flag to easily enable/disable logging - SET TO FALSE WHEN DONE DEBUGGING
-const DEBUG_QUIZ_SUBMISSIONS = false;
+// Define the base URL for API requests
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-// Setup request interceptor to add auth token to all requests
-axios.interceptors.request.use(
-  config => {
-    // Get session ID from localStorage to use as authentication token
-    const sessionId = localStorage.getItem('sessionId');
-    
-    if (sessionId && config.url.includes(API_URL)) {
-      // Add session ID as authorization header
-      config.headers['Authorization'] = `Bearer ${sessionId}`;
+// Create an axios instance with the base URL
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add a request interceptor for authentication
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
-  error => {
+  (error) => {
     return Promise.reject(error);
   }
 );
 
+// Add a response interceptor for error handling
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle specific error codes here
+    if (error.response && error.response.status === 401) {
+      // Unauthorized - redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('userInfo');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Add a specific method to create a class schedule
+api.createClassSchedule = async (scheduleData) => {
+  // Format the data as expected by the backend
+  const formattedData = {
+    room_id: scheduleData.room.id,
+    status: scheduleData.status,
+    subjectId: scheduleData.subjectId,
+    classId: scheduleData.classId,
+    lecturerId: scheduleData.lecturerId,
+    dayOfWeek: scheduleData.dayOfWeek,
+    startTime: scheduleData.startTime,
+    endTime: scheduleData.endTime,
+    building: scheduleData.building,
+    termId: scheduleData.termId,
+    isActive: true
+  };
+  
+  return api.post('/api/schedule/class', formattedData);
+};
+
+// Add a specific method to validate schedule conflicts
+api.validateScheduleConflicts = async (scheduleData) => {
+  // Format the data as expected by the backend
+  const formattedData = {
+    room_id: scheduleData.room?.id,
+    status: scheduleData.status,
+    subjectId: scheduleData.subjectId,
+    classId: scheduleData.classId,
+    lecturerId: scheduleData.lecturerId,
+    dayOfWeek: scheduleData.dayOfWeek,
+    startTime: scheduleData.startTime,
+    endTime: scheduleData.endTime,
+    building: scheduleData.building,
+    termId: scheduleData.termId
+  };
+  
+  return api.post('/api/schedule/class/validate-conflicts', formattedData);
+};
+
+export default api;
+
+// Add DEBUG flag to easily enable/disable logging - SET TO FALSE WHEN DONE DEBUGGING
+const DEBUG_QUIZ_SUBMISSIONS = false;
+
 export const getAllMaMon = async () => {
   try {
     console.log('[API] Fetching all subject codes (MaMon)');
-    const response = await axios.get(`${API_URL}/questions/mamon`);
+    const response = await api.get('/questions/mamon');
     console.log(`[API] Fetched ${response.data ? response.data.length : 0} subjects`);
     
     // Ensure we always return an array, even if the server response is null/undefined
@@ -58,10 +122,10 @@ export const getMaDeByMaMon = async (maMon) => {
     const role = currentUser?.role || '';
     const classId = currentUser?.classId || '';
     
-    console.log(`[API] Request URL: ${API_URL}/questions/made/${formattedMaMon} with role=${role}, classId=${classId}`);
+    console.log(`[API] Request URL: ${API_BASE_URL}/questions/made/${formattedMaMon} with role=${role}, classId=${classId}`);
     
     // The API endpoint has changed to /api/questions/made/{maMon} from Spring
-    const response = await axios.get(`${API_URL}/questions/made/${formattedMaMon}`, {
+    const response = await api.get(`/questions/made/${formattedMaMon}`, {
       params: {
         role: role,
         classId: classId
@@ -98,7 +162,7 @@ export const getQuestions = async (maMon, maDe, random = false) => {
     const classId = currentUser?.classId || '';
     
     // This endpoint should be /api/questions/{maMon}/{maDe} from Spring
-    const url = `${API_URL}/questions/${formattedMaMon}/${formattedMaDe}`;
+    const url = `${API_BASE_URL}/questions/${formattedMaMon}/${formattedMaDe}`;
     const params = { 
       option: random ? 'random' : undefined,
       role: role,
@@ -107,7 +171,7 @@ export const getQuestions = async (maMon, maDe, random = false) => {
     
     console.log(`[API] Request URL: ${url} with params:`, params);
     
-    const response = await axios.get(url, { params });
+    const response = await api.get(url, { params });
     
     // Log response details for debugging
     console.log(`[API] Response status: ${response.status}`);
@@ -230,7 +294,7 @@ export const generateAIQuiz = async (lessonId, numQuestions = 20, difficulty = '
     
     console.log(`[API] Generating AI quiz for lesson ${lessonId} with userId ${userId}, classId ${classId}`);
     
-    const response = await axios.post(`${API_URL}/questions/generate-ai-quiz`, { 
+    const response = await api.post('/questions/generate-ai-quiz', { 
       lessonId,
       numQuestions,
       difficulty,
@@ -277,13 +341,7 @@ export const createLesson = async (lessonData) => {
       lessonData.viewCount = 0;
     }
     
-    const response = await fetch(`${API_URL}/lessons`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(lessonData),
-    });
+    const response = await api.post('/lessons', lessonData);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -312,17 +370,12 @@ export const getLessons = async (subjectId = null) => {
     }
     
     const url = numericSubjectId !== null
-      ? `${API_URL}/lessons?subjectId=${numericSubjectId}`
-      : `${API_URL}/lessons`;
+      ? `${API_BASE_URL}/lessons?subjectId=${numericSubjectId}`
+      : `${API_BASE_URL}/lessons`;
       
     console.log(`[API] Fetching lessons from URL: ${url} (subjectId: ${numericSubjectId})`);
     
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get(url);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -342,12 +395,7 @@ export const getLessons = async (subjectId = null) => {
 
 export const getLessonById = async (lessonId) => {
   try {
-    const response = await fetch(`${API_URL}/lessons/${lessonId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get(`/lessons/${lessonId}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch lesson');
@@ -362,13 +410,7 @@ export const getLessonById = async (lessonId) => {
 
 export const updateLesson = async (lessonId, lessonData) => {
   try {
-    const response = await fetch(`${API_URL}/lessons/${lessonId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(lessonData),
-    });
+    const response = await api.put(`/lessons/${lessonId}`, lessonData);
     
     if (!response.ok) {
       throw new Error('Failed to update lesson');
@@ -383,12 +425,7 @@ export const updateLesson = async (lessonId, lessonData) => {
 
 export const deleteLesson = async (lessonId) => {
   try {
-    const response = await fetch(`${API_URL}/lessons/${lessonId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.delete(`/lessons/${lessonId}`);
     
     if (!response.ok) {
       throw new Error('Failed to delete lesson');
@@ -403,12 +440,7 @@ export const deleteLesson = async (lessonId) => {
 
 export const getSubjects = async () => {
   try {
-    const response = await fetch(`${API_URL}/subjects`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get('/subjects');
     
     if (!response.ok) {
       throw new Error('Failed to fetch subjects');
@@ -424,7 +456,7 @@ export const getSubjects = async () => {
 // User activity monitoring endpoints
 export const getUserStatistics = async () => {
   try {
-    const response = await axios.get(`${API_URL}/admin/user-statistics`);
+    const response = await api.get('/admin/user-statistics');
     console.log('[API] User statistics fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -443,7 +475,7 @@ export const getUserStatistics = async () => {
 
 export const forceLogoutSession = async (sessionId) => {
   try {
-    const response = await axios.post(`${API_URL}/admin/force-logout`, { sessionId });
+    const response = await api.post('/admin/force-logout', { sessionId });
     console.log('[API] Force logout session response:', response.data);
     return response.data;
   } catch (error) {
@@ -454,7 +486,7 @@ export const forceLogoutSession = async (sessionId) => {
 
 export const getActiveUsers = async () => {
   try {
-    const response = await axios.get(`${API_URL}/admin/active-users`);
+    const response = await api.get('/admin/active-users');
     console.log('[API] Active users fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -466,7 +498,7 @@ export const getActiveUsers = async () => {
 
 export const getExpiredSessions = async () => {
   try {
-    const response = await axios.get(`${API_URL}/admin/expired-sessions`);
+    const response = await api.get('/admin/expired-sessions');
     console.log('[API] Expired sessions fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -478,7 +510,7 @@ export const getExpiredSessions = async () => {
 
 export const getSessionsExpiringSoon = async (hours = 6) => {
   try {
-    const response = await axios.get(`${API_URL}/admin/expiring-sessions?hours=${hours}`);
+    const response = await api.get(`/admin/expiring-sessions?hours=${hours}`);
     console.log('[API] Sessions expiring soon fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -490,7 +522,7 @@ export const getSessionsExpiringSoon = async (hours = 6) => {
 
 export const getLoginHistory = async (days = 7) => {
   try {
-    const response = await axios.get(`${API_URL}/admin/login-history?days=${days}`);
+    const response = await api.get(`/admin/login-history?days=${days}`);
     console.log('[API] Login history fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -503,7 +535,7 @@ export const getLoginHistory = async (days = 7) => {
 // Get Samba storage information
 export const getSambaStorageInfo = async () => {
   try {
-    const response = await axios.get(`${API_URL}/admin/storage-info`);
+    const response = await api.get('/admin/storage-info');
     console.log('[API] Storage information fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -537,7 +569,7 @@ export const getSambaStorageInfo = async () => {
 export const getSystemResources = async () => {
   try {
     console.log('[API] Fetching system resources...');
-    const response = await axios.get(`${API_URL}/admin/system-resources`, {
+    const response = await api.get('/admin/system-resources', {
       timeout: 10000 // 10 second timeout
     });
     console.log('[API] System resources fetched:', response.data);
@@ -587,7 +619,7 @@ export const performSpeedTest = async (size = 1) => {
     const startTime = new Date().getTime();
     
     // Make the request
-    const response = await axios.get(`${API_URL}/admin/speed-test?size=${size}`, {
+    const response = await api.get(`/admin/speed-test?size=${size}`, {
       timeout: 60000, // 60 second timeout
       responseType: 'json' // Changed from arraybuffer to json
     });
@@ -626,7 +658,7 @@ export const createQuiz = async (quizData) => {
   try {
     console.log('Creating quiz with data:', JSON.stringify(quizData));
     
-    const response = await axios.post(`${API_URL}/quizzes`, quizData);
+    const response = await api.post('/quizzes', quizData);
     return response.data;
   } catch (error) {
     console.error('Error creating quiz:', error);
@@ -636,7 +668,7 @@ export const createQuiz = async (quizData) => {
 
 export const getUserQuizzes = async () => {
   try {
-    const response = await axios.get(`${API_URL}/quizzes`);
+    const response = await api.get('/quizzes');
     return response.data;
   } catch (error) {
     console.error('Error fetching user quizzes:', error);
@@ -646,7 +678,7 @@ export const getUserQuizzes = async () => {
 
 export const getQuizById = async (quizId) => {
   try {
-    const response = await axios.get(`${API_URL}/quizzes/${quizId}`);
+    const response = await api.get(`/quizzes/${quizId}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching quiz ${quizId}:`, error);
@@ -656,7 +688,7 @@ export const getQuizById = async (quizId) => {
 
 export const updateQuiz = async (quizId, quizData) => {
   try {
-    const response = await axios.put(`${API_URL}/quizzes/${quizId}`, quizData);
+    const response = await api.put(`/quizzes/${quizId}`, quizData);
     return response.data;
   } catch (error) {
     console.error(`Error updating quiz ${quizId}:`, error);
@@ -666,7 +698,7 @@ export const updateQuiz = async (quizId, quizData) => {
 
 export const deleteQuiz = async (quizId) => {
   try {
-    const response = await axios.delete(`${API_URL}/quizzes/${quizId}`);
+    const response = await api.delete(`/quizzes/${quizId}`);
     return response.data;
   } catch (error) {
     console.error(`Error deleting quiz ${quizId}:`, error);
@@ -676,7 +708,7 @@ export const deleteQuiz = async (quizId) => {
 
 export const getQuizPermissions = async (quizId) => {
   try {
-    const response = await axios.get(`${API_URL}/quizzes/${quizId}/permissions`);
+    const response = await api.get(`/quizzes/${quizId}/permissions`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching permissions for quiz ${quizId}:`, error);
@@ -686,7 +718,7 @@ export const getQuizPermissions = async (quizId) => {
 
 export const addQuizPermission = async (quizId, classId) => {
   try {
-    const response = await axios.post(`${API_URL}/quizzes/${quizId}/permissions`, {
+    const response = await api.post(`/quizzes/${quizId}/permissions`, {
       classId: classId
     });
     return response.data;
@@ -698,7 +730,7 @@ export const addQuizPermission = async (quizId, classId) => {
 
 export const removeQuizPermission = async (quizId, permissionId) => {
   try {
-    const response = await axios.delete(`${API_URL}/quizzes/${quizId}/permissions/${permissionId}`);
+    const response = await api.delete(`/quizzes/${quizId}/permissions/${permissionId}`);
     return response.data;
   } catch (error) {
     console.error(`Error removing permission ${permissionId} for quiz ${quizId}:`, error);
@@ -715,7 +747,7 @@ export const getQuizMetadata = async (maMon, maDe) => {
     const formattedMaDe = encodeURIComponent(maDe.toString().trim());
     
     // Fix: Change endpoint from /quizzes/metadata to /questions/quizzes/metadata
-    const response = await axios.get(`${API_URL}/questions/quizzes/metadata`, {
+    const response = await api.get(`/questions/quizzes/metadata`, {
       params: { 
         maMon: formattedMaMon,
         maDe: formattedMaDe
@@ -761,7 +793,7 @@ export const getQuizMetadataForSubject = async (maMon) => {
     const formattedMaMon = encodeURIComponent(maMon.toString().trim());
     
     // Fix the API endpoint URL to match the backend controller mapping at /api/questions/quizzes/subject-metadata
-    const response = await axios.get(`${API_URL}/questions/quizzes/subject-metadata`, {
+    const response = await api.get(`/questions/quizzes/subject-metadata`, {
       params: { maMon: formattedMaMon }
     });
     
@@ -781,9 +813,9 @@ export const startQuiz = async (quizId) => {
     const user = JSON.parse(localStorage.getItem('user'));
     
     if (DEBUG_QUIZ_SUBMISSIONS) {
-      console.log("DEBUG [startQuiz] API_URL:", API_URL);
+      console.log("DEBUG [startQuiz] API_URL:", API_BASE_URL);
       console.log("DEBUG [startQuiz] User data:", user);
-      console.log("DEBUG [startQuiz] Session token:", localStorage.getItem('sessionId'));
+      console.log("DEBUG [startQuiz] Session token:", localStorage.getItem('token'));
       console.log("DEBUG [startQuiz] Starting quiz with ID:", quizId);
     }
     
@@ -793,7 +825,7 @@ export const startQuiz = async (quizId) => {
       throw error;
     }
     
-    const response = await axios.post(`${API_URL}/quiz-attempts/start`, null, {
+    const response = await api.post('/quiz-attempts/start', null, {
       params: {
         userId: user.id,
         quizId
@@ -828,7 +860,7 @@ export const submitQuiz = async (quizTakenId, answers) => {
       });
     }
     
-    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/submit`, answers);
+    const response = await api.post(`/quiz-attempts/${quizTakenId}/submit`, answers);
     
     if (DEBUG_QUIZ_SUBMISSIONS) {
       console.log("DEBUG [submitQuiz] Response:", response.data);
@@ -850,7 +882,7 @@ export const submitQuiz = async (quizTakenId, answers) => {
 
 export const abandonQuiz = async (quizTakenId) => {
   try {
-    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/abandon`);
+    const response = await api.post(`/quiz-attempts/${quizTakenId}/abandon`);
     return response.data;
   } catch (error) {
     console.error('Error abandoning quiz:', error);
@@ -860,7 +892,7 @@ export const abandonQuiz = async (quizTakenId) => {
 
 export const logQuizActivity = async (quizTakenId, eventType, details) => {
   try {
-    const response = await axios.post(`${API_URL}/quiz-attempts/${quizTakenId}/log`, null, {
+    const response = await api.post(`/quiz-attempts/${quizTakenId}/log`, null, {
       params: {
         eventType,
         details
@@ -878,7 +910,7 @@ export const getUserQuizHistory = async (userId = null) => {
     // If userId is provided directly, use it
     if (userId) {
       console.log(`Using provided user ID: ${userId} for quiz history`);
-      const response = await axios.get(`${API_URL}/quiz-attempts/user/${userId}`);
+      const response = await api.get(`/quiz-attempts/user/${userId}`);
       return response.data;
     }
     
@@ -890,7 +922,7 @@ export const getUserQuizHistory = async (userId = null) => {
     }
     
     console.log(`Using user ID from localStorage: ${user.id} for quiz history`);
-    const response = await axios.get(`${API_URL}/quiz-attempts/user/${user.id}`);
+    const response = await api.get(`/quiz-attempts/user/${user.id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching user quiz history:', error);
@@ -900,7 +932,7 @@ export const getUserQuizHistory = async (userId = null) => {
 
 export const getQuizStatistics = async (quizId) => {
   try {
-    const response = await axios.get(`${API_URL}/quiz-attempts/quiz/${quizId}/stats`);
+    const response = await api.get(`/quiz-attempts/quiz/${quizId}/stats`);
     return response.data;
   } catch (error) {
     console.error('Error fetching quiz statistics:', error);
@@ -910,7 +942,7 @@ export const getQuizStatistics = async (quizId) => {
 
 export const getQuizLeaderboard = async (quizId, limit = 10) => {
   try {
-    const response = await axios.get(`${API_URL}/quiz-attempts/quiz/${quizId}/leaderboard`, {
+    const response = await api.get(`/quiz-attempts/quiz/${quizId}/leaderboard`, {
       params: { limit }
     });
     return response.data;
@@ -928,7 +960,7 @@ export const getInProgressQuizzes = async () => {
       throw new Error('You must be logged in to view in-progress quizzes');
     }
     
-    const response = await axios.get(`${API_URL}/quiz-attempts/in-progress/${user.id}`);
+    const response = await api.get(`/quiz-attempts/in-progress/${user.id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching in-progress quizzes:', error);
@@ -938,7 +970,7 @@ export const getInProgressQuizzes = async () => {
 
 export const getQuizAttempt = async (quizTakenId) => {
   try {
-    const response = await axios.get(`${API_URL}/quiz-attempts/${quizTakenId}`);
+    const response = await api.get(`/quiz-attempts/${quizTakenId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching quiz attempt:', error);
@@ -956,7 +988,7 @@ export const getClassLeaderboard = async (quizId) => {
       console.warn('[API] No class ID found for leaderboard, using generic leaderboard');
     }
     
-    const response = await axios.get(`${API_URL}/quiz-attempts/class-leaderboard`, {
+    const response = await api.get(`/quiz-attempts/class-leaderboard`, {
       params: { quizId, classId }
     });
     
@@ -979,7 +1011,7 @@ export const getQuizDashboardStats = async () => {
     }
     
     // Get quiz history
-    const historyResponse = await axios.get(`${API_URL}/quiz-attempts/user/${user.id}`);
+    const historyResponse = await api.get(`/quiz-attempts/user/${user.id}`);
     
     if (!historyResponse.data || !historyResponse.data.success) {
       throw new Error('Failed to fetch quiz history');
