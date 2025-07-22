@@ -1,0 +1,152 @@
+/* Quiz Component Styles */
+
+.quiz-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.question-count {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.question-points {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #3b82f6;
+}
+
+.question-content {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.question-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #1f2937;
+}
+
+.options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.option:hover {
+  background-color: #f3f4f6;
+}
+
+.option-letter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: #f3f4f6;
+  border-radius: 50%;
+  margin-right: 1rem;
+  font-weight: 600;
+}
+
+.option-text {
+  flex: 1;
+}
+
+.option.selected {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.option.selected .option-letter {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* Code blocks inside questions */
+.question-content pre,
+.question-content code {
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+/* Dark mode styles */
+body.dark-mode .quiz-container {
+  background-color: #0f172a;
+}
+
+body.dark-mode .question-header {
+  color: #f1f5f9;
+}
+
+body.dark-mode .question-count {
+  color: #f1f5f9;
+}
+
+body.dark-mode .question-content {
+  background-color: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .question-text {
+  color: #f1f5f9;
+}
+
+body.dark-mode .option {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+body.dark-mode .option:hover {
+  background-color: #2d3748;
+}
+
+body.dark-mode .option-letter {
+  background-color: #374151;
+  color: #f1f5f9;
+}
+
+body.dark-mode .option.selected {
+  border-color: #3b82f6;
+  background-color: #1e3a8a;
+}
+
+body.dark-mode .option.selected .option-letter {
+  background-color: #3b82f6;
+  color: #f1f5f9;
+}
+
+body.dark-mode .question-content pre,
+body.dark-mode .question-content code {
+  background-color: #1a2234;
+  color: #f1f5f9;
+  border-color: #475569;
+} 

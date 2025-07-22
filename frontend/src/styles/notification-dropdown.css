@@ -1,0 +1,87 @@
+/* Notification Dropdown Styles */
+
+/* Base styles for notification dropdown in light mode */
+.ant-dropdown-menu.ant-dropdown-menu-root.ant-dropdown-menu-vertical.ant-dropdown-menu-light,
+.css-dev-only-do-not-override-2y4vty,
+[class*="ant-dropdown-menu"] {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 4px 0;
+}
+
+.ant-dropdown-menu-item {
+  padding: 8px 12px;
+  margin: 0;
+  color: #000000;
+  transition: background 0.3s ease;
+  font-size: 14px;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Notification content styles */
+.notification-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* Dark Mode Styles for Notification Dropdown */
+body.dark-mode .ant-dropdown-menu.ant-dropdown-menu-root.ant-dropdown-menu-vertical.ant-dropdown-menu-light,
+body.dark-mode .css-dev-only-do-not-override-2y4vty,
+body.dark-mode [class*="ant-dropdown-menu"] {
+  background-color: #1e293b !important;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid #475569 !important;
+}
+
+body.dark-mode .ant-dropdown-menu-item {
+  color: #f1f5f9 !important;
+}
+
+body.dark-mode .ant-dropdown-menu-item:hover {
+  background-color: #334155 !important;
+}
+
+/* Make all dropdown content visible in dark mode */
+body.dark-mode .ant-dropdown-menu * {
+  color: #f1f5f9 !important;
+}
+
+body.dark-mode .notification-time {
+  color: #94a3b8 !important;
+}
+
+/* Fix for the dropdown menu with the complete class selector */
+body.dark-mode .ant-dropdown-menu.ant-dropdown-menu-root.ant-dropdown-menu-vertical.ant-dropdown-menu-light.css-dev-only-do-not-override-2y4vty {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+
+/* Ensure text and icons are visible */
+body.dark-mode .ant-dropdown-menu.ant-dropdown-menu-root.ant-dropdown-menu-vertical.ant-dropdown-menu-light.css-dev-only-do-not-override-2y4vty * {
+  color: #f1f5f9 !important;
+}
+
+/* Ensure hover states work */
+body.dark-mode .ant-dropdown-menu.ant-dropdown-menu-root.ant-dropdown-menu-vertical.ant-dropdown-menu-light.css-dev-only-do-not-override-2y4vty .ant-dropdown-menu-item:hover {
+  background-color: #334155 !important;
+} 

@@ -1,0 +1,90 @@
+/* GlassCard Component Styles */
+
+.glass-card {
+  position: relative;
+  border-width: 0.8px;
+  border-style: solid;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: border-image 0.1s ease-out, box-shadow 0.1s ease-out, background-color 0.2s ease-out;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Light mode styles */
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.05) rgba(0, 0, 0, 0.05) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  color: #111827;
+}
+
+/* Dark mode styles */
+body.dark-mode .glass-card {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.1) rgba(255, 255, 255, 0.05) rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  color: #f1f5f9;
+}
+
+/* Hover effects */
+.glass-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .glass-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+/* Make sure text is readable in both themes */
+.glass-card h1, .glass-card h2, .glass-card h3, 
+.glass-card h4, .glass-card h5, .glass-card h6 {
+  color: #111827;
+}
+
+.glass-card p, .glass-card span {
+  color: #4b5563;
+}
+
+body.dark-mode .glass-card h1, 
+body.dark-mode .glass-card h2, 
+body.dark-mode .glass-card h3,
+body.dark-mode .glass-card h4, 
+body.dark-mode .glass-card h5, 
+body.dark-mode .glass-card h6 {
+  color: #f1f5f9 !important;
+}
+
+body.dark-mode .glass-card p, 
+body.dark-mode .glass-card span {
+  color: #94a3b8 !important;
+} 

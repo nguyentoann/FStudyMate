@@ -176,6 +176,649 @@ export const ThemeProvider = ({ children }) => {
         bodyElement.style.backgroundColor = '#f3f4f6';
         bodyElement.style.color = '#111827';
       }
+
+      // Create or update the dark mode style sheet
+      let darkModeStyles = document.getElementById('dark-mode-styles');
+      if (!darkModeStyles) {
+        darkModeStyles = document.createElement('style');
+        darkModeStyles.id = 'dark-mode-styles';
+        document.head.appendChild(darkModeStyles);
+      }
+
+      if (darkMode) {
+        darkModeStyles.textContent = `
+          /* Global dark mode styles */
+          body.dark-mode {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+          }
+          
+          /* Remove the overly aggressive styling */
+          /* .dark-mode * {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+          } */
+          
+          /* Apply dark backgrounds only to containers */
+          .dark-mode div:not(.search-bar):not(.search-bar *) {
+            background-color: transparent;
+          }
+          
+          /* Direct fix for specific class combinations */
+          .dark-mode .bg-white.rounded-lg.shadow,
+          .dark-mode .bg-white.rounded-lg, 
+          .dark-mode div[class*="bg-white"][class*="rounded-lg"][class*="shadow"],
+          .dark-mode div[class*="bg-white"][class*="rounded-lg"][class*="p-6"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+          }
+          
+          /* Dark backgrounds for specific containers */
+          .dark-mode .card,
+          .dark-mode .bg-white,
+          .dark-mode .bg-gray-50,
+          .dark-mode .bg-gray-100,
+          .dark-mode .bg-gray-200,
+          .dark-mode section,
+          .dark-mode aside,
+          .dark-mode main,
+          .dark-mode article,
+          .dark-mode header:not(.search-bar),
+          .dark-mode footer:not(.search-bar),
+          .dark-mode nav:not(.search-bar) {
+            background-color: #1e293b !important;
+          }
+          
+          /* Make the main app background dark */
+          .dark-mode #root,
+          .dark-mode #app,
+          .dark-mode main,
+          .dark-mode .app-container {
+            background-color: #0f172a !important;
+          }
+          
+          /* Force text to be light colored for visibility, except specific elements */
+          .dark-mode h1, 
+          .dark-mode h2, 
+          .dark-mode h3, 
+          .dark-mode h4, 
+          .dark-mode h5, 
+          .dark-mode h6,
+          .dark-mode p, 
+          .dark-mode li {
+            color: #f1f5f9 !important;
+          }
+          
+          /* Elements that should retain their colors */
+          .dark-mode [class*="calendar"],
+          .dark-mode [class*="event"],
+          .dark-mode [class*="schedule"],
+          .dark-mode button[class*="calendar"],
+          .dark-mode button[class*="event"],
+          .dark-mode button[class*="schedule"],
+          .dark-mode span[class*="calendar"],
+          .dark-mode span[class*="event"],
+          .dark-mode span[class*="schedule"],
+          .dark-mode a[class*="calendar"],
+          .dark-mode a[class*="event"],
+          .dark-mode a[class*="schedule"] {
+            color: inherit !important;
+            background-color: inherit !important;
+          }
+          
+          /* Make SVG icons visible */
+          .dark-mode svg:not(.search-bar *) {
+            color: #f1f5f9 !important;
+            fill: currentColor;
+          }
+
+          /* Make sure question text is dark mode compatible */
+          .dark-mode .question,
+          .dark-mode [class*="question"],
+          .dark-mode h3.text-lg,
+          .dark-mode .text-blue-600,
+          .dark-mode .font-semibold.text-blue-600,
+          .dark-mode .font-semibold.text-gray-800 {
+            color: #f1f5f9 !important;
+          }
+
+          /* Target FAQ question headers specifically */
+          .dark-mode .FAQPopup h3,
+          .dark-mode div[class*="space-y"] h3,
+          .dark-mode div[class*="space-y"] .text-lg {
+            color: #f1f5f9 !important;
+          }
+          
+          /* Course materials text - specific fix */
+          .dark-mode [class*="materials-description"],
+          .dark-mode [class*="materials"] p,
+          .dark-mode [class*="course"] p {
+            color: #94a3b8 !important; /* Use a slightly muted color for better visibility */
+          }
+
+          /* Fix for ant-table-thead elements in dark mode */
+          .dark-mode .ant-table-thead > tr > th,
+          .dark-mode [class*="ant-table-thead"],
+          .dark-mode .ant-table-thead th.ant-table-column-sort,
+          .dark-mode th.ant-table-cell,
+          .dark-mode .ant-table thead > tr > th,
+          .dark-mode .ant-table-container table > thead > tr:first-child th:first-child,
+          .dark-mode .ant-table-container table > thead > tr:first-child th:last-child,
+          .dark-mode .ant-table-header,
+          .dark-mode .ant-table-thead th {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+
+          /* All table header elements follow dark mode */
+          .dark-mode thead,
+          .dark-mode th,
+          .dark-mode table > thead > tr > th,
+          .dark-mode table thead tr th,
+          .dark-mode .table-header,
+          .dark-mode [class*="table-header"],
+          .dark-mode [class*="header-row"] {
+            background-color: #1e293b !important;
+            color: #f3f4f6 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Make sure all table header text is visible */
+          .dark-mode thead *,
+          .dark-mode th *,
+          .dark-mode .table-header *,
+          .dark-mode [class*="header-row"] * {
+            color: #f3f4f6 !important;
+          }
+          
+          /* Calendar headers follow dark mode */
+          .dark-mode .calendar-header,
+          .dark-mode [class*="calendar-header"],
+          .dark-mode [class*="calendar"][class*="header"],
+          .dark-mode .fc-header-toolbar,
+          .dark-mode .fc-toolbar,
+          .dark-mode .fc-col-header,
+          .dark-mode .fc-col-header-cell,
+          .dark-mode .fc-daygrid-day-top,
+          .dark-mode .rbc-header,
+          .dark-mode .rbc-toolbar,
+          .dark-mode .react-calendar__navigation,
+          .dark-mode [class*="calendar"] [class*="header"],
+          .dark-mode [class*="calendar"] [role="columnheader"],
+          .dark-mode [class*="calendar"] th {
+            background-color: #1e293b !important;
+            color: #f3f4f6 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Ensure text in calendar headers is visible */
+          .dark-mode .calendar-header *,
+          .dark-mode [class*="calendar-header"] *,
+          .dark-mode [class*="calendar"][class*="header"] *,
+          .dark-mode .fc-header-toolbar *,
+          .dark-mode .fc-toolbar *,
+          .dark-mode .fc-col-header *,
+          .dark-mode .fc-col-header-cell *,
+          .dark-mode .rbc-header *,
+          .dark-mode .rbc-toolbar *,
+          .dark-mode .react-calendar__navigation * {
+            color: #f3f4f6 !important;
+          }
+
+          /* Fix for search-container elements */
+          .dark-mode [class*="search-container"],
+          .dark-mode .search-container,
+          .dark-mode .search-container input,
+          .dark-mode [class*="search-container"] input {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Calendar page tabs exemption - preserve styling except background */
+          .dark-mode .calendar-page-tabs {
+            color: inherit !important;
+            border-color: inherit !important;
+            box-shadow: inherit !important;
+          }
+          
+          /* Preserve styling for non-button elements in calendar tabs */
+          .dark-mode .calendar-page-tabs > *:not(button),
+          .dark-mode .calendar-page-tabs > div,
+          .dark-mode .calendar-page-tabs > span {
+            color: inherit !important;
+            border-color: inherit !important;
+            box-shadow: inherit !important;
+          }
+          
+          /* Ensure buttons within calendar tabs maintain exact original styling */
+          .dark-mode .calendar-page-tabs button.shadow-xl.rounded-xl.px-6.py-4.font-bold.bg-white {
+            background-color: white !important;
+            color: #64748b !important;
+            border-color: transparent !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+          }
+          
+          /* Force blue background for active tab buttons */
+          .dark-mode .calendar-page-tabs button.shadow-xl.rounded-xl.px-6.py-4.font-bold.bg-sky-500 {
+            background-color: #0ea5e9 !important;
+            color: white !important;
+            border-color: transparent !important;
+          }
+          
+          /* Apply dark backgrounds to specific dashboard components */
+          .dark-mode [class*="stat"],
+          .dark-mode [class*="card"],
+          .dark-mode [class*="metric"],
+          .dark-mode [class*="score"],
+          .dark-mode [class*="count"],
+          .dark-mode [class*="total"],
+          .dark-mode [class*="average"],
+          .dark-mode #quizzes-taken,
+          .dark-mode #average-score,
+          .dark-mode #total-points,
+          .dark-mode #completion-rate {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+          }
+
+          /* Fix buttons to have dark backgrounds */
+          .dark-mode button:not([class*="bg-"]):not([class*="calendar"]):not([class*="event"]):not([class*="schedule"]) {
+            background-color: #334155 !important;
+            color: white !important;
+          }
+
+          /* Style specific button variants */
+          .dark-mode button.bg-blue-600,
+          .dark-mode button.bg-indigo-600,
+          .dark-mode button.bg-purple-600,
+          .dark-mode button.bg-green-600,
+          .dark-mode .btn-primary,
+          .dark-mode .btn-secondary,
+          .dark-mode .btn-success,
+          .dark-mode .btn-danger {
+            color: white !important;
+          }
+          
+          /* Form inputs - standardize all search bars */
+          .dark-mode input[type="text"],
+          .dark-mode input[type="search"],
+          .dark-mode [role="search"] input,
+          .dark-mode [class*="search"] input,
+          .dark-mode form[class*="search"] input,
+          .dark-mode div[class*="search"] input {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+            padding-right: 2.5rem !important;
+          }
+          
+          /* Style search icons */
+          .dark-mode [class*="search"] svg,
+          .dark-mode div[role="search"] svg,
+          .dark-mode form[role="search"] svg {
+            color: #9ca3af !important;
+          }
+          
+          /* Notification popups */
+          .dark-mode [class*="notification"],
+          .dark-mode [class*="toast"],
+          .dark-mode [class*="popup"],
+          .dark-mode [class*="modal"],
+          .dark-mode [class*="dialog"],
+          .dark-mode [role="dialog"],
+          .dark-mode [role="alert"],
+          .dark-mode [class*="alert"],
+          .dark-mode [id*="notification"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Quiz and Question section styles for dark mode */
+          .dark-mode [class*="quiz-container"],
+          .dark-mode [class*="question-container"],
+          .dark-mode div[class*="question-box"],
+          .dark-mode div[class*="question-wrapper"],
+          .dark-mode div[class*="question-content"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Target quiz question text and title */
+          .dark-mode [class*="question-title"],
+          .dark-mode h2[class*="question"],
+          .dark-mode h3[class*="question"],
+          .dark-mode div[class*="question"] h2,
+          .dark-mode div[class*="question"] h3,
+          .dark-mode div[class*="question"] p {
+            color: #f1f5f9 !important;
+          }
+          
+          /* Quiz question content (the actual question text) */
+          .dark-mode div[class*="question"] > div,
+          .dark-mode [class*="question-text"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+          }
+          
+          /* Question options */
+          .dark-mode [class*="option"],
+          .dark-mode div[class*="option"],
+          .dark-mode button[class*="option"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Fix for code blocks inside questions */
+          .dark-mode pre,
+          .dark-mode code {
+            background-color: #1a2234 !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Toggle colors for dark elements in dark mode */
+          .dark-mode .min-h-screen.bg-gray-900 {
+            background-color: #0f172a !important;
+          }
+          
+          .dark-mode .py-8.bg-gray-900 {
+            background-color: #0f172a !important;
+          }
+          
+          /* Toggle pre-existing dark backgrounds in dark mode */
+          .dark-mode .bg-gray-900 {
+            background-color: #0f172a !important;
+          }
+          
+          .dark-mode .bg-gray-800 {
+            background-color: #1e293b !important;
+          }
+          
+          /* Toggle pre-existing light text in dark mode */
+          .dark-mode .text-white {
+            color: #94a3b8 !important;
+          }
+          
+          /* For specific combinations */
+          .dark-mode .min-h-screen.py-8.bg-gray-900.text-white,
+          .dark-mode .min-h-screen.py-8.bg-gray-900,
+          .dark-mode .min-h-screen.bg-gray-900,
+          .dark-mode .py-8.bg-gray-900 {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+          }
+          
+          /* Light mode toggle */
+          body:not(.dark-mode) .min-h-screen.py-8.bg-gray-900.text-white,
+          body:not(.dark-mode) .min-h-screen.py-8.bg-gray-900,
+          body:not(.dark-mode) .min-h-screen.bg-gray-900,
+          body:not(.dark-mode) .py-8.bg-gray-900 {
+            background-color: #f3f4f6 !important;
+            color: #111827 !important;
+          }
+          
+          /* Universal bg class adjustments for dark mode */
+          
+          /* Light backgrounds */
+          .dark-mode [class*="bg-white"],
+          .dark-mode [class*="bg-gray-50"],
+          .dark-mode [class*="bg-gray-100"],
+          .dark-mode [class*="bg-gray-200"] {
+            background-color: #1e293b !important;
+          }
+          
+          /* Medium backgrounds */
+          .dark-mode [class*="bg-gray-300"],
+          .dark-mode [class*="bg-gray-400"],
+          .dark-mode [class*="bg-gray-500"] {
+            background-color: #334155 !important;
+          }
+          
+          /* Dark backgrounds */
+          .dark-mode [class*="bg-gray-600"],
+          .dark-mode [class*="bg-gray-700"],
+          .dark-mode [class*="bg-gray-800"],
+          .dark-mode [class*="bg-gray-900"] {
+            background-color: #0f172a !important;
+          }
+          
+          /* Blue colors */
+          .dark-mode [class*="bg-blue-50"],
+          .dark-mode [class*="bg-blue-100"],
+          .dark-mode [class*="bg-blue-200"] {
+            background-color: #1e3a8a !important;
+          }
+          
+          .dark-mode [class*="bg-blue-300"],
+          .dark-mode [class*="bg-blue-400"],
+          .dark-mode [class*="bg-blue-500"] {
+            background-color: #2563eb !important;
+          }
+          
+          /* Green colors */
+          .dark-mode [class*="bg-green-50"],
+          .dark-mode [class*="bg-green-100"],
+          .dark-mode [class*="bg-green-200"] {
+            background-color: #064e3b !important;
+          }
+          
+          /* Red colors */
+          .dark-mode [class*="bg-red-50"],
+          .dark-mode [class*="bg-red-100"],
+          .dark-mode [class*="bg-red-200"] {
+            background-color: #7f1d1d !important;
+          }
+          
+          /* Specific styles for glassmorphism elements */
+          .dark-mode [id*="glass-element"],
+          .dark-mode [class*="mb-4"][class*="bg-gray-50"][class*="p-4"][class*="rounded-lg"][class*="border"],
+          .dark-mode .bg-gray-50.dark\:bg-gray-800.p-4.rounded-lg.border {
+            background-color: rgba(30, 41, 59, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.1) rgba(255, 255, 255, 0.05) rgba(255, 255, 255, 0.05) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+          }
+          
+          /* Ensure proper text color within glass elements */
+          .dark-mode [id*="glass-element"] *,
+          .dark-mode [class*="mb-4"][class*="bg-gray-50"][class*="p-4"][class*="rounded-lg"][class*="border"] * {
+            color: #f1f5f9 !important;
+          }
+          
+          /* Handle elements with specific animate-fade-in-up class */
+          .dark-mode [class*="animate-fade-in-up"] {
+            border-color: rgba(255, 255, 255, 0.15) !important;
+          }
+          
+          /* Ant Design core components in dark mode */
+          .dark-mode .ant-layout,
+          .dark-mode .ant-layout-content,
+          .dark-mode .ant-layout-header,
+          .dark-mode .ant-layout-footer,
+          .dark-mode .ant-layout-sider {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+          }
+          
+          /* Ant Design cards */
+          .dark-mode .ant-card,
+          .dark-mode .ant-card-body,
+          .dark-mode .ant-card-head {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Ant Design tables */
+          .dark-mode .ant-table {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+          }
+          
+          .dark-mode .ant-table-thead > tr > th {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-bottom: 1px solid #475569 !important;
+          }
+          
+          .dark-mode .ant-table-tbody > tr > td {
+            border-bottom: 1px solid #475569 !important;
+            color: #f1f5f9 !important;
+          }
+          
+          /* Ant Design form elements */
+          .dark-mode .ant-form-item-label > label {
+            color: #f1f5f9 !important;
+          }
+          
+          .dark-mode .ant-input,
+          .dark-mode .ant-input-affix-wrapper,
+          .dark-mode .ant-input-number,
+          .dark-mode .ant-select-selector,
+          .dark-mode .ant-select-dropdown {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Ant Design buttons */
+          .dark-mode .ant-btn {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+            color: #f1f5f9 !important;
+          }
+          
+          .dark-mode .ant-btn-primary {
+            background-color: #3b82f6 !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+          }
+          
+          /* Ant Design dropdown and menus */
+          .dark-mode .ant-dropdown-menu,
+          .dark-mode .ant-menu {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Ant Design modal/drawer */
+          .dark-mode .ant-modal-content,
+          .dark-mode .ant-modal-header,
+          .dark-mode .ant-modal-footer,
+          .dark-mode .ant-drawer-wrapper-body,
+          .dark-mode .ant-drawer-header {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Ant Design notifications/alerts */
+          .dark-mode .ant-notification-notice,
+          .dark-mode .ant-message-notice-content,
+          .dark-mode .ant-alert {
+            background-color: #1e293b !important;
+            border-color: #475569 !important;
+          }
+          
+          /* Ensure all Ant Design text is visible */
+          .dark-mode [class*="ant-"] {
+            color: #f1f5f9 !important;
+          }
+          
+          /* Exception for Campus Events button and similar event buttons */
+          .dark-mode button[class*="calendar"],
+          .dark-mode button[class*="event"],
+          .dark-mode button:has(i[class*="fa-calendar"]),
+          .dark-mode #glass-element-437588,
+          .dark-mode button:has(.fa-calendar-day),
+          .dark-mode [id*="glass-element"]:has(i[class*="fa-calendar"]) {
+            background-color: white !important;
+            color: #111827 !important;
+            border-color: transparent !important;
+          }
+          
+          /* Specific buttons that should keep their appearance in dark mode */
+          .dark-mode button:has(> span:contains("My Calendar")),
+          .dark-mode button:has(> span:contains("Campus Events")),
+          .dark-mode button:has(> span:contains("Class Schedule")),
+          .dark-mode button:has(> *:contains("My Calendar")),
+          .dark-mode button:has(> *:contains("Campus Events")),
+          .dark-mode button:has(> *:contains("Class Schedule")),
+          .dark-mode button:has(i.fa-calendar-day),
+          .dark-mode button:has(i.fa-calendar),
+          .dark-mode button:has(i.fa-calendar-alt),
+          .dark-mode button.shadow-xl.rounded-xl.px-6.py-4.font-bold.bg-white {
+            background-color: white !important;
+            color: #111827 !important;
+            border-color: transparent !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+          }
+          
+          /* Preserve icon color inside preserved buttons */
+          .dark-mode button[class*="calendar"] i,
+          .dark-mode button[class*="event"] i,
+          .dark-mode button:has(i[class*="fa-calendar"]) i,
+          .dark-mode #glass-element-437588 i,
+          .dark-mode button:has(.fa-calendar-day) i,
+          .dark-mode [id*="glass-element"]:has(i[class*="fa-calendar"]) i,
+          .dark-mode .dark-mode-exempt-button,
+          .dark-mode .dark-mode-exempt-button * {
+            color: inherit !important;
+          }
+          
+          /* Notification dropdown menu specific styles */
+          .dark-mode .ant-dropdown-menu,
+          .dark-mode .ant-dropdown-menu-root,
+          .dark-mode .ant-dropdown-menu-vertical,
+          .dark-mode .ant-dropdown-menu-light,
+          .dark-mode [class*="ant-dropdown-menu"],
+          .dark-mode [class*="css-dev-only-do-not-override"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+          }
+          
+          /* Rules for ant-tag elements to retain their colors in dark mode */
+          .dark-mode .ant-tag,
+          .dark-mode span.ant-tag,
+          .dark-mode [class*="ant-tag"],
+          .dark-mode div .ant-tag,
+          .dark-mode .material-searchbar .ant-tag {
+            background-color: inherit !important;
+            color: inherit !important;
+            border-color: inherit !important;
+          }
+          
+          /* Specifically target the status tags in MaterialsView */
+          .dark-mode .subject-item .ant-tag,
+          .dark-mode .subject-item span.px-2.py-1.text-xs.rounded-full {
+            background-color: #dcfce7 !important; /* Light green background */
+            color: #166534 !important; /* Dark green text */
+            border-color: #dcfce7 !important;
+          }
+          
+          /* Only change the material-searchbar styles in dark mode */
+          .dark-mode .material-searchbar .search-container {
+            background-color: #1e293b !important;
+          }
+          
+          /* Override specifically for the notification dropdown with its full class name */
+          .dark-mode .ant-dropdown-menu.ant-dropdown-menu-root.ant-dropdown-menu-vertical.ant-dropdown-menu-light.css-dev-only-do-not-override-2y4vty {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+          }
+        `;
+      } else {
+        darkModeStyles.textContent = '';
+      }
       
       console.log("Theme updated successfully:", darkMode ? "dark" : "light");
     } catch (error) {
@@ -291,9 +934,9 @@ export const ThemeProvider = ({ children }) => {
         .bg-gray-100:not(nav):not(.navbar):not(header),
         .card:not(nav):not(.navbar):not(header),
         .rounded-lg.shadow-md:not(nav):not(.navbar):not(header),
-        .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header),
-        .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header),
-        .rounded-md.shadow-md:not(nav):not(.navbar):not(header) {
+        .rounded-lg.shadow-lg:not(nav):not(header),
+        .rounded-lg.shadow-xl:not(nav):not(header),
+        .rounded-md.shadow-md:not(nav):not(header) {
           background-color: rgba(255, 255, 255, ${opacityValue}) !important;
           backdrop-filter: ${blurFilter};
         }
@@ -467,7 +1110,7 @@ export const ThemeProvider = ({ children }) => {
             });
             
             // Cache DOM selectors to avoid repeated queries
-            const glassElementSelector = '.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header), .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header), .rounded-md.shadow-md:not(nav):not(.navbar):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)';
+            const glassElementSelector = '.bg-white:not(nav):not(.navbar):not(header), .bg-gray-50:not(nav):not(.navbar):not(header), .bg-gray-100:not(nav):not(.navbar):not(header), .card:not(nav):not(.navbar):not(header), .rounded-lg.shadow-md:not(nav):not(.navbar):not(header), .rounded-lg.shadow-lg:not(nav):not(header), .rounded-lg.shadow-xl:not(nav):not(header), .rounded-md.shadow-md:not(nav):not(header), .dark .bg-gray-800:not(nav):not(.navbar):not(header), .dark .bg-gray-900:not(nav):not(.navbar):not(header)';
             
             // Track which elements have effects applied
             const activeElements = new Set();

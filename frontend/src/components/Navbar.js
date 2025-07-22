@@ -54,11 +54,11 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
             <input
               type="text"
               placeholder="Search..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-gray-700"
+              className="w-full pl-4 pr-12 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-white text-gray-700"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <div className="absolute left-3 top-2.5 text-gray-400">
+            <div className="absolute right-3 top-2.5 text-gray-400 pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -69,8 +69,8 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
         {/* Right side - Menu and Notifications */}
         <div className="flex items-center space-x-4">
           {/* Search icon for mobile */}
-          <button className="md:hidden text-white hover:text-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button className="md:hidden text-white hover:text-gray-200 search-bar">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 search-bar" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>

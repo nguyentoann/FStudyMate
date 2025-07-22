@@ -6,6 +6,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import './styles/animations.css'; // Import animations CSS
+import './styles/dark-mode.css'; // Import dark mode styles
+import './styles/notification-dropdown.css'; // Import notification dropdown styles
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
