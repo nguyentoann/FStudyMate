@@ -436,31 +436,33 @@ const AdminDashboard = () => {
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-gray-600">
                     Storage Usage (
-                    {storageInfo.usedSpace
+                    {typeof storageInfo.usedSpace === 'number'
                       ? storageInfo.usedSpace.toFixed(1)
                       : "0"}{" "}
                     GB /{" "}
-                    {storageInfo.totalSpace
+                    {typeof storageInfo.totalSpace === 'number'
                       ? storageInfo.totalSpace.toFixed(1)
                       : "0"}{" "}
                     GB)
                   </span>
                   <span className="text-sm font-medium text-indigo-600">
-                    {Number(storageInfo?.usagePercentage)?.toFixed?.(1) ?? "0"}%
+                    {typeof storageInfo.usagePercentage === 'number'
+                      ? storageInfo.usagePercentage.toFixed(1)
+                      : "0"}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
                     className={`h-2.5 rounded-full ${
-                      storageInfo.usagePercentage > 85
+                      typeof storageInfo.usagePercentage === 'number' && storageInfo.usagePercentage > 85
                         ? "bg-red-500"
-                        : storageInfo.usagePercentage > 70
+                        : typeof storageInfo.usagePercentage === 'number' && storageInfo.usagePercentage > 70
                         ? "bg-yellow-500"
                         : "bg-green-500"
                     }`}
                     style={{
                       width: `${Math.min(
-                        storageInfo.usagePercentage || 0,
+                        typeof storageInfo.usagePercentage === 'number' ? storageInfo.usagePercentage : 0,
                         100
                       )}%`,
                     }}
@@ -671,7 +673,9 @@ const AdminDashboard = () => {
                       Memory Usage
                     </span>
                     <span className="text-sm font-medium text-blue-600">
-                      {systemResources.memory?.usagePercentage.toFixed(1)}%
+                      {typeof systemResources.memory?.usagePercentage === 'number' 
+                        ? systemResources.memory?.usagePercentage.toFixed(1) 
+                        : '0.0'}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -685,7 +689,9 @@ const AdminDashboard = () => {
                       }`}
                       style={{
                         width: `${Math.min(
-                          systemResources.memory?.usagePercentage || 0,
+                          typeof systemResources.memory?.usagePercentage === 'number' 
+                            ? systemResources.memory?.usagePercentage 
+                            : 0,
                           100
                         )}%`,
                       }}
@@ -704,7 +710,9 @@ const AdminDashboard = () => {
                       Disk Usage
                     </span>
                     <span className="text-sm font-medium text-blue-600">
-                      {systemResources.disk?.usagePercentage.toFixed(1)}%
+                      {typeof systemResources.disk?.usagePercentage === 'number'
+                        ? systemResources.disk?.usagePercentage.toFixed(1)
+                        : '0.0'}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -718,7 +726,9 @@ const AdminDashboard = () => {
                       }`}
                       style={{
                         width: `${Math.min(
-                          systemResources.disk?.usagePercentage || 0,
+                          typeof systemResources.disk?.usagePercentage === 'number'
+                            ? systemResources.disk?.usagePercentage
+                            : 0,
                           100
                         )}%`,
                       }}
@@ -742,11 +752,15 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex justify-between mt-2">
                     <span className="text-xs text-gray-500">
-                      ↓ {systemResources.network?.receivedPerSec.toFixed(2)}{" "}
+                      ↓ {typeof systemResources.network?.receivedPerSec === 'number' 
+                         ? systemResources.network?.receivedPerSec.toFixed(2) 
+                         : '0.00'}{" "}
                       MB/s
                     </span>
                     <span className="text-xs text-gray-500">
-                      ↑ {systemResources.network?.sentPerSec.toFixed(2)} MB/s
+                      ↑ {typeof systemResources.network?.sentPerSec === 'number'
+                         ? systemResources.network?.sentPerSec.toFixed(2)
+                         : '0.00'} MB/s
                     </span>
                   </div>
                 </div>

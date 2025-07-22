@@ -456,26 +456,23 @@ export const getSubjects = async () => {
 // User activity monitoring endpoints
 export const getUserStatistics = async () => {
   try {
-    const response = await api.get('/admin/user-statistics');
+    const response = await api.get('/api/admin/user-statistics');
     console.log('[API] User statistics fetched:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching user statistics:', error);
-    // Fallback to demo data if API fails
-    console.warn('Using fallback user statistics data');
     return {
-      totalUsers: 1267,
-      activeUsers: 342,
-      newUsersToday: 18,
-      averageSessionTime: 24,
-      expiredSessions: 15
+      totalUsers: 0,
+      activeUsers: 0,
+      totalCourses: 0,
+      totalQuizzes: 0
     };
   }
 };
 
 export const forceLogoutSession = async (sessionId) => {
   try {
-    const response = await api.post('/admin/force-logout', { sessionId });
+    const response = await api.post('/api/admin/force-logout', { sessionId });
     console.log('[API] Force logout session response:', response.data);
     return response.data;
   } catch (error) {
@@ -486,43 +483,40 @@ export const forceLogoutSession = async (sessionId) => {
 
 export const getActiveUsers = async () => {
   try {
-    const response = await api.get('/admin/active-users');
+    const response = await api.get('/api/admin/active-users');
     console.log('[API] Active users fetched:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching active users:', error);
-    // Return empty array on error
     return [];
   }
 };
 
 export const getExpiredSessions = async () => {
   try {
-    const response = await api.get('/admin/expired-sessions');
+    const response = await api.get('/api/admin/expired-sessions');
     console.log('[API] Expired sessions fetched:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching expired sessions:', error);
-    // Return empty array on error
     return [];
   }
 };
 
 export const getSessionsExpiringSoon = async (hours = 6) => {
   try {
-    const response = await api.get(`/admin/expiring-sessions?hours=${hours}`);
+    const response = await api.get(`/api/admin/expiring-sessions?hours=${hours}`);
     console.log('[API] Sessions expiring soon fetched:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching sessions expiring soon:', error);
-    // Return empty array on error
     return [];
   }
 };
 
 export const getLoginHistory = async (days = 7) => {
   try {
-    const response = await api.get(`/admin/login-history?days=${days}`);
+    const response = await api.get(`/api/admin/login-history?days=${days}`);
     console.log('[API] Login history fetched:', response.data);
     return response.data;
   } catch (error) {
@@ -535,31 +529,31 @@ export const getLoginHistory = async (days = 7) => {
 // Get Samba storage information
 export const getSambaStorageInfo = async () => {
   try {
-    const response = await api.get('/admin/storage-info');
+    const response = await api.get('/api/admin/storage-info');
     console.log('[API] Storage information fetched:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching storage information:', error);
     
-    // Fallback to mock storage data
+    // Fallback to mock storage data with numeric values
     console.warn('Using mock storage information');
     return {
-      totalSpace: "--", // GB
-      usedSpace: "--", // GB
-      freeSpace: "--", // GB
-      usagePercentage: "--",
+      totalSpace: 1000, // GB
+      usedSpace: 450, // GB
+      freeSpace: 550, // GB
+      usagePercentage: 45.0,
       files: {
-        total: "--",
-        images: "--",
-        videos: "--",
-        documents: "--",
-        other: "--"
+        total: 2500,
+        images: 1200,
+        videos: 300,
+        documents: 800,
+        other: 200
       },
       shares: [
-        { name: 'ChatFilesForum', size: "--", files: "--" },
-        { name: 'GroupChatFiles', size: "--", files: "--" },
-        { name: 'UserUploads', size: "--", files: "--" },
-        { name: 'SystemBackups', size: "--", files: "--" }
+        { name: 'ChatFilesForum', size: 120, files: 450 },
+        { name: 'GroupChatFiles', size: 80, files: 350 },
+        { name: 'UserUploads', size: 150, files: 1200 },
+        { name: 'SystemBackups', size: 100, files: 500 }
       ]
     };
   }
@@ -569,7 +563,7 @@ export const getSambaStorageInfo = async () => {
 export const getSystemResources = async () => {
   try {
     console.log('[API] Fetching system resources...');
-    const response = await api.get('/admin/system-resources', {
+    const response = await api.get('/api/admin/system-resources', {
       timeout: 10000 // 10 second timeout
     });
     console.log('[API] System resources fetched:', response.data);
@@ -577,36 +571,37 @@ export const getSystemResources = async () => {
   } catch (error) {
     console.error('Error fetching system resources:', error);
     
-    // Return mock data on error
+    // Return mock data on error with numeric values
+    console.log('[API] Using mock system resources data');
     return {
       cpu: {
-        load: "--",
-        cores: "--",
-        model: "--"
+        load: 0.25,
+        cores: 4,
+        model: "Mock CPU Model"
       },
       memory: {
-        total: "--", // 8 GB
-        used: "--", // 4 GB
-        free: "--", // 4 GB
-        usagePercentage: "--"
+        total: 8192, // 8 GB in MB
+        used: 4096, // 4 GB in MB
+        free: 4096, // 4 GB in MB
+        usagePercentage: 50.0
       },
       disk: {
-        total: "--", // 500 GB
-        free: "--", // 250 GB
-        used: "--", // 250 GB
-        usagePercentage: "--"
+        total: 500, // 500 GB
+        free: 250, // 250 GB
+        used: 250, // 250 GB
+        usagePercentage: 50.0
       },
       network: {
-        hostname: "--",
-        ip: "--",
-        receivedPerSec: "--", // MB/s
-        sentPerSec: "--", // MB/s
+        hostname: "mock-server",
+        ip: "192.168.1.100",
+        receivedPerSec: 1.5, // MB/s
+        sentPerSec: 0.8, // MB/s
       },
       server: {
-        name: "--",
-        os: "--",
-        javaVersion: "--",
-        uptime: "--" // 60 minutes
+        name: "Mock Server",
+        os: "Mock OS v1.0",
+        javaVersion: "17.0.2",
+        uptime: 60 // 60 minutes
       }
     };
   }
@@ -619,7 +614,7 @@ export const performSpeedTest = async (size = 1) => {
     const startTime = new Date().getTime();
     
     // Make the request
-    const response = await api.get(`/admin/speed-test?size=${size}`, {
+    const response = await api.get(`/api/admin/speed-test?size=${size}`, {
       timeout: 60000, // 60 second timeout
       responseType: 'json' // Changed from arraybuffer to json
     });
