@@ -387,4 +387,106 @@ public class ScheduleService {
     public List<ClassSchedule> getAllClassSchedules() {
         return classScheduleRepository.findAll();
     }
+
+    public ClassSchedule getScheduleById(Integer id) {
+        return classScheduleRepository.findById(id).orElse(null);
+    }
+
+    public ClassSchedule createSchedule(ClassSchedule schedule) {
+        return classScheduleRepository.save(schedule);
+    }
+
+    public ClassSchedule updateSchedule(Integer id, ClassSchedule scheduleDetails) {
+        Optional<ClassSchedule> optionalSchedule = classScheduleRepository.findById(id);
+        if (optionalSchedule.isPresent()) {
+            ClassSchedule schedule = optionalSchedule.get();
+            schedule.setSubjectId(scheduleDetails.getSubjectId());
+            schedule.setClassId(scheduleDetails.getClassId());
+            schedule.setLecturerId(scheduleDetails.getLecturerId());
+            schedule.setStartTime(scheduleDetails.getStartTime());
+            schedule.setEndTime(scheduleDetails.getEndTime());
+            schedule.setRoom(scheduleDetails.getRoom());
+            schedule.setStatus(scheduleDetails.getStatus());
+            schedule.setBuilding(scheduleDetails.getBuilding());
+            schedule.setTermId(scheduleDetails.getTermId());
+            schedule.setIsActive(scheduleDetails.getIsActive());
+            schedule.setSpecificDate(scheduleDetails.getSpecificDate());
+            schedule.setIsRecurring(scheduleDetails.getIsRecurring());
+            schedule.setRecurrenceCount(scheduleDetails.getRecurrenceCount());
+            return classScheduleRepository.save(schedule);
+        }
+        return null;
+    }
+
+    public ClassSchedule createOneTimeSchedule(ClassSchedule schedule) {
+        // Ensure this is marked as a one-time schedule
+        schedule.setIsRecurring(false);
+        
+        // Make sure specific date is set
+        if (schedule.getSpecificDate() == null) {
+            throw new IllegalArgumentException("Specific date is required for one-time schedules");
+        }
+        
+        return classScheduleRepository.save(schedule);
+    }
+
+    public List<ClassSchedule> createRecurringSchedules(ClassSchedule baseSchedule) {
+        if (baseSchedule.getSpecificDate() == null) {
+            throw new IllegalArgumentException("Specific date is required for recurring schedules");
+        }
+        
+        if (baseSchedule.getRecurrenceCount() == null || baseSchedule.getRecurrenceCount() < 1) {
+            baseSchedule.setRecurrenceCount(1);
+        }
+        
+        List<ClassSchedule> createdSchedules = new ArrayList<>();
+        
+        // Create the first schedule
+        ClassSchedule firstSchedule = new ClassSchedule();
+        copyScheduleProperties(baseSchedule, firstSchedule);
+        firstSchedule = classScheduleRepository.save(firstSchedule);
+        createdSchedules.add(firstSchedule);
+        
+        // Create subsequent schedules
+        LocalDate startDate = baseSchedule.getSpecificDate();
+        for (int i = 1; i < baseSchedule.getRecurrenceCount(); i++) {
+            // Create a new schedule for each recurrence
+            ClassSchedule recurrenceSchedule = new ClassSchedule();
+            copyScheduleProperties(baseSchedule, recurrenceSchedule);
+            
+            // Calculate the date for this recurrence
+            LocalDate recurrenceDate = startDate.plusWeeks(i); // Default to weekly recurrence
+            recurrenceSchedule.setSpecificDate(recurrenceDate);
+            
+            // Save the recurrence schedule
+            recurrenceSchedule = classScheduleRepository.save(recurrenceSchedule);
+            createdSchedules.add(recurrenceSchedule);
+        }
+        
+        return createdSchedules;
+    }
+
+    private void copyScheduleProperties(ClassSchedule source, ClassSchedule target) {
+        target.setSubjectId(source.getSubjectId());
+        target.setClassId(source.getClassId());
+        target.setLecturerId(source.getLecturerId());
+        target.setStartTime(source.getStartTime());
+        target.setEndTime(source.getEndTime());
+        target.setRoom(source.getRoom());
+        target.setStatus(source.getStatus());
+        target.setBuilding(source.getBuilding());
+        target.setTermId(source.getTermId());
+        target.setIsActive(source.getIsActive());
+        target.setSpecificDate(source.getSpecificDate());
+        target.setIsRecurring(source.getIsRecurring());
+        target.setRecurrenceCount(source.getRecurrenceCount());
+    }
+
+    public List<ClassSchedule> getClassSchedulesByDate(String classId, LocalDate date) {
+        return classScheduleRepository.findByClassIdAndSpecificDate(classId, date);
+    }
+
+    public List<ClassSchedule> getClassSchedulesByDateRange(String classId, LocalDate startDate, LocalDate endDate) {
+        return classScheduleRepository.findByClassIdAndSpecificDateBetween(classId, startDate, endDate);
+    }
 } 
