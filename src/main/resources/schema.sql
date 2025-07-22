@@ -67,7 +67,7 @@ CREATE TABLE `Lessons` (
   KEY `LecturerId` (`LecturerId`),
   CONSTRAINT `Lessons_ibfk_1` FOREIGN KEY (`SubjectId`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE,
   CONSTRAINT `Lessons_ibfk_2` FOREIGN KEY (`LecturerId`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -108,7 +108,7 @@ CREATE TABLE `Questions` (
   PRIMARY KEY (`ID`),
   KEY `idx_quiz_id` (`quiz_id`),
   CONSTRAINT `fk_question_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=417 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=485 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -126,7 +126,7 @@ CREATE TABLE `QuizPermissions` (
   UNIQUE KEY `idx_quiz_class` (`quiz_id`,`class_id`),
   KEY `idx_class_id` (`class_id`),
   CONSTRAINT `QuizPermissions_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -158,7 +158,7 @@ CREATE TABLE `QuizTaken` (
   KEY `idx_start_time` (`start_time`),
   CONSTRAINT `fk_quiztaken_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `Quizzes` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_quiztaken_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -185,7 +185,7 @@ CREATE TABLE `Quizzes` (
   UNIQUE KEY `idx_mamon_made` (`MaMon`,`MaDe`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `Quizzes_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -268,7 +268,7 @@ CREATE TABLE `ai_chat_messages` (
   PRIMARY KEY (`id`),
   KEY `idx_ai_chat_user_id` (`user_id`),
   CONSTRAINT `ai_chat_messages_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=163 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=175 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -290,7 +290,7 @@ CREATE TABLE `chat_files` (
   PRIMARY KEY (`id`),
   KEY `idx_chat_files_uploader` (`uploader_id`),
   CONSTRAINT `chat_files_ibfk_1` FOREIGN KEY (`uploader_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -313,7 +313,7 @@ CREATE TABLE `chat_groups` (
   KEY `idx_chat_groups_class_id` (`class_id`),
   KEY `idx_chat_groups_creator_id` (`creator_id`),
   CONSTRAINT `chat_groups_creator_fk` FOREIGN KEY (`creator_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -332,7 +332,7 @@ CREATE TABLE `chat_message_files` (
   UNIQUE KEY `idx_unique_message_file` (`message_id`,`file_id`,`message_type`),
   KEY `idx_message_files_file_id` (`file_id`),
   CONSTRAINT `chat_message_files_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `chat_files` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -356,7 +356,7 @@ CREATE TABLE `chat_messages` (
   KEY `idx_chat_messages_created_at` (`created_at`),
   CONSTRAINT `chat_messages_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `chat_messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -374,30 +374,26 @@ CREATE TABLE `class_schedules` (
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
   `room_id` int(11) NOT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'NotYet',
   `building` varchar(50) DEFAULT NULL,
-  `semester` varchar(20) NOT NULL,
-  `academic_year` varchar(10) NOT NULL,
-  `status` enum('Not yet','Attended','Online','Absent') NOT NULL DEFAULT 'Not yet',
-  `is_active` tinyint(1) DEFAULT 1,
+  `term_id` int(11) NOT NULL,
+  `is_active` bit(1) DEFAULT b'1',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `specific_date` DATE DEFAULT NULL,
-  `is_recurring` BOOLEAN DEFAULT FALSE,
-  `recurrence_count` INT DEFAULT 1,
+  `specific_date` date DEFAULT NULL,
+  `is_recurring` tinyint(1) DEFAULT 0,
+  `recurrence_count` int(11) DEFAULT 1,
   PRIMARY KEY (`id`),
-  KEY `idx_subject_id` (`subject_id`),
-  KEY `idx_class_id` (`class_id`),
-  KEY `idx_lecturer_id` (`lecturer_id`),
-  KEY `idx_room_id` (`room_id`),
-  KEY `idx_day_time` (`start_time`),
-  CONSTRAINT `fk_class_schedules_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`) ON DELETE CASCADE,
-  CONSTRAINT `fk_class_schedules_lecturer` FOREIGN KEY (`lecturer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_class_schedules_room` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  KEY `idx_class_schedules_class_id` (`class_id`),
+  KEY `idx_class_schedules_lecturer_id` (`lecturer_id`),
+  KEY `idx_class_schedules_subject_id` (`subject_id`),
+  KEY `idx_class_schedules_room_id` (`room_id`),
+  KEY `idx_class_schedules_term_id` (`term_id`),
+  KEY `idx_time` (`start_time`),
+  CONSTRAINT `class_schedules_ibfk_1` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`),
+  CONSTRAINT `class_schedules_ibfk_2` FOREIGN KEY (`term_id`) REFERENCES `Terms` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
--- Remove day_of_week column from class_schedules table
-ALTER TABLE class_schedules DROP COLUMN IF EXISTS day_of_week;
 
 --
 -- Table structure for table `class_tasks`
@@ -522,7 +518,7 @@ CREATE TABLE `feedback_replies` (
   CONSTRAINT `fk_parent_reply` FOREIGN KEY (`parent_reply_id`) REFERENCES `feedback_replies` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_reply_feedback` FOREIGN KEY (`feedback_id`) REFERENCES `feedbacks` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_reply_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -548,7 +544,7 @@ CREATE TABLE `feedbacks` (
   KEY `idx_feedback_lesson` (`lesson_id`),
   CONSTRAINT `fk_feedback_lesson` FOREIGN KEY (`lesson_id`) REFERENCES `Lessons` (`ID`) ON DELETE SET NULL,
   CONSTRAINT `fk_feedback_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -570,7 +566,7 @@ CREATE TABLE `group_chat_messages` (
   KEY `idx_group_chat_messages_sender_id` (`sender_id`),
   CONSTRAINT `group_chat_messages_ibfk_1` FOREIGN KEY (`group_id`) REFERENCES `chat_groups` (`id`) ON DELETE CASCADE,
   CONSTRAINT `group_chat_messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=143 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -593,7 +589,7 @@ CREATE TABLE `group_members` (
   CONSTRAINT `group_members_added_by_fk` FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `group_members_group_fk` FOREIGN KEY (`group_id`) REFERENCES `chat_groups` (`id`) ON DELETE CASCADE,
   CONSTRAINT `group_members_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -612,6 +608,38 @@ CREATE TABLE `guests` (
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `guests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ir_commands`
+--
+
+DROP TABLE IF EXISTS `ir_commands`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ir_commands` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT 'Command name displayed to users',
+  `device_type` varchar(50) NOT NULL COMMENT 'Type of device (AC, TV, etc.)',
+  `brand` varchar(50) NOT NULL COMMENT 'Brand of the device (Samsung, Daikin, etc.)',
+  `command_type` varchar(20) NOT NULL COMMENT 'Type of IR command (raw, nec, samsung, etc.)',
+  `command_data` text NOT NULL COMMENT 'Command data in appropriate format (raw array, hex code, etc.)',
+  `description` varchar(255) DEFAULT NULL COMMENT 'Descriptive text for the command',
+  `icon` varchar(50) DEFAULT NULL COMMENT 'Optional icon name for UI',
+  `category` varchar(50) DEFAULT NULL COMMENT 'Optional grouping category',
+  `ac_mode` varchar(20) DEFAULT NULL COMMENT 'For AC: mode like cool, heat, fan',
+  `ac_temperature` int(11) DEFAULT NULL COMMENT 'For AC: temperature value',
+  `ac_fan_speed` varchar(20) DEFAULT NULL COMMENT 'For AC: fan speed',
+  `ac_swing` varchar(20) DEFAULT NULL COMMENT 'For AC: swing mode',
+  `tv_input` varchar(20) DEFAULT NULL COMMENT 'For TV: input source',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  KEY `idx_device_type_brand` (`device_type`,`brand`),
+  KEY `idx_command_type` (`command_type`),
+  KEY `idx_category` (`category`)
+) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -641,7 +669,7 @@ CREATE TABLE `learning_materials` (
   KEY `idx_learning_material_file_name` (`file_name`),
   CONSTRAINT `fk_learning_material_subject` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`),
   CONSTRAINT `fk_learning_material_user` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=734 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1136 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -659,6 +687,28 @@ CREATE TABLE `lecturers` (
   PRIMARY KEY (`lecturer_id`),
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `lecturers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `lesson_discussions`
+--
+
+DROP TABLE IF EXISTS `lesson_discussions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `lesson_discussions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `lesson_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `content` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `lesson_id` (`lesson_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `lesson_discussions_ibfk_1` FOREIGN KEY (`lesson_id`) REFERENCES `Lessons` (`ID`) ON DELETE CASCADE,
+  CONSTRAINT `lesson_discussions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -698,7 +748,7 @@ CREATE TABLE `notification_recipients` (
   KEY `idx_is_read` (`is_read`),
   CONSTRAINT `fk_notification_recipient_notification` FOREIGN KEY (`notification_id`) REFERENCES `notifications` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_notification_recipient_user` FOREIGN KEY (`recipient_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=12620 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=21971 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -723,7 +773,7 @@ CREATE TABLE `notifications` (
   KEY `idx_sender_id` (`sender_id`),
   KEY `idx_created_at` (`created_at`),
   CONSTRAINT `fk_notification_sender` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -813,6 +863,75 @@ CREATE TABLE `personal_schedules` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `question_bank_answers`
+--
+
+DROP TABLE IF EXISTS `question_bank_answers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `question_bank_answers` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `question_id` bigint(20) NOT NULL,
+  `answer_text` text NOT NULL,
+  `fraction` decimal(10,7) NOT NULL,
+  `feedback` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_question_bank_answers` (`question_id`),
+  CONSTRAINT `question_bank_answers_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `question_bank_questions` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=16523 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `question_bank_questions`
+--
+
+DROP TABLE IF EXISTS `question_bank_questions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `question_bank_questions` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `bank_id` bigint(20) NOT NULL,
+  `question_type` varchar(50) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `question_text` text NOT NULL,
+  `default_grade` decimal(10,7) DEFAULT 1.0000000,
+  `penalty` decimal(10,7) DEFAULT 0.0000000,
+  `hidden` tinyint(1) DEFAULT 0,
+  `single_answer` tinyint(1) DEFAULT 1,
+  `shuffle_answers` tinyint(1) DEFAULT 1,
+  `language` varchar(10) DEFAULT 'en',
+  `created_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_date` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_question_bank_questions` (`bank_id`),
+  CONSTRAINT `question_bank_questions_ibfk_1` FOREIGN KEY (`bank_id`) REFERENCES `question_banks` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4013 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `question_banks`
+--
+
+DROP TABLE IF EXISTS `question_banks`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `question_banks` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `subject_id` int(11) DEFAULT NULL,
+  `created_by` int(11) NOT NULL,
+  `created_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_date` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `created_by` (`created_by`),
+  KEY `idx_question_bank_subject` (`subject_id`),
+  CONSTRAINT `question_banks_ibfk_1` FOREIGN KEY (`subject_id`) REFERENCES `Subjects` (`ID`),
+  CONSTRAINT `question_banks_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `role_permissions`
 --
 
@@ -838,11 +957,16 @@ DROP TABLE IF EXISTS `rooms`;
 CREATE TABLE `rooms` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
-  `location` varchar(100),
-  `capacity` int(11),
+  `location` varchar(100) DEFAULT NULL,
+  `floor` varchar(20) DEFAULT NULL,
+  `capacity` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `has_ir_control` tinyint(1) DEFAULT 0,
+  `device_id` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -892,7 +1016,7 @@ CREATE TABLE `user_activity_details` (
   `session_id` int(11) DEFAULT NULL,
   `updated_at` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=173 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -916,4 +1040,49 @@ CREATE TABLE `user_sessions` (
   `is_expired` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_user_sessions_user_id` (`user_id`),
-  KEY `idx_user_sessions_token` (`
+  KEY `idx_user_sessions_token` (`session_token`),
+  KEY `idx_user_sessions_last_activity` (`last_activity`),
+  KEY `idx_user_sessions_created_at` (`created_at`),
+  KEY `idx_user_session_token` (`session_token`),
+  KEY `idx_user_session_last_activity` (`last_activity`),
+  KEY `idx_user_session_user_id` (`user_id`),
+  CONSTRAINT `user_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4865 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `users`
+--
+
+DROP TABLE IF EXISTS `users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role` varchar(255) DEFAULT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `phone_number` varchar(20) DEFAULT NULL,
+  `profile_image_url` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `verified` tinyint(1) DEFAULT 0,
+  `class_id` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=3220 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2025-07-23  1:04:37
