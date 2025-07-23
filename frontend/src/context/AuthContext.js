@@ -1,14 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { API_URL, OPEN_URL, EMERGENCY_URL } from '../services/config';
 import { initActivityTracking, trackEvent } from '../services/userActivityTracker';
-// Removed uuid import as we're using custom session ID generation
 import axios from 'axios';
 
 // Add API emergency URL
 const API_EMERGENCY_URL = `${API_URL}/emergency`;
-
-// Remove the hardcoded API_URL constant
-// const API_URL = 'http://localhost:8080/api';
 
 const AuthContext = createContext(null);
 
@@ -170,7 +166,8 @@ export const AuthProvider = ({ children }) => {
       // Track successful login
       trackEvent('login_success', {
         userId: data.id,
-        username: data.username || loginIdentifier
+        username: data.username || loginIdentifier,
+        method: 'password'
       });
       
       // Initialize user activity tracking
@@ -254,28 +251,18 @@ export const AuthProvider = ({ children }) => {
         throw new Error(errorMessage);
       }
 
-      try {
-        const responseData = await response.json();
-        console.log('Registration successful, response:', responseData);
-        
-        // Track successful registration
-        trackEvent('registration_success', {
-          email: userData.email
-        });
-        
-        // Return the full response data
-        return responseData;
-      } catch (jsonError) {
-        console.error('Failed to parse success response:', jsonError);
-        // Return a minimal response object if we can't parse the response
-        return { 
-          requiresVerification: true,
-          email: userData.email, 
-          message: 'Registration successful but server returned invalid data' 
-        };
-      }
+      // Successfully registered
+      const data = await response.json();
+      console.log('Registration successful:', data);
+      
+      // Track successful registration
+      trackEvent('registration_success', {
+        email: userData.email
+      });
+      
+      return data;
     } catch (error) {
-      console.error('Registration error details:', error);
+      console.error('Registration error:', error);
       throw error;
     }
   };

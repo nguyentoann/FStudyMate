@@ -56,6 +56,12 @@ public class User {
     @Column(name = "verified")
     private Boolean verified = false;
     
+    @Column(name = "active")
+    private Boolean active = true;
+    
+    @Column(name = "auth_provider", length = 20)
+    private String authProvider;
+    
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Quiz> quizzes;
@@ -73,5 +79,55 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+    
+    // Methods for OAuth2 authentication
+    
+    /**
+     * Get the user's display name
+     * @return the fullName if present, otherwise the username
+     */
+    public String getName() {
+        return fullName != null ? fullName : username;
+    }
+    
+    /**
+     * Set the user's display name
+     * @param name the name to set
+     */
+    public void setName(String name) {
+        this.fullName = name;
+    }
+    
+    /**
+     * Get the authentication provider (e.g., GOOGLE, FACEBOOK, LOCAL)
+     * @return the authentication provider
+     */
+    public String getAuthProvider() {
+        return authProvider;
+    }
+    
+    /**
+     * Set the authentication provider
+     * @param authProvider the authentication provider to set
+     */
+    public void setAuthProvider(String authProvider) {
+        this.authProvider = authProvider;
+    }
+    
+    /**
+     * Check if the user account is active
+     * @return true if active, false otherwise
+     */
+    public Boolean isActive() {
+        return active;
+    }
+    
+    /**
+     * Set the active status of the user account
+     * @param active the active status to set
+     */
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 } 

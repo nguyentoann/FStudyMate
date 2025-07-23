@@ -19,14 +19,64 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.logging.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
     private static final Logger logger = Logger.getLogger(SecurityConfig.class.getName());
     
+    @Value("${oauth2.success-url:/oauth2-success}")
+    private String oauth2SuccessUrl;
+    
+    @Value("${oauth2.failure-url:/login?error=oauth2}")
+    private String oauth2FailureUrl;
+    
+    @Bean
+    public AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
+        SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler();
+        handler.setDefaultTargetUrl(oauth2SuccessUrl);
+        return handler;
+    }
+    
     @Bean
     @Order(1)
+    public SecurityFilterChain oauth2SecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring OAuth2 security filter chain");
+        return http
+                .securityMatcher("/oauth2/**", "/login/oauth2/**")
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll())
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .defaultSuccessUrl(oauth2SuccessUrl)
+                        .failureUrl(oauth2FailureUrl)
+                        .successHandler(oauth2AuthenticationSuccessHandler())
+                )
+                .cors().configurationSource(corsConfigurationSource()).and()
+                .csrf().disable()
+                .build();
+    }
+    
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiAuthSecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring API auth security filter chain");
+        return http
+                .securityMatcher("/api/auth/**")
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/google/user").authenticated()
+                        .anyRequest().permitAll())
+                .cors().configurationSource(corsConfigurationSource()).and()
+                .csrf().disable()
+                .build();
+    }
+    
+    @Bean
+    @Order(3)
     public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http) throws Exception {
         logger.info("Configuring admin security filter chain with CORS enabled");
         // For development purposes, allow all access to admin endpoints
@@ -43,7 +93,7 @@ public class SecurityConfig {
     }
     
     @Bean
-    @Order(2)
+    @Order(4)
     public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
         logger.info("Configuring public security filter chain with CORS enabled");
         return http
@@ -56,7 +106,7 @@ public class SecurityConfig {
     }
     
     @Bean 
-    @Order(3)
+    @Order(5)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         logger.info("Configuring default security filter chain with CORS enabled");
         // Allow all other endpoints to be accessed freely for development

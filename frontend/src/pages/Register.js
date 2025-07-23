@@ -1,13 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { PUBLIC_URL, OPEN_URL, EMERGENCY_URL, API_URL } from '../services/config';
 import { motion } from 'framer-motion';
-import axios from 'axios';
-
-// Add API emergency URL
-const API_EMERGENCY_URL = `${API_URL}/emergency`;
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,189 +12,21 @@ const Register = () => {
     username: '',
     fullName: '',
     phoneNumber: '',
-    role: 'student',
-    // Student-specific fields
-    dateOfBirth: '',
+    role: 'Student',
     gender: 'Male',
-    academicMajor: 'Software Engineering',
-    // Lecturer-specific fields
-    department: '',
-    specializations: '',
-    // Guest-specific fields
-    institutionName: '',
-    accessReason: '',
-    // Outsource student fields
-    organization: ''
+    dateOfBirth: '',
+    academicMajor: 'Software Engineering'
   });
   
   const [error, setError] = useState('');
-  const [debug, setDebug] = useState('');
-  const [activeTab, setActiveTab] = useState('signup');
+  const [activeTab, setActiveTab] = useState('register');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  // Validation states
-  const [emailValid, setEmailValid] = useState(true);
-  const [phoneValid, setPhoneValid] = useState(true);
-  const [emailTaken, setEmailTaken] = useState(false);
-  const [usernameTaken, setUsernameTaken] = useState(false);
-  const [phoneTaken, setPhoneTaken] = useState(false);
-  const [dobValid, setDobValid] = useState(true);
-  
-  // Validation loading states
-  const [checkingEmail, setCheckingEmail] = useState(false);
-  const [checkingUsername, setCheckingUsername] = useState(false);
-  const [checkingPhone, setCheckingPhone] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const { register } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
-
-  // Add debounce function for API calls
-  const debounce = (func, delay) => {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => func.apply(this, args), delay);
-    };
-  };
-
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      console.log('Testing API connection...');
-      const response = await fetch(`${API_URL.replace('/api', '')}/validation/test`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const data = await response.json();
-      console.log('API test response:', data);
-      return data;
-    } catch (error) {
-      console.error('API test error:', error);
-      return { status: 'error', message: error.message };
-    }
-  };
-
-  // Call the test function when component mounts
-  useEffect(() => {
-    testApiConnection();
-  }, []);
-
-  // Check if username is taken
-  const checkUsername = async (username) => {
-    if (!username || username.length < 3) return;
-    
-    setCheckingUsername(true);
-    try {
-      // Call the API to check if username exists
-      const response = await fetch(`${API_URL.replace('/api', '')}/validation/username?username=${encodeURIComponent(username)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      }).catch(() => {
-        // Fallback to simulated check if API fails
-        return new Promise(resolve => 
-          setTimeout(() => resolve({ 
-            ok: true,
-            json: () => Promise.resolve({ exists: username === 'admin' || username === 'test' })
-          }), 600)
-        );
-      });
-      
-      const data = await response.json();
-      setUsernameTaken(data.exists);
-    } catch (error) {
-      console.error('Error checking username:', error);
-      // Fallback to simulated check
-      setUsernameTaken(username === 'admin' || username === 'test');
-    } finally {
-      setCheckingUsername(false);
-    }
-  };
-
-  // Check if email is taken
-  const checkEmail = async (email) => {
-    if (!email || !emailValid) return;
-    
-    setCheckingEmail(true);
-    try {
-      // Call the API to check if email exists
-      const response = await fetch(`${API_URL.replace('/api', '')}/validation/email?email=${encodeURIComponent(email)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      }).catch(() => {
-        // Fallback to simulated check if API fails
-        return new Promise(resolve => 
-          setTimeout(() => resolve({ 
-            ok: true,
-            json: () => Promise.resolve({ exists: email === 'admin@example.com' || email === 'test@example.com' })
-          }), 600)
-        );
-      });
-      
-      const data = await response.json();
-      setEmailTaken(data.exists);
-    } catch (error) {
-      console.error('Error checking email:', error);
-      // Fallback to simulated check
-      setEmailTaken(email === 'admin@example.com' || email === 'test@example.com');
-    } finally {
-      setCheckingEmail(false);
-    }
-  };
-
-  // Check if phone is taken
-  const checkPhone = async (phone) => {
-    if (!phone || !phoneValid) return;
-    
-    setCheckingPhone(true);
-    try {
-      // Call the API to check if phone exists
-      const response = await fetch(`${API_URL.replace('/api', '')}/validation/phone?phone=${encodeURIComponent(phone)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      }).catch(() => {
-        // Fallback to simulated check if API fails
-        return new Promise(resolve => 
-          setTimeout(() => resolve({ 
-            ok: true,
-            json: () => Promise.resolve({ exists: phone === '1234567890' || phone === '0987654321' })
-          }), 600)
-        );
-      });
-      
-      const data = await response.json();
-      setPhoneTaken(data.exists);
-    } catch (error) {
-      console.error('Error checking phone:', error);
-      // Fallback to simulated check
-      setPhoneTaken(phone === '1234567890' || phone === '0987654321');
-    } finally {
-      setCheckingPhone(false);
-    }
-  };
-
-  // Check if user is at least 16 years old
-  const checkAge = (dob) => {
-    if (!dob) return true;
-    
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age >= 16;
-  };
-
-  // Create debounced versions of the check functions
-  const debouncedCheckUsername = debounce(checkUsername, 500);
-  const debouncedCheckEmail = debounce(checkEmail, 500);
-  const debouncedCheckPhone = debounce(checkPhone, 500);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -208,872 +35,462 @@ const Register = () => {
       ...formData,
       [name]: value
     });
-    
-    validateField(name, value);
-  };
-
-  // Handle paste events
-  const handlePaste = (e) => {
-    const { name } = e.target;
-    // Use setTimeout to get the value after the paste event completes
-    setTimeout(() => {
-      const value = e.target.value;
-      validateField(name, value);
-    }, 0);
-  };
-
-  // Validate a specific field
-  const validateField = (name, value) => {
-    // Validate email
-    if (name === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const isValid = emailRegex.test(value);
-      setEmailValid(isValid);
-      if (isValid) {
-        setEmailTaken(false); // Reset before checking
-        debouncedCheckEmail(value);
-      }
-    }
-    
-    // Validate phone
-    if (name === 'phoneNumber') {
-      const phoneRegex = /^[0-9]{9,10}$/;
-      const isValid = phoneRegex.test(value);
-      setPhoneValid(isValid);
-      if (isValid) {
-        setPhoneTaken(false); // Reset before checking
-        debouncedCheckPhone(value);
-      }
-    }
-    
-    // Validate username
-    if (name === 'username') {
-      if (value.length >= 3) {
-        setUsernameTaken(false); // Reset before checking
-        debouncedCheckUsername(value);
-      }
-    }
-    
-    // Validate date of birth
-    if (name === 'dateOfBirth') {
-      setDobValid(checkAge(value));
-    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setDebug('');
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    // Check if email is valid and not taken
-    if (!emailValid || emailTaken) {
-      setError('Please correct the email field');
-      return;
-    }
-
-    // Check if phone is valid and not taken
-    if (!phoneValid || phoneTaken) {
-      setError('Please correct the phone number field');
-      return;
-    }
-
-    // Check if username is not taken
-    if (usernameTaken) {
-      setError('Please choose a different username');
-      return;
-    }
-
-    // Check if date of birth makes user at least 16
-    if (formData.dateOfBirth && !dobValid) {
-      setError('You must be at least 16 years old to register');
-      return;
-    }
+    setLoading(true);
 
     try {
-      setDebug('Submitting registration data...');
-      
-      // Create user object with correct field mapping
+      // Validation
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters');
+        setLoading(false);
+        return;
+      }
+
+      // Create user object
       const userData = {
         email: formData.email,
-        passwordHash: formData.password, // This will be hashed on the server
+        passwordHash: formData.password,
         username: formData.username,
         fullName: formData.fullName,
         role: formData.role,
         phoneNumber: formData.phoneNumber,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        academicMajor: formData.academicMajor
       };
-      
-      // Add role-specific fields based on selected role
-      switch(formData.role) {
-        case 'student':
-          userData.dateOfBirth = formData.dateOfBirth;
-          userData.gender = formData.gender;
-          userData.academicMajor = formData.academicMajor;
-          break;
-        case 'lecturer':
-          userData.department = formData.department;
-          userData.specializations = formData.specializations;
-          break;
-        case 'guest':
-          userData.institutionName = formData.institutionName;
-          userData.accessReason = formData.accessReason;
-          break;
-        case 'outsrc_student':
-          userData.dateOfBirth = formData.dateOfBirth;
-          userData.organization = formData.organization;
-          break;
-        default:
-          // No additional fields needed
-          break;
-      }
-      
-      setDebug(prev => prev + '\nSending data: ' + JSON.stringify(userData));
       
       // Call register API
       const response = await register(userData);
-      setDebug(prev => prev + '\nRegistration successful! Response: ' + JSON.stringify(response));
+      console.log('Registration successful:', response);
       
-      // After successful registration, generate OTP using a separate call
-      setDebug(prev => prev + '\n\nAttempting to generate OTP using multiple endpoints...');
-
-      // Try all three possible OTP generation endpoints
-      let otpGenerationSuccessful = false;
-
-      // 1. Try API endpoint first
-      try {
-        setDebug(prev => prev + '\nTrying API endpoint for OTP generation...');
-        const otpResponse = await fetch(`${API_URL}/auth/generate-otp`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email: userData.email }),
-          credentials: 'omit'
-        });
-        
-        const otpData = await otpResponse.json().catch(() => ({}));
-        
-        if (otpResponse.ok) {
-          setDebug(prev => prev + '\nAPI OTP generation successful: ' + JSON.stringify(otpData));
-          otpGenerationSuccessful = true;
-        } else {
-          setDebug(prev => prev + '\nAPI OTP generation failed, trying emergency endpoint...');
-        }
-      } catch (apiError) {
-        setDebug(prev => prev + '\nError with API OTP generation: ' + apiError.message);
-      }
-
-      // 2. Try direct emergency endpoint if needed
-      if (!otpGenerationSuccessful) {
-        try {
-          setDebug(prev => prev + '\nTrying emergency endpoint for OTP generation...');
-          const emergencyResponse = await fetch(`${EMERGENCY_URL}/generate-otp`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email: userData.email }),
-            credentials: 'omit'
-          });
-          
-          const emergencyData = await emergencyResponse.json().catch(() => ({}));
-          
-          if (emergencyResponse.ok) {
-            // Check if emergency OTP endpoint returned the OTP directly (for testing)
-            if (emergencyData.otp) {
-              setDebug(prev => prev + '\nEmergency OTP generation successful. For testing use: ' + emergencyData.otp);
-            } else {
-              setDebug(prev => prev + '\nEmergency OTP generation successful: ' + JSON.stringify(emergencyData));
-            }
-            otpGenerationSuccessful = true;
-          } else {
-            setDebug(prev => prev + '\nEmergency OTP generation failed: ' + JSON.stringify(emergencyData));
-          }
-        } catch (emergencyError) {
-          setDebug(prev => prev + '\nError with emergency OTP endpoint: ' + emergencyError.message);
-        }
-      }
-
-      // Navigate to verification page regardless of OTP generation success
+      // Navigate to verification page
       navigate('/verify-otp', { 
         state: { email: userData.email } 
       });
       
     } catch (error) {
-      setDebug(prev => prev + '\nRegistration error: ' + error.message);
-      setError('Registration failed: ' + error.message);
-    }
-  };
-
-  // Function to conditionally render role-specific fields
-  const renderRoleSpecificFields = () => {
-    const inputClassName = `appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm transition-all duration-300`;
-    
-    switch(formData.role) {
-      case 'student':
-        return (
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <label htmlFor="academicMajor" className="block text-sm font-medium text-gray-700 mb-1">Academic Major</label>
-              <motion.input
-                id="academicMajor"
-                name="academicMajor"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Academic Major"
-                value={formData.academicMajor}
-                onChange={handleChange}
-                onPaste={handlePaste}
-                whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-            </motion.div>
-          </>
-        );
-      case 'lecturer':
-        return (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <motion.input
-                id="department"
-                name="department"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Department"
-                value={formData.department}
-                onChange={handleChange}
-                  onPaste={handlePaste}
-                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-              >
-                <label htmlFor="specializations" className="block text-sm font-medium text-gray-700 mb-1">Specializations</label>
-                <motion.input
-                id="specializations"
-                name="specializations"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Specializations (comma separated)"
-                value={formData.specializations}
-                onChange={handleChange}
-                  onPaste={handlePaste}
-                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-              </motion.div>
-            </div>
-          </>
-        );
-      case 'guest':
-        return (
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <label htmlFor="institutionName" className="block text-sm font-medium text-gray-700 mb-1">Institution Name</label>
-              <motion.input
-                id="institutionName"
-                name="institutionName"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Institution Name"
-                value={formData.institutionName}
-                onChange={handleChange}
-                onPaste={handlePaste}
-                whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <label htmlFor="accessReason" className="block text-sm font-medium text-gray-700 mb-1">Access Reason</label>
-              <motion.textarea
-                id="accessReason"
-                name="accessReason"
-                required
-                className={inputClassName}
-                placeholder="Reason for access"
-                value={formData.accessReason}
-                onChange={handleChange}
-                onPaste={handlePaste}
-                rows={3}
-                whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-            </motion.div>
-          </>
-        );
-      case 'outsrc_student':
-        return (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
-                <motion.input
-                id="organization"
-                name="organization"
-                type="text"
-                required
-                className={inputClassName}
-                placeholder="Organization"
-                value={formData.organization}
-                onChange={handleChange}
-                  onPaste={handlePaste}
-                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-              </motion.div>
-            </div>
-          </>
-        );
-      default:
-        return null;
+      console.error('Registration error:', error);
+      setError(error.message || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-    >
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden z-0">
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white bg-opacity-10"
-            style={{
-              width: `${Math.random() * 300 + 50}px`,
-              height: `${Math.random() * 300 + 50}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              x: [0, Math.random() * 100 - 50],
-              y: [0, Math.random() * 100 - 50],
-            }}
-            transition={{
-              duration: Math.random() * 20 + 10,
-              repeat: Infinity,
-              repeatType: "reverse",
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </div>
+    <div className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${
+      darkMode ? 'bg-[#111827]' : 'bg-gradient-to-br from-blue-500 to-blue-600'
+    }`}>
+      {/* Decorative circles - only visible in dark mode */}
+      {darkMode && (
+        <>
+          <div className="absolute top-[10%] right-[10%] w-32 h-32 rounded-full bg-white opacity-5"></div>
+          <div className="absolute bottom-[15%] left-[5%] w-40 h-40 rounded-full bg-white opacity-5"></div>
+          <div className="absolute top-[35%] left-[15%] w-24 h-24 rounded-full bg-white opacity-3"></div>
+          <div className="absolute bottom-[10%] right-[15%] w-36 h-36 rounded-full bg-white opacity-4"></div>
+          <div className="absolute top-[60%] right-[25%] w-20 h-20 rounded-full bg-white opacity-3"></div>
+        </>
+      )}
       
-      <motion.div 
-        className="max-w-5xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex z-10"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.7, delay: 0.2 }}
-      >
-        {/* Left side with illustration */}
-        <div className="hidden md:block w-1/2 bg-cover bg-center relative" 
-             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')" }}>
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-400/30 to-purple-800/50 flex items-center justify-center">
-            <motion.div 
-              className="text-white text-center p-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-            >
-              <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
-              <p className="text-lg opacity-90">Create an account to start your learning journey</p>
-            </motion.div>
-          </div>
+      {/* Main content container */}
+      <div className="max-w-5xl w-full rounded-2xl shadow-2xl overflow-hidden flex z-10">
+        {/* Left side with illustration - EXACT SAME in both light and dark mode */}
+        <div className="hidden md:block w-2/5 bg-cover bg-center relative" 
+             style={{ 
+               backgroundImage: "url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')",
+               backgroundPosition: 'center'
+             }}>
+          {/* Gradient overlay - only in light mode */}
+          {!darkMode ? (
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-400/30 to-purple-800/50 flex items-center justify-center">
+              <div className="text-white text-center p-8">
+                <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
+                <p className="text-lg opacity-90">Create an account to start your learning journey</p>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-white text-center p-8">
+                <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
+                <p className="text-lg opacity-90">Create an account to start your learning journey</p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Right side with registration form */}
-        <div className="w-full md:w-1/2 py-6 px-8 overflow-y-auto" style={{ maxHeight: "90vh", minHeight: "650px" }}>
-          <div className="mb-8 flex border-b">
-            <motion.button
-              className={`pb-4 px-4 text-base font-medium relative ${
-                activeTab === 'login' ? 'text-blue-600' : 'text-gray-500'
+        <div className={`w-full md:w-3/5 py-6 px-8 overflow-y-auto ${
+          darkMode ? 'bg-[#1E293B]' : 'bg-white'
+        } ${darkMode ? 'text-white' : 'text-gray-800'}`} style={{ maxHeight: "90vh", minHeight: "600px" }}>
+          {/* Login/Sign up Tabs */}
+          <div className="flex mb-8 border-b border-gray-200 dark:border-gray-700">
+            <button
+              className={`pb-4 px-4 text-base font-medium ${
+                activeTab === 'login'
+                  ? `text-blue-600 border-b-2 border-blue-500`
+                  : `${darkMode ? 'text-gray-400' : 'text-gray-500'}`
               }`}
               onClick={() => navigate('/login')}
-              whileHover={{ y: -2 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
               Login
-              {activeTab === 'login' && (
-                <motion.div
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                  layoutId="activeTab"
-                  initial={false}
-                />
-              )}
-            </motion.button>
-            <motion.button
-              className={`pb-4 px-4 text-base font-medium relative ${
-                activeTab === 'signup' ? 'text-blue-600' : 'text-gray-500'
+            </button>
+            <button
+              className={`pb-4 px-4 text-base font-medium ${
+                activeTab === 'register'
+                  ? `text-blue-600 border-b-2 border-blue-500`
+                  : `${darkMode ? 'text-gray-400' : 'text-gray-500'}`
               }`}
-              onClick={() => setActiveTab('signup')}
-              whileHover={{ y: -2 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
               Sign up
-              {activeTab === 'signup' && (
-                <motion.div
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                  layoutId="activeTab"
-                  initial={false}
-                />
-              )}
-            </motion.button>
+            </button>
           </div>
           
-          {error && (
-            <motion.div 
-              className="rounded-md bg-red-50 p-4 mb-4"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="text-sm text-red-700">{error}</div>
-            </motion.div>
-          )}
-          
-          {/* Main form content */}
-          <motion.form 
-            onSubmit={handleSubmit} 
-            className="space-y-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
+          {/* Form content */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email and Username in one row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="min-h-[85px]" // Add minimum height to accommodate validation message
-              >
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
+              {/* Email field */}
+              <div>
+                <label htmlFor="email" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Email
+                </label>
                 <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    placeholder="you@example.com"
+                    className={`pl-10 pr-3 py-2 block w-full rounded-lg border ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                    value={formData.email}
+                    onChange={handleChange}
+                  />
                 </div>
-                  <motion.input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                    onPaste={handlePaste}
-                    className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${(formData.email && !emailValid) || emailTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
-                  placeholder="you@example.com"
-                  required
-                    whileFocus={{ scale: 1.01 }}
-                />
-                  {formData.email && (
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      {!emailValid ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : checkingEmail ? (
-                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : emailTaken ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
               </div>
-                  )}
-            </div>
-                {formData.email && !emailValid && (
-                  <p className="text-sm text-red-600 mt-1">Please enter a valid email address.</p>
-                )}
-                {emailValid && emailTaken && (
-                  <p className="text-sm text-red-600 mt-1">This email is already registered.</p>
-                )}
-              </motion.div>
               
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.05 }}
-                className="min-h-[85px]" // Add minimum height to accommodate validation message
-              >
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                Username
-              </label>
+              {/* Username field */}
+              <div>
+                <label htmlFor="username" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Username
+                </label>
                 <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    required
+                    className={`pl-10 pr-3 py-2 block w-full rounded-lg border ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                    value={formData.username}
+                    onChange={handleChange}
+                  />
                 </div>
-                  <motion.input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                    onPaste={handlePaste}
-                    className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${usernameTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
-                  required
-                    whileFocus={{ scale: 1.01 }}
-                />
-                  {formData.username && formData.username.length >= 3 && (
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      {checkingUsername ? (
-                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : usernameTaken ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
               </div>
-                  )}
-                </div>
-                {usernameTaken && (
-                  <p className="text-sm text-red-600 mt-1">This username is already taken.</p>
-                )}
-              </motion.div>
             </div>
             
             {/* Full Name and Phone Number in one row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="min-h-[85px]" // Add minimum height
-              >
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
-                <motion.input
-                type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                  onPaste={handlePaste}
-                  className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
-                required
-                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              />
-              </motion.div>
-            
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.15 }}
-                className="min-h-[85px]" // Add minimum height to accommodate validation message
-              >
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-                <div className="relative flex">
-                  <div className="inline-flex">
-                    <button 
-                      type="button"
-                      className="inline-flex items-center px-3 h-[42px] border border-gray-300 rounded-l-lg bg-gray-50 hover:bg-gray-100 focus:outline-none"
-                    >
-                      <img src="https://flagcdn.com/w20/vn.png" alt="Vietnam" className="mr-1" />
-                      <span className="text-sm font-medium">+84</span>
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
+              {/* Full Name field */}
+              <div>
+                <label htmlFor="fullName" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Full Name
+                </label>
+                <input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  required
+                  className={`block w-full rounded-lg border py-2 px-3 ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                  value={formData.fullName}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              {/* Phone Number field */}
+              <div>
+                <label htmlFor="phoneNumber" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Phone Number
+                </label>
+                <div className="flex">
+                  <div 
+                    className={`flex items-center justify-center px-3 rounded-l-lg ${
+                      darkMode ? 'bg-gray-600 text-white border-gray-600' : 'bg-gray-50 text-gray-700 border-gray-300'
+                    } border`}
+                    style={{ minWidth: "70px", height: "40px" }}
+                  >
+                    <img src="https://flagcdn.com/w20/vn.png" alt="Vietnam" className="mr-1" />
+                    <span className="text-sm font-medium">+84</span>
                   </div>
-                  <motion.input
-                type="tel"
-                id="phoneNumber"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                    onPaste={handlePaste}
-                    className={`block w-full rounded-none rounded-r-lg border h-[42px] ${(formData.phoneNumber && !phoneValid) || phoneTaken ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300 px-3`}
-                required
+                  <input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    required
                     placeholder="123456789"
-                    whileFocus={{ scale: 1.01 }}
+                    className={`block w-full rounded-r-lg border px-3 ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                    style={{ height: "40px" }}
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
                   />
-                  {formData.phoneNumber && (
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      {!phoneValid ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : checkingPhone ? (
-                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : phoneTaken ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
                 </div>
-                {formData.phoneNumber && !phoneValid && (
-                  <p className="text-sm text-red-600 mt-1">Please enter a valid phone number!</p>
-                )}
-                {phoneValid && phoneTaken && (
-                  <p className="text-sm text-red-600 mt-1">This phone number is already registered.</p>
-                )}
-              </motion.div>
+              </div>
             </div>
             
             {/* Password and Confirm Password in one row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                className="min-h-[85px]" // Add minimum height
-              >
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
+              {/* Password field */}
+              <div>
+                <label htmlFor="password" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Password
+                </label>
                 <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                </div>
-                  <motion.input
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                    onPaste={handlePaste}
-                    className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px]"
-                  required
-                    whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                    autoComplete="new-password"
+                    required
+                    className={`pl-10 pr-10 py-2 block w-full rounded-lg border ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                    value={formData.password}
+                    onChange={handleChange}
                   />
-                  <div 
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
-                    onClick={() => setShowPassword(prev => !prev)}
+                  <button 
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     )}
-              </div>
-            </div>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25 }}
-                className="min-h-[85px]" // Add minimum height
-              >
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
-              </label>
-                <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
+                  </button>
                 </div>
-                  <motion.input
+              </div>
+              
+              {/* Confirm Password field */}
+              <div>
+                <label htmlFor="confirmPassword" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                    onPaste={handlePaste}
-                    className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px]"
-                  required
-                    whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
+                    autoComplete="new-password"
+                    required
+                    className={`pl-10 pr-10 py-2 block w-full rounded-lg border ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
                   />
-                  <div 
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
-                    onClick={() => setShowConfirmPassword(prev => !prev)}
+                  <button 
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 hover:text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-300' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     )}
-              </div>
+                  </button>
                 </div>
-              </motion.div>
+              </div>
             </div>
             
-            {/* Role, Gender and Date of Birth in one row */}
+            {/* Role, Gender and Date of Birth */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-                className="min-h-[85px]" // Add minimum height
-              >
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
-                <motion.select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                  onPaste={handlePaste}
-                  className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
-                required
-                  whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-              >
-                <option value="student">Student</option>
-                <option value="lecturer">Lecturer</option>
-                <option value="guest">Guest</option>
-                <option value="outsrc_student">Outsource Student</option>
-                </motion.select>
-              </motion.div>
-
-              {formData.role === 'student' || formData.role === 'outsrc_student' ? (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="min-h-[85px]" // Add minimum height
-                  >
-                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                    <motion.select
-                      id="gender"
-                      name="gender"
-                      required
-                      className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
-                      value={formData.gender}
-                      onChange={handleChange}
-                      onPaste={handlePaste}
-                      whileFocus={{ scale: 1.01, borderColor: '#3b82f6' }}
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </motion.select>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
-                    className="min-h-[85px]" // Add minimum height
-                  >
-                    <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                    <motion.input
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                      type="date"
-                      required
-                      className={`block w-full rounded-lg border h-[42px] ${formData.dateOfBirth && !dobValid ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300 px-3`}
-                      value={formData.dateOfBirth}
-                      onChange={handleChange}
-                      onPaste={handlePaste}
-                      whileFocus={{ scale: 1.01 }}
-                    />
-                    {formData.dateOfBirth && !dobValid && (
-                      <p className="text-sm text-red-600 mt-1">You must be at least 16 years old to register.</p>
-                    )}
-                  </motion.div>
-                </>
-              ) : null}
+              {/* Role dropdown */}
+              <div>
+                <label htmlFor="role" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Role
+                </label>
+                <select
+                  id="role"
+                  name="role"
+                  className={`block w-full rounded-lg border py-2 px-3 ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                  value={formData.role}
+                  onChange={handleChange}
+                >
+                  <option value="Student">Student</option>
+                  <option value="Lecturer">Lecturer</option>
+                  <option value="Guest">Guest</option>
+                  <option value="Outsrc_student">Outsource Student</option>
+                </select>
+              </div>
+              
+              {/* Gender dropdown */}
+              <div>
+                <label htmlFor="gender" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Gender
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  className={`block w-full rounded-lg border py-2 px-3 ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                  value={formData.gender}
+                  onChange={handleChange}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              
+              {/* Date of Birth */}
+              <div>
+                <label htmlFor="dateOfBirth" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Date of Birth
+                </label>
+                <div className="relative">
+                  <input
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    type="date"
+                    required
+                    className={`block w-full rounded-lg border py-2 px-3 ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                    } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    placeholder="mm/dd/yyyy"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
             
-            {/* Role-specific fields */}
-            {renderRoleSpecificFields()}
+            {/* Academic Major field */}
+            {(formData.role === 'Student' || formData.role === 'Outsrc_student') && (
+              <div>
+                <label htmlFor="academicMajor" className={`block text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-1`}>
+                  Academic Major
+                </label>
+                <input
+                  id="academicMajor"
+                  name="academicMajor"
+                  type="text"
+                  className={`block w-full rounded-lg border py-2 px-3 ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  } shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                  value={formData.academicMajor}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
+            
+            {/* Error display */}
+            {error && (
+              <div className={`rounded-md p-4 ${darkMode ? 'bg-red-900 text-red-100' : 'bg-red-50 text-red-700'}`}>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className={`h-5 w-5 ${darkMode ? 'text-red-300' : 'text-red-400'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Go Back and Register Buttons */}
             <div className="flex gap-4 pt-4">
-              <motion.button
+              <button
                 type="button"
                 onClick={() => navigate('/')} 
-                className="flex-1 flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-                whileHover={{ y: -2, boxShadow: "0 10px 15px -5px rgba(0, 0, 0, 0.1)" }}
-                whileTap={{ scale: 0.98 }}
+                className={`flex-1 flex justify-center py-3 px-4 border rounded-lg shadow-sm text-sm font-medium ${
+                  darkMode 
+                    ? 'border-gray-600 text-white bg-gray-700 hover:bg-gray-600'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                }`}
               >
                 Go Back Home
-              </motion.button>
-              <motion.button
+              </button>
+              <button
                 type="submit"
-                className="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 uppercase transition-all duration-300"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.35 }}
-                whileHover={{ y: -2, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.5)" }}
-                whileTap={{ scale: 0.98 }}
+                className="flex-1 flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 uppercase"
+                disabled={loading}
               >
-                Register
-              </motion.button>
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  'REGISTER'
+                )}
+              </button>
             </div>
-          </motion.form>
-            </div>
-      </motion.div>
-    </motion.div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 };
 

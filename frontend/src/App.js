@@ -82,6 +82,7 @@ import LearningMaterialsPage from "./pages/LearningMaterialsPage";
 import SubjectMaterialsPage from "./pages/SubjectMaterialsPage";
 // Import Search Page
 import SearchPage from "./pages/SearchPage";
+import OAuth2Success from "./pages/OAuth2Success";
 
 function App() {
   useEffect(() => {
@@ -594,6 +595,9 @@ function App() {
                     
                     {/* 404 Route - must be last */}
                     <Route path="*" element={<NotFound />} />
+                    
+                    {/* OAuth2 redirect route */}
+                    <Route path="/oauth2-success" element={<OAuth2Success />} />
                   </Routes>
                   <ThemeToggle />
                   {/* Video Call Components */}
