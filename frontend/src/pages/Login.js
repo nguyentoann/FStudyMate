@@ -202,44 +202,7 @@ const Login = () => {
 
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="relative w-full h-full">
-        {/* Animated background elements */}
-        <motion.div
-          className="absolute top-10 left-10 w-40 h-40 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
-          animate={{ 
-            x: [0, 30, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{
-            repeat: Infinity,
-            repeatType: "reverse",
-            duration: 8,
-          }}
-        />
-        <motion.div
-          className="absolute bottom-10 right-10 w-52 h-52 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30"
-          animate={{ 
-            x: [0, -30, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{
-            repeat: Infinity,
-            repeatType: "reverse",
-            duration: 10,
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-          animate={{ 
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            repeat: Infinity,
-            repeatType: "reverse",
-            duration: 12,
-          }}
-        />
-            </div>
+      {/* Removed the animated background elements that were consuming GPU */}
 
       <div className="z-10 w-full max-w-md">
         <motion.div 
@@ -317,7 +280,6 @@ const Login = () => {
                     className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${login && loginValid === false ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : loginValid === true ? 'border-green-300 focus:border-green-500 focus:ring-green-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} shadow-sm transition-all duration-300`}
                     placeholder="Username or email"
                     required
-                    whileFocus={{ scale: 1.01 }}
                   />
                   {login && (
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -367,7 +329,6 @@ const Login = () => {
                     onPaste={handlePaste}
                     className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-[42px] transition-all duration-300"
                 required
-                    whileFocus={{ scale: 1.01 }}
                   />
                   <button 
                     type="button"
@@ -414,8 +375,6 @@ const Login = () => {
               <motion.button
                 type="submit"
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                whileTap={{ scale: 0.98 }}
-                whileHover={{ scale: 1.01 }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.4 }}
