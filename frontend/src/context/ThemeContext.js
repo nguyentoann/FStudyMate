@@ -365,6 +365,203 @@ export const ThemeProvider = ({ children }) => {
           .dark-mode .react-calendar__navigation * {
             color: #f3f4f6 !important;
           }
+          
+          /* Fix progress bars in dark mode */
+          .dark-mode .progress-bar,
+          .dark-mode .ant-progress,
+          .dark-mode progress,
+          .dark-mode [role="progressbar"],
+          .dark-mode [class*="progress"] {
+            background-color: rgba(30, 41, 59, 0.6) !important;
+            border-color: #475569 !important;
+          }
+          
+          .dark-mode .progress-bar > div,
+          .dark-mode .ant-progress-bg,
+          .dark-mode .ant-progress-success-bg,
+          .dark-mode [class*="progress-bar__fill"],
+          .dark-mode [class*="progressBar__fill"],
+          .dark-mode [class*="progress"][class*="fill"],
+          .dark-mode [class*="progressFill"],
+          .dark-mode [role="progressbar"] > div {
+            background-color: #3b82f6 !important; /* blue-500 */
+            color: #f3f4f6 !important;
+          }
+          
+          /* Ensure progress text is visible */
+          .dark-mode .ant-progress-text,
+          .dark-mode .ant-progress-status-text,
+          .dark-mode [class*="progress"] span,
+          .dark-mode [class*="progress"] text,
+          .dark-mode [class*="progressText"],
+          .dark-mode [role="progressbar"] span {
+            color: #f3f4f6 !important;
+          }
+          
+          /* Subject codes should not change color in dark mode */
+          .dark-mode .subject-code,
+          .dark-mode [class*="subject-code"],
+          .dark-mode [class*="subjectCode"],
+          .dark-mode [data-type="subject-code"],
+          .dark-mode [data-subject-code] {
+            color: inherit !important;
+            background-color: inherit !important;
+          }
+
+          /* Subject codes should not change color in dark mode - stronger selectors */
+          .dark-mode .subject-code,
+          .dark-mode [class*="subject-code"],
+          .dark-mode [class*="subjectCode"],
+          .dark-mode [data-type="subject-code"],
+          .dark-mode [data-subject-code],
+          .dark-mode span[class*="subject-code"],
+          .dark-mode div[class*="subject-code"],
+          .dark-mode .subject-code *,
+          .dark-mode [class*="subject-code"] *,
+          .dark-mode [class*="subjectCode"] *,
+          .dark-mode [data-type="subject-code"] * {
+            color: inherit !important;
+            background-color: inherit !important;
+            border-color: inherit !important;
+          }
+          
+          /* Fix for subject code spans to NEVER change color */
+          .dark-mode span.subject-code,
+          .dark-mode span[class="subject-code"],
+          .dark-mode span[class^="subject-code"],
+          .dark-mode span[class*=" subject-code"],
+          .dark-mode span[class*="subject-code"] {
+            color: inherit !important;
+            background-color: inherit !important;
+            border-color: inherit !important;
+            opacity: 1 !important;
+          }
+          
+          /* Ultimate fix for subject-code spans - HIGHEST SPECIFICITY */
+          html .dark-mode span.subject-code,
+          html .dark-mode span[class="subject-code"],
+          html .dark-mode span[class*="subject-code"],
+          html .dark-mode .subject-code,
+          html .dark-mode span.subject-code,
+          html .dark-mode *[class*="subject-code"],
+          html .dark-mode span[class*="subject-code"] {
+            color: inherit !important;
+            background-color: inherit !important;
+            border-color: inherit !important;
+            font-family: inherit !important;
+            font-size: inherit !important;
+            font-weight: inherit !important;
+            text-decoration: inherit !important;
+            padding: inherit !important;
+            margin: inherit !important;
+            border-radius: inherit !important;
+            box-shadow: inherit !important;
+            text-shadow: inherit !important;
+            letter-spacing: inherit !important;
+            opacity: 1 !important;
+            display: inline-block !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+          }
+          
+          /* Preserve exact color values for subject codes */
+          .dark-mode span.subject-code,
+          .dark-mode span[class="subject-code"],
+          .dark-mode span[class*="subject-code"],
+          .dark-mode .subject-code {
+            all: unset !important;
+            display: inline-block !important;
+          }
+          
+          /* Special fix for MAE101 and other subject codes in materials */
+          .dark-mode span.subject-code,
+          .dark-mode span[class="subject-code"] {
+            color: #4F1F59 !important; /* The color from your screenshot */
+            background-color: #1E293B !important;
+            font-weight: bold !important;
+          }
+          
+          /* Enhanced fix for Overall Progress bar */
+          .dark-mode .progress-bar[class*="overall"],
+          .dark-mode .overall-progress,
+          .dark-mode [class*="progress"][class*="overall"],
+          .dark-mode [class*="overall"][class*="progress"],
+          .dark-mode [data-label*="Overall"],
+          .dark-mode [aria-label*="Overall"],
+          .dark-mode div:has(> div[style*="width"]):has(> div[role="progressbar"]) {
+            opacity: 1 !important;
+            background-color: rgba(100, 116, 139, 0.3) !important; /* slate-500 at 30% opacity */
+          }
+          
+          .dark-mode .progress-bar[class*="overall"] > div,
+          .dark-mode .overall-progress > div,
+          .dark-mode [class*="progress"][class*="overall"] > div,
+          .dark-mode [class*="overall"][class*="progress"] > div,
+          .dark-mode [data-label*="Overall"] > div,
+          .dark-mode [aria-label*="Overall"] > div,
+          .dark-mode div[style*="width"][role="progressbar"] {
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+          
+          /* Dashboard-specific progress bars by their percentages */
+          .dark-mode div:has(> div[style*="width: 58%"]),
+          .dark-mode div:has(> div[style*="width: 75%"]),
+          .dark-mode div:has(> div[style*="width: 60%"]),
+          .dark-mode div:has(> div[style*="width: 40%"]) {
+            background-color: rgba(100, 116, 139, 0.3) !important;
+          }
+          
+          .dark-mode div[style*="width: 58%"],
+          .dark-mode div[style*="width: 75%"],
+          .dark-mode div[style*="width: 60%"],
+          .dark-mode div[style*="width: 40%"] {
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+          
+          /* Subject specific bars by color */
+          .dark-mode div[style*="width: 58%"] {
+            background-color: #3b82f6 !important; /* blue-500 */
+          }
+          
+          .dark-mode div[style*="width: 75%"] {
+            background-color: #22c55e !important; /* green-500 */
+          }
+          
+          .dark-mode div[style*="width: 60%"] {
+            background-color: #f97316 !important; /* orange-500 */
+          }
+          
+          .dark-mode div[style*="width: 40%"] {
+            background-color: #f59e0b !important; /* amber-500 */
+          }
+          
+          /* Preserve Overall Progress bar colors */
+          .dark-mode .overall-progress,
+          .dark-mode [class*="overall-progress"],
+          .dark-mode [class*="overallProgress"],
+          .dark-mode [data-progress-type="overall"],
+          .dark-mode [aria-label*="Overall Progress"],
+          .dark-mode [title*="Overall Progress"],
+          .dark-mode .progress-bar[data-label*="Overall"],
+          .dark-mode .ant-progress[data-label*="Overall"],
+          .dark-mode [class*="progress"][data-label*="Overall"] {
+            background-color: inherit !important;
+          }
+          
+          .dark-mode .overall-progress > div,
+          .dark-mode [class*="overall-progress"] > div,
+          .dark-mode [class*="overallProgress"] > div,
+          .dark-mode [data-progress-type="overall"] > div,
+          .dark-mode [aria-label*="Overall Progress"] > div,
+          .dark-mode [title*="Overall Progress"] > div,
+          .dark-mode .progress-bar[data-label*="Overall"] > div,
+          .dark-mode .ant-progress-bg[data-label*="Overall"],
+          .dark-mode .ant-progress[data-label*="Overall"] .ant-progress-bg {
+            background-color: inherit !important;
+            color: inherit !important;
+          }
 
           /* Fix for search-container elements */
           .dark-mode [class*="search-container"],

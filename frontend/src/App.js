@@ -65,6 +65,8 @@ import CalendarPageTabsDemo from "./components/CalendarPageTabsDemo";
 import AntTagPreserveDemo from "./components/AntTagPreserveDemo";
 import TableDarkModeDemo from "./components/TableDarkModeDemo";
 import CalendarHeaderDarkModeDemo from "./components/CalendarHeaderDarkModeDemo";
+import ProgressBarSubjectCodeDemo from "./components/ProgressBarSubjectCodeDemo";
+import SubjectCodeLightModePreserver from "./components/SubjectCodeLightModePreserver";
 
 // Show developer tools only in development environment
 // const isDevelopment = process.env.NODE_ENV === 'development' ||
@@ -102,6 +104,7 @@ function App() {
           <DirectWebRTCProvider>
             <ThemeProvider>
               <AntDesignThemeProvider>
+                <SubjectCodeLightModePreserver />
                 <Router>
                   {/* <BlueCursor /> */}
                   <Routes>
@@ -575,6 +578,16 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <CalendarHeaderDarkModeDemo />
+                        </ProtectedRoute>
+                      }
+                    />
+                    
+                    {/* Progress Bar and Subject Code Demo route */}
+                    <Route
+                      path="/demo/progress-subject-demo"
+                      element={
+                        <ProtectedRoute>
+                          <ProgressBarSubjectCodeDemo />
                         </ProtectedRoute>
                       }
                     />

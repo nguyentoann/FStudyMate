@@ -1164,3 +1164,237 @@ body.dark-mode .rbc-toolbar *,
 body.dark-mode .react-calendar__navigation * {
   color: #f3f4f6 !important;
 } 
+
+/* Fix progress bars in dark mode */
+body.dark-mode .progress-bar,
+body.dark-mode .ant-progress,
+body.dark-mode progress,
+body.dark-mode [role="progressbar"],
+body.dark-mode [class*="progress"] {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+  border-color: #475569 !important;
+}
+
+body.dark-mode .progress-bar > div,
+body.dark-mode .ant-progress-bg,
+body.dark-mode .ant-progress-success-bg,
+body.dark-mode [class*="progress-bar__fill"],
+body.dark-mode [class*="progressBar__fill"],
+body.dark-mode [class*="progress"][class*="fill"],
+body.dark-mode [class*="progressFill"],
+body.dark-mode [role="progressbar"] > div {
+  background-color: #3b82f6 !important; /* blue-500 */
+  color: #f3f4f6 !important;
+}
+
+/* Ensure progress text is visible */
+body.dark-mode .ant-progress-text,
+body.dark-mode .ant-progress-status-text,
+body.dark-mode [class*="progress"] span,
+body.dark-mode [class*="progress"] text,
+body.dark-mode [class*="progressText"],
+body.dark-mode [role="progressbar"] span {
+  color: #f3f4f6 !important;
+}
+
+/* Subject codes should not change color in dark mode - stronger selectors */
+body.dark-mode .subject-code,
+body.dark-mode [class*="subject-code"],
+body.dark-mode [class*="subjectCode"],
+body.dark-mode [data-type="subject-code"],
+body.dark-mode [data-subject-code],
+body.dark-mode span[class*="subject-code"],
+body.dark-mode div[class*="subject-code"],
+body.dark-mode .subject-code *,
+body.dark-mode [class*="subject-code"] *,
+body.dark-mode [class*="subjectCode"] *,
+body.dark-mode [data-type="subject-code"] * {
+  color: inherit !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+}
+
+/* Ultimate fix for subject-code spans - HIGHEST SPECIFICITY */
+body.dark-mode span.subject-code,
+body.dark-mode span[class="subject-code"],
+body.dark-mode span[class*="subject-code"],
+html body.dark-mode .subject-code,
+html body.dark-mode span.subject-code,
+html body.dark-mode *[class*="subject-code"],
+html body.dark-mode span[class*="subject-code"] {
+  color: inherit !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  text-decoration: inherit !important;
+  padding: inherit !important;
+  margin: inherit !important;
+  border-radius: inherit !important;
+  box-shadow: inherit !important;
+  text-shadow: inherit !important;
+  letter-spacing: inherit !important;
+  opacity: 1 !important;
+  display: inline-block !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+/* Preserve exact color values for subject codes */
+body.dark-mode span.subject-code,
+body.dark-mode span[class="subject-code"],
+body.dark-mode span[class*="subject-code"],
+body.dark-mode .subject-code {
+  all: unset !important;
+  display: inline-block !important;
+}
+
+/* Special fix for MAE101 and other subject codes in materials */
+body.dark-mode span.subject-code,
+body.dark-mode span[class="subject-code"] {
+  color: #4F1F59 !important; /* The color from your screenshot */
+  background-color: #1E293B !important;
+  font-weight: bold !important;
+}
+
+/* Enhanced fix for Overall Progress bar */
+body.dark-mode .progress-bar[class*="overall"],
+body.dark-mode .overall-progress,
+body.dark-mode [class*="progress"][class*="overall"],
+body.dark-mode [class*="overall"][class*="progress"],
+body.dark-mode [data-label*="Overall"],
+body.dark-mode [aria-label*="Overall"],
+body.dark-mode div:has(> div[style*="width"]):has(> div[role="progressbar"]) {
+  opacity: 1 !important;
+  background-color: rgba(100, 116, 139, 0.3) !important; /* slate-500 at 30% opacity */
+}
+
+body.dark-mode .progress-bar[class*="overall"] > div,
+body.dark-mode .overall-progress > div,
+body.dark-mode [class*="progress"][class*="overall"] > div,
+body.dark-mode [class*="overall"][class*="progress"] > div,
+body.dark-mode [data-label*="Overall"] > div,
+body.dark-mode [aria-label*="Overall"] > div,
+body.dark-mode div[style*="width"][role="progressbar"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Dashboard-specific progress bars by their percentages */
+body.dark-mode div:has(> div[style*="width: 58%"]),
+body.dark-mode div:has(> div[style*="width: 75%"]),
+body.dark-mode div:has(> div[style*="width: 60%"]),
+body.dark-mode div:has(> div[style*="width: 40%"]) {
+  background-color: rgba(100, 116, 139, 0.3) !important;
+}
+
+body.dark-mode div[style*="width: 58%"],
+body.dark-mode div[style*="width: 75%"],
+body.dark-mode div[style*="width: 60%"],
+body.dark-mode div[style*="width: 40%"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Subject specific bars by color */
+body.dark-mode div[style*="width: 58%"] {
+  background-color: #3b82f6 !important; /* blue-500 */
+}
+
+body.dark-mode div[style*="width: 75%"] {
+  background-color: #22c55e !important; /* green-500 */
+}
+
+body.dark-mode div[style*="width: 60%"] {
+  background-color: #f97316 !important; /* orange-500 */
+}
+
+body.dark-mode div[style*="width: 40%"] {
+  background-color: #f59e0b !important; /* amber-500 */
+} 
+
+/* Materials page subject-code fix */
+body.dark-mode .materials-page span.subject-code,
+body.dark-mode [class*="materials"] span.subject-code,
+body.dark-mode [class*="subject-materials-page"] span.subject-code,
+body.dark-mode #subject-materials span.subject-code,
+body.dark-mode .ant-typography span.subject-code,
+body.dark-mode h2 span.subject-code {
+  color: #4F1F59 !important;
+  background-color: transparent !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+  margin-right: 0.5rem !important;
+}
+
+/* Direct target for the MAE101 material header */
+body.dark-mode h2 span[class="subject-code"],
+body.dark-mode h2 span.subject-code,
+body.dark-mode [class*="page-header"] span.subject-code,
+body.dark-mode [class*="materials"] [class*="header"] span.subject-code {
+  color: #4F1F59 !important;
+  font-size: 2rem !important;
+  font-weight: bold !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin-right: 0.25rem !important;
+  display: inline-block !important;
+} 
+
+/* Complete exclusion of subject-code from dark mode */
+body.dark-mode span.subject-code,
+body.dark-mode h2 span.subject-code,
+body.dark-mode [class*="materials"] span.subject-code,
+body.dark-mode [class*="page-header"] span.subject-code {
+  /* Reset all dark mode styles */
+  color: #c026d3 !important; /* Reset to the purple color seen in the screenshot */
+  background-color: transparent !important;
+  font-size: 2rem !important;
+  font-weight: bold !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  opacity: 1 !important;
+  /* Force light mode rules to be applied */
+  mix-blend-mode: normal !important;
+  isolation: isolate !important;
+}
+
+/* Ensure subject-code container in materials is excluded from dark mode */
+body.dark-mode h2:has(span.subject-code) {
+  isolation: isolate !important;
+}
+
+/* Target specifically the MAE101 element shown in the screenshot */
+body.dark-mode span.subject-code[class="subject-code"] {
+  color: #c026d3 !important; /* Purple color from the screenshot */
+} 
+
+/* Create a class to fully preserve light mode styling */
+.preserve-light-mode {
+  /* Force light mode colors regardless of parent dark mode */
+  color-scheme: light !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  
+  /* Isolate from dark mode parent elements */
+  isolation: isolate !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Apply preserve-light-mode to subject codes in dark mode */
+body.dark-mode span.subject-code,
+body.dark-mode h2 span.subject-code {
+  /* Add the preservation class */
+  color-scheme: light !important;
+  isolation: isolate !important;
+  mix-blend-mode: normal !important;
+  
+  /* Override dark mode effects */
+  filter: none !important;
+  -webkit-filter: none !important;
+  opacity: 1 !important;
+  
+  /* Force the purple color we see in the screenshot */
+  color: #c026d3 !important;
+} 
