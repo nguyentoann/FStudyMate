@@ -461,7 +461,7 @@ const Login = () => {
                     placeholder="Password"
                     onChange={handleChange}
                     onPaste={handlePaste}
-                    className="pl-10 pr-10 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-[42px] transition-all duration-300"
+                    className="pl-3 block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 h-[42px] transition-all duration-300"
                     required
                     whileFocus={{ scale: 1.01 }}
                   />
