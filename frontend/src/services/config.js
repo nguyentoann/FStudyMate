@@ -13,7 +13,7 @@ let API_BASE_URL;
 
 if (isLocalhost) {
   // When running locally on a browser on the same machine
-  API_BASE_URL = 'http://localhost:8080';
+  API_BASE_URL = `http://${hostname}:8080`;
 } else if (hostname === 'fstudy.tinymation.com') {
   // When accessing from the production domain, use specific backend
   API_BASE_URL = 'http://toandz.ddns.net:8080';
