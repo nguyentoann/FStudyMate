@@ -1,53 +1,73 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import NotificationBell from './NotificationBell';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = ({ toggleSidebar = () => {} }) => {
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Get the dashboard URL based on user role
   const getDashboardUrl = () => {
-    if (!user || !user.role) return '/dashboard';
-    
+    if (!user || !user.role) return "/dashboard";
+
     switch (user.role.toLowerCase()) {
-      case 'student': return '/student/dashboard';
-      case 'lecturer': return '/lecturer/dashboard';
-      case 'admin': return '/admin/dashboard';
-      case 'guest': return '/guest/dashboard';
-      case 'outsrc_student': return '/outsource/dashboard';
-      default: return '/dashboard';
+      case "student":
+        return "/student/dashboard";
+      case "lecturer":
+        return "/lecturer/dashboard";
+      case "admin":
+        return "/admin/dashboard";
+      case "guest":
+        return "/guest/dashboard";
+      case "outsrc_student":
+        return "/outsource/dashboard";
+      default:
+        return "/dashboard";
     }
   };
-  
+
   return (
     <nav className="bg-indigo-600 text-white shadow-md py-2 px-4 fixed top-0 left-0 right-0 z-[95]">
       <div className="container mx-auto flex justify-between items-center">
         {/* Left side - Logo, Brand, and Hamburger */}
         <div className="flex items-center">
           {/* Hamburger Menu Button - visible on all screens */}
-          <button 
+          <button
             onClick={toggleSidebar}
             className="mr-4 p-1 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
             aria-label="Toggle sidebar"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
-          
+
           {/* Logo and Brand */}
-          <Link to={user ? getDashboardUrl() : "/"} className="flex items-center space-x-2">
-            <img 
-              src="https://png.pngtree.com/png-vector/20220617/ourmid/pngtree-yellow-frog-with-happy-face-clipping-clipart-nature-vector-png-image_37070992.png" 
-              alt="FStudyMate Logo" 
+          <Link
+            to={user ? getDashboardUrl() : "/"}
+            className="flex items-center space-x-2"
+          >
+            <img
+              src="https://png.pngtree.com/png-vector/20220617/ourmid/pngtree-yellow-frog-with-happy-face-clipping-clipart-nature-vector-png-image_37070992.png"
+              alt="FStudyMate Logo"
               className="h-10 w-10 object-contain bg-white rounded-full p-1"
             />
             <span className="text-xl font-bold text-white">FStudyMate</span>
           </Link>
         </div>
-        
+
         {/* Center - Search Bar */}
         <div className="hidden md:flex md:flex-1 mx-4">
           <div className="relative w-full max-w-lg mx-auto">
@@ -58,34 +78,56 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <div className="absolute left-3 top-2.5 text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <div className="absolute right-2 top-2.5 text-gray-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
           </div>
         </div>
-        
+
         {/* Right side - Menu and Notifications */}
         <div className="flex items-center space-x-4">
           {/* Search icon for mobile */}
           <button className="md:hidden text-white hover:text-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </button>
-          
+
           {/* Notifications */}
           <div className="relative text-white hover:text-gray-200">
             <NotificationBell />
           </div>
-          
+
           {/* User Profile */}
           {user && (
             <Link to="/profile" className="flex items-center space-x-2">
-              <img 
-                src={user.profileImageUrl || 'https://via.placeholder.com/40'} 
-                alt={user.fullName} 
+              <img
+                src={user.profileImageUrl || "https://via.placeholder.com/40"}
+                alt={user.fullName}
                 className="h-8 w-8 rounded-full object-cover border-2 border-white"
               />
             </Link>
@@ -96,4 +138,4 @@ const Navbar = ({ toggleSidebar = () => {} }) => {
   );
 };
 
-export default Navbar; 
+export default Navbar;

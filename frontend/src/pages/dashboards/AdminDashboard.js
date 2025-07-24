@@ -436,33 +436,38 @@ const AdminDashboard = () => {
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-gray-600">
                     Storage Usage (
-                    {typeof storageInfo.usedSpace === 'number'
+                    {typeof storageInfo.usedSpace === "number"
                       ? storageInfo.usedSpace.toFixed(1)
                       : "0"}{" "}
                     GB /{" "}
-                    {typeof storageInfo.totalSpace === 'number'
+                    {typeof storageInfo.totalSpace === "number"
                       ? storageInfo.totalSpace.toFixed(1)
                       : "0"}{" "}
                     GB)
                   </span>
                   <span className="text-sm font-medium text-indigo-600">
-                    {typeof storageInfo.usagePercentage === 'number'
+                    {typeof storageInfo.usagePercentage === "number"
                       ? storageInfo.usagePercentage.toFixed(1)
-                      : "0"}%
+                      : "0"}
+                    %
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
                     className={`h-2.5 rounded-full ${
-                      typeof storageInfo.usagePercentage === 'number' && storageInfo.usagePercentage > 85
+                      typeof storageInfo.usagePercentage === "number" &&
+                      storageInfo.usagePercentage > 85
                         ? "bg-red-500"
-                        : typeof storageInfo.usagePercentage === 'number' && storageInfo.usagePercentage > 70
+                        : typeof storageInfo.usagePercentage === "number" &&
+                          storageInfo.usagePercentage > 70
                         ? "bg-yellow-500"
                         : "bg-green-500"
                     }`}
                     style={{
                       width: `${Math.min(
-                        typeof storageInfo.usagePercentage === 'number' ? storageInfo.usagePercentage : 0,
+                        typeof storageInfo.usagePercentage === "number"
+                          ? storageInfo.usagePercentage
+                          : 0,
                         100
                       )}%`,
                     }}
@@ -673,9 +678,11 @@ const AdminDashboard = () => {
                       Memory Usage
                     </span>
                     <span className="text-sm font-medium text-blue-600">
-                      {typeof systemResources.memory?.usagePercentage === 'number' 
-                        ? systemResources.memory?.usagePercentage.toFixed(1) 
-                        : '0.0'}%
+                      {typeof systemResources.memory?.usagePercentage ===
+                      "number"
+                        ? systemResources.memory?.usagePercentage.toFixed(1)
+                        : "0.0"}
+                      %
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -689,8 +696,9 @@ const AdminDashboard = () => {
                       }`}
                       style={{
                         width: `${Math.min(
-                          typeof systemResources.memory?.usagePercentage === 'number' 
-                            ? systemResources.memory?.usagePercentage 
+                          typeof systemResources.memory?.usagePercentage ===
+                            "number"
+                            ? systemResources.memory?.usagePercentage
                             : 0,
                           100
                         )}%`,
@@ -710,9 +718,10 @@ const AdminDashboard = () => {
                       Disk Usage
                     </span>
                     <span className="text-sm font-medium text-blue-600">
-                      {typeof systemResources.disk?.usagePercentage === 'number'
+                      {typeof systemResources.disk?.usagePercentage === "number"
                         ? systemResources.disk?.usagePercentage.toFixed(1)
-                        : '0.0'}%
+                        : "0.0"}
+                      %
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -726,7 +735,8 @@ const AdminDashboard = () => {
                       }`}
                       style={{
                         width: `${Math.min(
-                          typeof systemResources.disk?.usagePercentage === 'number'
+                          typeof systemResources.disk?.usagePercentage ===
+                            "number"
                             ? systemResources.disk?.usagePercentage
                             : 0,
                           100
@@ -752,15 +762,19 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex justify-between mt-2">
                     <span className="text-xs text-gray-500">
-                      ↓ {typeof systemResources.network?.receivedPerSec === 'number' 
-                         ? systemResources.network?.receivedPerSec.toFixed(2) 
-                         : '0.00'}{" "}
+                      ↓{" "}
+                      {typeof systemResources.network?.receivedPerSec ===
+                      "number"
+                        ? systemResources.network?.receivedPerSec.toFixed(2)
+                        : "0.00"}{" "}
                       MB/s
                     </span>
                     <span className="text-xs text-gray-500">
-                      ↑ {typeof systemResources.network?.sentPerSec === 'number'
-                         ? systemResources.network?.sentPerSec.toFixed(2)
-                         : '0.00'} MB/s
+                      ↑{" "}
+                      {typeof systemResources.network?.sentPerSec === "number"
+                        ? systemResources.network?.sentPerSec.toFixed(2)
+                        : "0.00"}{" "}
+                      MB/s
                     </span>
                   </div>
                 </div>
@@ -1587,55 +1601,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Login Activity Chart */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold">
-              Login Activity (Last 7 Days)
-            </h2>
-          </div>
-          <div className="p-4 h-64">
-            {isLoadingHistory ? (
-              <div className="flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-              </div>
-            ) : loginHistory.length > 0 ? (
-              <div className="h-full flex items-end">
-                {loginHistory.map((day, index) => {
-                  const maxCount = Math.max(
-                    ...loginHistory.map((d) => d.count)
-                  );
-                  const height = (day.count / maxCount) * 100;
-                  const dayName = new Date(day.date).toLocaleDateString(
-                    "en-US",
-                    { weekday: "short" }
-                  );
-
-                  return (
-                    <div
-                      key={index}
-                      className="flex flex-col items-center mx-2 flex-1"
-                    >
-                      <div
-                        className="bg-indigo-500 rounded-t w-full"
-                        style={{ height: `${height}%` }}
-                      ></div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {dayName}
-                      </div>
-                      <div className="text-xs font-medium">{day.count}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-500">
-                <p>No login data available</p>
-              </div>
-            )}
           </div>
         </div>
 
