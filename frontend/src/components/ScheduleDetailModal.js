@@ -1,75 +1,88 @@
-import React from 'react';
-import { format } from 'date-fns';
-import { useTheme } from '../context/ThemeContext';
-import './Modal.css';
+import React from "react";
+import { format } from "date-fns";
+import { useTheme } from "../context/ThemeContext";
+import "./Modal.css";
 
-const ScheduleDetailModal = ({ isOpen, onClose, schedule, subjects, lecturers }) => {
+const ScheduleDetailModal = ({
+  isOpen,
+  onClose,
+  schedule,
+  subjects,
+  lecturers,
+}) => {
   const { darkMode } = useTheme();
-  
+
   if (!isOpen || !schedule) return null;
 
   // Format time for display
   const formatTime = (timeStr) => {
-    if (!timeStr) return '';
+    if (!timeStr) return "";
     try {
-      if (timeStr.includes('T')) {
+      if (timeStr.includes("T")) {
         const date = new Date(timeStr);
         if (!isNaN(date.getTime())) {
-          return format(date, 'HH:mm');
+          return format(date, "HH:mm");
         }
       }
       return timeStr;
     } catch (err) {
-      console.error('Error formatting time:', err);
+      console.error("Error formatting time:", err);
       return timeStr;
     }
   };
 
   // Find subject name by ID
   const getSubjectInfo = () => {
-    if (!schedule.subjectId) return { code: 'Unknown', name: 'Unknown Subject' };
-    
-    const subject = subjects.find(s => s.id === parseInt(schedule.subjectId));
+    if (!schedule.subjectId)
+      return { code: "Unknown", name: "Unknown Subject" };
+
+    const subject = subjects.find((s) => s.id === parseInt(schedule.subjectId));
     if (subject) {
       return { code: subject.code, name: subject.name };
     }
-    
-    return { code: `Subject ${schedule.subjectId}`, name: `Subject ${schedule.subjectId}` };
+
+    return {
+      code: `Subject ${schedule.subjectId}`,
+      name: `Subject ${schedule.subjectId}`,
+    };
   };
 
   // Find lecturer name by ID
   const getLecturerName = () => {
-    if (!schedule.lecturerId) return 'Unknown Lecturer';
-    
-    const lecturer = lecturers.find(l => l.id === parseInt(schedule.lecturerId));
+    if (!schedule.lecturerId) return "Unknown Lecturer";
+
+    const lecturer = lecturers.find(
+      (l) => l.id === parseInt(schedule.lecturerId)
+    );
     if (lecturer) {
       return lecturer.fullName;
     }
-    
+
     return `Lecturer ${schedule.lecturerId}`;
   };
 
   // Get room information
   const getRoomInfo = () => {
-    if (!schedule.room) return 'No room assigned';
-    
-    const roomName = typeof schedule.room === 'object' ? schedule.room.name : schedule.room;
-    const building = schedule.building ? ` (${schedule.building})` : '';
-    
+    if (!schedule.room) return "No room assigned";
+
+    const roomName =
+      typeof schedule.room === "object" ? schedule.room.name : schedule.room;
+    const building = schedule.building ? ` (${schedule.building})` : "";
+
     return `${roomName}${building}`;
   };
 
   // Get date formatted
   const getFormattedDate = () => {
-    if (!schedule.specificDate) return 'Not specified';
-    
+    if (!schedule.specificDate) return "Not specified";
+
     try {
       const date = new Date(schedule.specificDate);
-      if (isNaN(date.getTime())) return 'Invalid date';
-      return format(date, 'EEEE, dd/MM/yyyy');
+      if (isNaN(date.getTime())) return "Invalid date";
+      return format(date, "EEEE, dd/MM/yyyy");
     } catch (err) {
-      console.error('Error formatting date:', err);
-      return 'Error formatting date';
+      console.error("Error formatting date:", err);
+      return "Error formatting date";
     }
   };
 
@@ -77,62 +90,73 @@ const ScheduleDetailModal = ({ isOpen, onClose, schedule, subjects, lecturers })
 
   // Map status to Vietnamese
   const getStatusText = (status) => {
-    switch(status) {
-      case 'NotYet': return 'Chưa diễn ra';
-      case 'Attended': return 'Đã tham gia';
-      case 'Online': return 'Trực tuyến';
-      case 'Absent': return 'Vắng mặt';
-      default: return status || 'Chưa diễn ra';
+    switch (status) {
+      case "NotYet":
+        return "Not yet";
+      case "Attended":
+        return "Attended";
+      case "Online":
+        return "Online";
+      case "Absent":
+        return "Absent";
+      default:
+        return status || "Not yet";
     }
   };
 
   return (
-    <div className={`modal-overlay ${darkMode ? 'dark' : ''}`}>
-      <div className={`modal-content ${darkMode ? 'dark' : ''}`}>
+    <div className={`modal-overlay ${darkMode ? "dark" : ""}`}>
+      <div className={`modal-content ${darkMode ? "dark" : ""}`}>
         <div className="modal-header">
-          <h2>Thông tin môn học</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <h2>Subject information</h2>
+          <button className="modal-close" onClick={onClose}>
+            &times;
+          </button>
         </div>
 
         <div className="modal-body">
           <div className="detail-item">
-            <div className="detail-label">Môn học:</div>
+            <div className="detail-label">Subject:</div>
             <div className="detail-value">
               <strong>{subjectInfo.code}</strong> - {subjectInfo.name}
             </div>
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Ngày:</div>
+            <div className="detail-label">Day:</div>
             <div className="detail-value">{getFormattedDate()}</div>
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Thời gian:</div>
+            <div className="detail-label">Timen:</div>
             <div className="detail-value">
               {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
             </div>
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Giảng viên:</div>
+            <div className="detail-label">Lecturer:</div>
             <div className="detail-value">{getLecturerName()}</div>
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Phòng:</div>
+            <div className="detail-label">Romm:</div>
             <div className="detail-value">{getRoomInfo()}</div>
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Lớp:</div>
-            <div className="detail-value">{schedule.classId || 'Chưa chỉ định'}</div>
+            <div className="detail-label">Class:</div>
+            <div className="detail-value">{schedule.classId || "None"}</div>
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Trạng thái:</div>
+            <div className="detail-label">Statusi:</div>
             <div className="detail-value">
-              <span className={`status-badge ${(schedule.status || 'notyet').toLowerCase()}`}>
+              <span
+                className={`status-badge ${(
+                  schedule.status || "notyet"
+                ).toLowerCase()}`}
+              >
                 {getStatusText(schedule.status)}
               </span>
             </div>
@@ -142,24 +166,33 @@ const ScheduleDetailModal = ({ isOpen, onClose, schedule, subjects, lecturers })
             <div className="detail-item">
               <div className="detail-label">Link học:</div>
               <div className="detail-value">
-                <a href={schedule.meetUrl} target="_blank" rel="noopener noreferrer" className="meeting-link">
-                  Tham gia lớp học trực tuyến
+                <a
+                  href={schedule.meetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="meeting-link"
+                >
+                  Join
                 </a>
               </div>
             </div>
           )}
-          
+
           <div className="detail-note">
-            <em>Lưu ý: Sinh viên chỉ có thể xem thông tin lịch học mà không được phép chỉnh sửa.</em>
+            <em>
+              Note: You can only view the schedule information, not edit it.
+            </em>
           </div>
         </div>
 
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Đóng</button>
+          <button className="btn-secondary" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default ScheduleDetailModal; 
+export default ScheduleDetailModal;
