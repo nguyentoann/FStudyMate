@@ -34,6 +34,7 @@ import VerifyOtp from "./pages/VerifyOtp";
 import CalendarPage from "./pages/CalendarPage";
 import TeachingScheduleManager from "./pages/admin/TeachingScheduleManager";
 import StudentScheduleView from "./pages/student/StudentScheduleView";
+import StudentIdVerificationTester from "./components/StudentIdVerificationTester";
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -303,6 +304,17 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  
+                  {/* Student ID Verification Tester */}
+                  <Route
+                    path="/verify-id-card-test"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <StudentIdVerificationTester />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   {/* Quiz Manager routes */}
                   <Route
                     path="/lecturer/quiz-manager"

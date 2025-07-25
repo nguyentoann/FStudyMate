@@ -57,6 +57,19 @@ const Register = () => {
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [checkingPhone, setCheckingPhone] = useState(false);
 
+  // Add inside the useState declarations section at the top of the component
+  const [idCardImage, setIdCardImage] = useState(null);
+  const [idCardFile, setIdCardFile] = useState(null);
+  const [idCardFilename, setIdCardFilename] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
+
+  // Add these state variables with the other useState declarations
+  const [lockedFields, setLockedFields] = useState({
+    fullName: false,
+    username: false
+  });
+
   const { register } = useAuth();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
@@ -315,6 +328,95 @@ const Register = () => {
     }
   };
 
+  // Add these functions inside the component but before the return statement
+  // Handle ID card upload
+  const handleIdCardUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIdCardFile(file);
+    setIdCardFilename(file.name);
+    setVerificationResult(null);
+
+    // Create a preview of the image
+    const reader = new FileReader();
+    reader.onload = () => {
+      setIdCardImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Remove the uploaded ID card
+  const handleRemoveIdCard = () => {
+    setIdCardImage(null);
+    setIdCardFile(null);
+    setIdCardFilename("");
+    setVerificationResult(null);
+  };
+
+  // Verify the uploaded ID card
+  const handleVerifyIdCard = async () => {
+    if (!idCardFile) return;
+
+    setVerifying(true);
+    
+    try {
+      // Create a FormData object
+      const formData = new FormData();
+      formData.append("file", idCardFile);
+      
+      // Send the request to the API
+      const response = await fetch(`${API_URL}/verify/student-id-card`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      const result = await response.json();
+      setVerificationResult(result);
+      
+      // If verification was successful, auto-fill the form fields
+      if (result.isValid) {
+        const newFullName = result.fullName || formData.fullName;
+        const newUsername = result.studentId || formData.username;
+        
+        setFormData({
+          ...formData,
+          fullName: newFullName,
+          username: newUsername,
+          // Update other fields as needed
+        });
+        
+        // Lock the fields that were auto-filled
+        setLockedFields({
+          fullName: !!result.fullName, // Only lock if the AI provided a value
+          username: !!result.studentId // Only lock if the AI provided a value
+        });
+        
+        // Set a success message
+        setError(""); // Clear any existing error
+        setDebug("Student ID successfully verified! You're free to proceed with registration.");
+      }
+    } catch (error) {
+      console.error("Error verifying student ID:", error);
+      setVerificationResult({
+        isValid: false,
+        validationErrors: ["Error connecting to verification service. Please try again."],
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Add this new function to handle unlocking fields
+  const handleUnlockField = (fieldName) => {
+    if (window.confirm(`Are you sure you want to unlock the ${fieldName} field? This will remove the verification lock.`)) {
+      setLockedFields(prev => ({
+        ...prev,
+        [fieldName]: false
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -348,6 +450,13 @@ const Register = () => {
     if (formData.dateOfBirth && !dobValid) {
       setError("You must be at least 16 years old to register");
       return;
+    }
+
+    // Require ID verification for 'student' role if we're enforcing verification
+    if (formData.role === "student" && !verificationResult?.isValid) {
+      // We can decide whether to make this a hard requirement or just a warning
+      // setError("Please verify your student ID card before proceeding");
+      // return;
     }
 
     try {
@@ -967,13 +1076,33 @@ const Register = () => {
                     onChange={handleChange}
                     onPaste={handlePaste}
                     className={`pl-10 pr-10 block w-full rounded-lg border h-[42px] ${
-                      usernameTaken
-                        ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      lockedFields.username
+                        ? "bg-gray-100 border-green-300 text-gray-700"
+                        : usernameTaken
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     } shadow-sm transition-all duration-300`}
                     required
-                    whileFocus={{ scale: 1.01 }}
+                    readOnly={lockedFields.username}
+                    whileFocus={{ scale: lockedFields.username ? 1 : 1.01 }}
                   />
+                  {lockedFields.username && (
+                    <div className="mt-1 flex items-center justify-between">
+                      <div className="flex items-center text-xs text-green-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                        </svg>
+                        Verified student ID (locked)
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => handleUnlockField('username')}
+                        className="text-xs text-blue-500 hover:text-blue-700"
+                      >
+                        
+                      </button>
+                    </div>
+                  )}
                   {formData.username && formData.username.length >= 3 && (
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       {checkingUsername ? (
@@ -1061,10 +1190,32 @@ const Register = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   onPaste={handlePaste}
-                  className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3"
+                  className={`block w-full rounded-lg border ${
+                    lockedFields.fullName 
+                      ? "bg-gray-100 border-green-300 text-gray-700" 
+                      : "border-gray-300"
+                  } shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-all duration-300 h-[42px] px-3`}
                   required
-                  whileFocus={{ scale: 1.01, borderColor: "#3b82f6" }}
+                  readOnly={lockedFields.fullName}
+                  whileFocus={{ scale: lockedFields.fullName ? 1 : 1.01, borderColor: lockedFields.fullName ? "#10B981" : "#3b82f6" }}
                 />
+                {lockedFields.fullName && (
+                  <div className="mt-1 flex items-center justify-between">
+                    <div className="flex items-center text-xs text-green-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                      Verified name (locked)
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => handleUnlockField('fullName')}
+                      className="text-xs text-blue-500 hover:text-blue-700"
+                    >
+                      
+                    </button>
+                  </div>
+                )}
               </motion.div>
 
               <motion.div
@@ -1483,6 +1634,141 @@ const Register = () => {
 
             {/* Role-specific fields */}
             {renderRoleSpecificFields()}
+
+            {/* Student ID Card Verification - Only show for 'student' and 'outsrc_student' roles */}
+            {(formData.role === "student" || formData.role === "outsrc_student") && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="mt-6 p-4 border border-blue-200 rounded-lg bg-blue-50"
+              >
+                <h3 className="font-medium text-lg text-blue-700 mb-3">Student ID Card Verification</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  {formData.role === "student" 
+                    ? "Please upload your FPT student ID card for verification. This helps us confirm you're an internal student."
+                    : "If you're an FPT student, please upload your student ID card to verify your identity."}
+                </p>
+                
+                {/* Card upload section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Upload Student ID Card
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleIdCardUpload}
+                      className="hidden"
+                      id="student-id-upload"
+                    />
+                    <label
+                      htmlFor="student-id-upload"
+                      className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Select image
+                    </label>
+                    {idCardImage && (
+                      <span className="ml-2 text-sm text-gray-500 truncate max-w-xs">
+                        {idCardFilename}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Preview of uploaded image */}
+                {idCardImage && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preview
+                    </label>
+                    <div className="relative border rounded-md overflow-hidden" style={{ maxWidth: '300px' }}>
+                      <img
+                        src={idCardImage}
+                        alt="Student ID preview"
+                        className="w-full h-auto"
+                        style={{ maxHeight: '200px', objectFit: 'contain' }}
+                      />
+                      {verifying && (
+                        <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2 flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={handleVerifyIdCard}
+                        disabled={verifying}
+                        className={`${
+                          verifying
+                            ? "bg-gray-300 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        } text-white py-1 px-3 rounded-md text-sm transition-colors duration-200`}
+                      >
+                        {verifying ? "Verifying..." : "Verify Card"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveIdCard}
+                        disabled={verifying}
+                        className="bg-white hover:bg-gray-100 text-gray-700 py-1 px-3 border border-gray-300 rounded-md text-sm transition-colors duration-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Verification results */}
+                {verificationResult && (
+                  <div className={`mt-4 p-3 rounded-md ${verificationResult.isValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className="flex items-start">
+                      <div className={`flex-shrink-0 h-6 w-6 ${verificationResult.isValid ? 'text-green-500' : 'text-red-500'}`}>
+                        {verificationResult.isValid ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <h3 className={`text-sm font-medium ${verificationResult.isValid ? 'text-green-800' : 'text-red-800'}`}>
+                          {verificationResult.isValid ? 'Student ID Card Verified' : 'Verification Failed'}
+                        </h3>
+                        {verificationResult.isValid ? (
+                          <div className="mt-2 text-sm text-green-700">
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>Student ID: {verificationResult.studentId}</li>
+                              <li>Full Name: {verificationResult.fullName}</li>
+                              <li>Valid Until: {verificationResult.validTillDate}</li>
+                            </ul>
+                            <div className="mt-3 font-semibold">
+                              Verification successful! You're free to continue with registration.
+                              <div className="text-xs mt-1 text-green-600">
+                                Your student ID has been applied to the username field and relevant fields have been locked for security.
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-sm text-red-700">
+                            <ul className="list-disc pl-5 space-y-1">
+                              {verificationResult.validationErrors && verificationResult.validationErrors.map((error, index) => (
+                                <li key={index}>{error}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
             {/* Go Back and Register Buttons */}
             <div className="flex gap-4 pt-4">

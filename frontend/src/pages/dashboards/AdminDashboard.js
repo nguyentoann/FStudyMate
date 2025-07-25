@@ -1681,6 +1681,24 @@ const AdminDashboard = () => {
                 </Link>
               </div>
             </div>
+
+            {/* Student ID Verification Tool Card */}
+            <Link
+              to="/verify-id-card-test"
+              className="bg-white hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700 shadow-lg rounded-xl p-5 border-l-4 border-blue-500 transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="flex items-center">
+                <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3 mr-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold dark:text-white">Student ID Verification Tool</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Test and verify student ID cards using AI OCR</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
