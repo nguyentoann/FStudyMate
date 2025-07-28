@@ -63,37 +63,6 @@ const AdminDashboard = () => {
   const [speedTestResult, setSpeedTestResult] = useState(null);
   const [isRunningSpeedTest, setIsRunningSpeedTest] = useState(false);
 
-  const [recentUsers, setRecentUsers] = useState([
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john@example.com",
-      role: "student",
-      joinedDate: "2025-05-15",
-    },
-    {
-      id: 2,
-      name: "Maria Johnson",
-      email: "maria@example.com",
-      role: "lecturer",
-      joinedDate: "2025-05-14",
-    },
-    {
-      id: 3,
-      name: "David Lee",
-      email: "david@example.com",
-      role: "student",
-      joinedDate: "2025-05-12",
-    },
-    {
-      id: 4,
-      name: "Sarah Brown",
-      email: "sarah@example.com",
-      role: "outsrc_student",
-      joinedDate: "2025-05-10",
-    },
-  ]);
-
   const [systemAlerts, setSystemAlerts] = useState([
     {
       id: 1,
@@ -114,6 +83,21 @@ const AdminDashboard = () => {
       date: "2025-05-17",
     },
   ]);
+
+  // Thêm state này sau các state hiện có (khoảng dòng 60)
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Thêm tabs config với đầy đủ các phần
+  const tabs = [
+    { id: "overview", name: "Overview", icon: "📊" },
+    { id: "users", name: "Users", icon: "👥" },
+    { id: "sessions", name: "Sessions", icon: "🔐" },
+    { id: "alerts", name: "Alerts", icon: "⚠️" },
+    { id: "storage", name: "Storage", icon: "💾" },
+    { id: "system", name: "System", icon: "⚙️" },
+    { id: "samba", name: "Samba Sync", icon: "🔄" },
+    { id: "actions", name: "Actions", icon: "🛠️" },
+  ];
 
   // Fetch all data function
   const fetchDashboardData = useCallback(async () => {
@@ -1045,382 +1029,262 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {isLoadingStats ? (
-            Array(4)
-              .fill()
-              .map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-4 rounded-lg shadow animate-pulse"
+        {/* Navigation Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                    activeTab === tab.id
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
                 >
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-6 bg-gray-300 rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-                </div>
-              ))
-          ) : (
-            <>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-gray-500 text-sm">Total Users</p>
-                <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                <p className="text-green-600 text-xs mt-2">
-                  +{stats.newUsersToday} today
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-gray-500 text-sm">Active Users</p>
-                <p className="text-2xl font-bold">{stats.activeUsers}</p>
-                <p className="text-gray-500 text-xs mt-2">
-                  {((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}%
-                  of total users
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-gray-500 text-sm">Avg. Session Time</p>
-                <p className="text-2xl font-bold">
-                  {stats.averageSessionTime} min
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-gray-500 text-sm">Expired Sessions</p>
-                <p className="text-2xl font-bold">{stats.expiredSessions}</p>
-                <p className="text-amber-600 text-xs mt-2">Last 24 hours</p>
-              </div>
-            </>
-          )}
+                  <span>{tab.icon}</span>
+                  <span>{tab.name}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
 
-        {/* Active Users Table */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">
-              Online Users Now ({activeUsers.length})
-            </h2>
-            <div className="flex items-center">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  refreshingData ? "bg-yellow-500" : "bg-green-500"
-                } mr-2`}
-              ></span>
-              <span className="text-sm text-gray-600">
-                {refreshingData ? "Updating..." : "Live Data"}
-              </span>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            {isLoadingUsers ? (
-              <div className="flex justify-center items-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-              </div>
+        {/* Tab Content */}
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {isLoadingStats ? (
+              Array(4)
+                .fill()
+                .map((_, index) => (
+                  <div
+                    key={index}
+                    className="bg-white p-4 rounded-lg shadow animate-pulse"
+                  >
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                    <div className="h-6 bg-gray-300 rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                ))
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Active Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Activity
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      IP Address
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Device
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Location
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {activeUsers.map((activeUser, index) => (
-                    <tr
-                      key={`active-${activeUser.id}-${index}`}
-                      className="hover:bg-gray-50"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8">
-                            <img
-                              className="h-8 w-8 rounded-full object-cover border-2 border-indigo-300"
-                              src={activeUser.profileImageUrl || DEFAULT_AVATAR}
-                              alt={activeUser.name.charAt(0)}
-                              onError={(e) => {
-                                e.target.src = DEFAULT_AVATAR;
-                              }}
-                            />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {activeUser.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {activeUser.username}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-900">
-                          {Math.floor(activeUser.activeTime / 60) > 0
-                            ? `${Math.floor(activeUser.activeTime / 60)}h ${
-                                activeUser.activeTime % 60
-                              }m`
-                            : `${activeUser.activeTime}m`}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-900">
-                          {formatLastActivity(activeUser.lastActivity)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {activeUser.ipAddress}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {activeUser.device}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {activeUser.location}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button className="text-indigo-600 hover:text-indigo-900 mr-3">
-                          View
-                        </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          Disconnect
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <p className="text-gray-500 text-sm">Total Users</p>
+                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-green-600 text-xs mt-2">
+                    +{stats.newUsersToday} today
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <p className="text-gray-500 text-sm">Active Users</p>
+                  <p className="text-2xl font-bold">{stats.activeUsers}</p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    {((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}%
+                    of total users
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <p className="text-gray-500 text-sm">Avg. Session Time</p>
+                  <p className="text-2xl font-bold">
+                    {stats.averageSessionTime} min
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <p className="text-gray-500 text-sm">Expired Sessions</p>
+                  <p className="text-2xl font-bold">{stats.expiredSessions}</p>
+                  <p className="text-amber-600 text-xs mt-2">Last 24 hours</p>
+                </div>
+              </>
             )}
           </div>
-          {activeUsers.length === 0 && !isLoadingUsers && (
-            <div className="text-center py-8 text-gray-500">
-              No active users at the moment
-            </div>
-          )}
-        </div>
+        )}
 
-        {/* Session Expiration Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Expired Sessions */}
-          <div className="bg-white rounded-lg shadow">
+        {activeTab === "users" && (
+          <div className="bg-white rounded-lg shadow mb-8">
             <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
               <h2 className="text-lg font-semibold">
-                Expired Sessions ({expiredSessions.length})
+                Online Users Now ({activeUsers.length})
               </h2>
+              <div className="flex items-center">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    refreshingData ? "bg-yellow-500" : "bg-green-500"
+                  } mr-2`}
+                ></span>
+                <span className="text-sm text-gray-600">
+                  {refreshingData ? "Updating..." : "Live Data"}
+                </span>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
-              {isLoadingExpired ? (
+              {isLoadingUsers ? (
                 <div className="flex justify-center items-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
-                </div>
-              ) : expiredSessions.length > 0 ? (
-                <div
-                  className={`overflow-y-auto ${
-                    showAllExpired ? "max-h-96" : ""
-                  }`}
-                >
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          User
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Expired
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Device
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {expiredSessions
-                        .slice(0, showAllExpired ? expiredSessions.length : 5)
-                        .map((session, index) => (
-                          <tr
-                            key={`expired-${session.id}-${index}`}
-                            className="hover:bg-gray-50"
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-8 w-8">
-                                  <img
-                                    className="h-8 w-8 rounded-full object-cover"
-                                    src={
-                                      session.profileImageUrl || DEFAULT_AVATAR
-                                    }
-                                    alt={
-                                      session.name
-                                        ? session.name.charAt(0)
-                                        : "U"
-                                    }
-                                    onError={(e) => {
-                                      e.target.src = DEFAULT_AVATAR;
-                                    }}
-                                  />
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {session.name || "Unknown"}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {session.username}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="text-sm text-gray-900">
-                                {session.expiredAgo
-                                  ? `${Math.floor(session.expiredAgo / 60)}h ${
-                                      session.expiredAgo % 60
-                                    }m ago`
-                                  : "Unknown"}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {session.device || "Unknown"}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
                 </div>
               ) : (
-                <div className="p-8 text-center text-gray-500">
-                  No expired sessions found
-                </div>
-              )}
-
-              {expiredSessions.length > 5 && (
-                <div className="p-4 border-t text-center">
-                  <button
-                    onClick={() => setShowAllExpired(!showAllExpired)}
-                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                  >
-                    {showAllExpired
-                      ? "Show Less"
-                      : `Show All ${expiredSessions.length} Expired Sessions`}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sessions Expiring Soon */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
-              <h2 className="text-lg font-semibold">
-                Sessions Expiring Soon ({sessionsExpiringSoon.length})
-              </h2>
-              {isLoadingExpiringSoon && (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-500"></div>
-              )}
-            </div>
-
-            <div className="overflow-x-auto">
-              {isLoadingExpiringSoon ? (
-                <div className="flex justify-center items-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
-                </div>
-              ) : sessionsExpiringSoon.length > 0 ? (
-                <div
-                  className={`overflow-y-auto ${
-                    showAllExpiring ? "max-h-96" : ""
-                  }`}
-                >
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          User
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Expires In
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Last Activity
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Status
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Actions
-                        </th>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Active Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Activity
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        IP Address
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Device
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Location
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {activeUsers.map((activeUser, index) => (
+                      <tr
+                        key={`active-${activeUser.id}-${index}`}
+                        className="hover:bg-gray-50"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8">
+                              <img
+                                className="h-8 w-8 rounded-full object-cover border-2 border-indigo-300"
+                                src={
+                                  activeUser.profileImageUrl || DEFAULT_AVATAR
+                                }
+                                alt={activeUser.name.charAt(0)}
+                                onError={(e) => {
+                                  e.target.src = DEFAULT_AVATAR;
+                                }}
+                              />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {activeUser.name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {activeUser.username}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900">
+                            {Math.floor(activeUser.activeTime / 60) > 0
+                              ? `${Math.floor(activeUser.activeTime / 60)}h ${
+                                  activeUser.activeTime % 60
+                                }m`
+                              : `${activeUser.activeTime}m`}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900">
+                            {formatLastActivity(activeUser.lastActivity)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {activeUser.ipAddress}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {activeUser.device}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {activeUser.location}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                            View
+                          </button>
+                          <button className="text-red-600 hover:text-red-900">
+                            Disconnect
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {sessionsExpiringSoon
-                        .slice(
-                          0,
-                          showAllExpiring ? sessionsExpiringSoon.length : 5
-                        )
-                        .map((session, index) => {
-                          // Calculate if session is expiring very soon (within 1 hour)
-                          const expiresVerySoon =
-                            session.expiresIn && session.expiresIn < 60;
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            {activeUsers.length === 0 && !isLoadingUsers && (
+              <div className="text-center py-8 text-gray-500">
+                No active users at the moment
+              </div>
+            )}
+          </div>
+        )}
 
-                          return (
+        {activeTab === "sessions" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Expired Sessions */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                <h2 className="text-lg font-semibold">
+                  Expired Sessions ({expiredSessions.length})
+                </h2>
+              </div>
+
+              <div className="overflow-x-auto">
+                {isLoadingExpired ? (
+                  <div className="flex justify-center items-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+                  </div>
+                ) : expiredSessions.length > 0 ? (
+                  <div
+                    className={`overflow-y-auto ${
+                      showAllExpired ? "max-h-96" : ""
+                    }`}
+                  >
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            User
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Expired
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Device
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {expiredSessions
+                          .slice(0, showAllExpired ? expiredSessions.length : 5)
+                          .map((session, index) => (
                             <tr
-                              key={`expiring-${session.id}-${index}`}
-                              className={
-                                expiresVerySoon
-                                  ? "bg-red-50 hover:bg-red-100"
-                                  : "hover:bg-gray-50"
-                              }
+                              key={`expired-${session.id}-${index}`}
+                              className="hover:bg-gray-50"
                             >
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className="flex-shrink-0 h-8 w-8">
                                     <img
-                                      className={`h-8 w-8 rounded-full object-cover ${
-                                        expiresVerySoon
-                                          ? "border-2 border-red-500"
-                                          : "border-2 border-amber-500"
-                                      }`}
+                                      className="h-8 w-8 rounded-full object-cover"
                                       src={
                                         session.profileImageUrl ||
                                         DEFAULT_AVATAR
@@ -1446,261 +1310,429 @@ const AdminDashboard = () => {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`text-sm font-medium ${
-                                    expiresVerySoon
-                                      ? "text-red-600"
-                                      : "text-amber-600"
-                                  }`}
-                                >
-                                  {session.expiresIn
-                                    ? `${Math.floor(session.expiresIn / 60)}h ${
-                                        session.expiresIn % 60
-                                      }m`
+                                <span className="text-sm text-gray-900">
+                                  {session.expiredAgo
+                                    ? `${Math.floor(
+                                        session.expiredAgo / 60
+                                      )}h ${session.expiredAgo % 60}m ago`
                                     : "Unknown"}
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {formatLastActivity(session.lastActivity)}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                {expiresVerySoon ? (
-                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                    Expiring Soon
-                                  </span>
-                                ) : (
-                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
-                                    Active
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <button
-                                  onClick={() => handleForceLogout(session.id)}
-                                  disabled={loggingOutSessions[session.id]}
-                                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                                    loggingOutSessions[session.id]
-                                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                      : "bg-red-100 text-red-700 hover:bg-red-200"
-                                  }`}
-                                >
-                                  {loggingOutSessions[session.id] ? (
-                                    <span className="flex items-center">
-                                      <svg
-                                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <circle
-                                          className="opacity-25"
-                                          cx="12"
-                                          cy="12"
-                                          r="10"
-                                          stroke="currentColor"
-                                          strokeWidth="4"
-                                        ></circle>
-                                        <path
-                                          className="opacity-75"
-                                          fill="currentColor"
-                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        ></path>
-                                      </svg>
-                                      Processing...
-                                    </span>
-                                  ) : (
-                                    "Force Logout"
-                                  )}
-                                </button>
+                                {session.device || "Unknown"}
                               </td>
                             </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="p-8 text-center text-gray-500">
-                  No sessions expiring soon
-                </div>
-              )}
-
-              {sessionsExpiringSoon.length > 5 && (
-                <div className="p-4 border-t text-center">
-                  <button
-                    onClick={() => setShowAllExpiring(!showAllExpiring)}
-                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                  >
-                    {showAllExpiring
-                      ? "Show Less"
-                      : `Show All ${sessionsExpiringSoon.length} Sessions Expiring Soon`}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* System Alerts */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold">System Alerts</h2>
-          </div>
-          <div className="p-4">
-            {systemAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={`mb-4 p-4 rounded-md ${
-                  alert.type === "warning"
-                    ? "bg-yellow-50 border-l-4 border-yellow-400"
-                    : alert.type === "error"
-                    ? "bg-red-50 border-l-4 border-red-400"
-                    : "bg-blue-50 border-l-4 border-blue-400"
-                }`}
-              >
-                <div className="flex">
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm ${
-                        alert.type === "warning"
-                          ? "text-yellow-700"
-                          : alert.type === "error"
-                          ? "text-red-700"
-                          : "text-blue-700"
-                      }`}
-                    >
-                      {alert.message}
-                    </p>
-                    <p
-                      className={`text-xs ${
-                        alert.type === "warning"
-                          ? "text-yellow-500"
-                          : alert.type === "error"
-                          ? "text-red-500"
-                          : "text-blue-500"
-                      }`}
-                    >
-                      {alert.date}
-                    </p>
+                          ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div>
-                    <button className="text-gray-400 hover:text-gray-500">
-                      <svg
-                        className="h-5 w-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                ) : (
+                  <div className="p-8 text-center text-gray-500">
+                    No expired sessions found
+                  </div>
+                )}
+
+                {expiredSessions.length > 5 && (
+                  <div className="p-4 border-t text-center">
+                    <button
+                      onClick={() => setShowAllExpired(!showAllExpired)}
+                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    >
+                      {showAllExpired
+                        ? "Show Less"
+                        : `Show All ${expiredSessions.length} Expired Sessions`}
                     </button>
                   </div>
-                </div>
+                )}
               </div>
-            ))}
+            </div>
+
+            {/* Sessions Expiring Soon */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                <h2 className="text-lg font-semibold">
+                  Sessions Expiring Soon ({sessionsExpiringSoon.length})
+                </h2>
+                {isLoadingExpiringSoon && (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-500"></div>
+                )}
+              </div>
+
+              <div className="overflow-x-auto">
+                {isLoadingExpiringSoon ? (
+                  <div className="flex justify-center items-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+                  </div>
+                ) : sessionsExpiringSoon.length > 0 ? (
+                  <div
+                    className={`overflow-y-auto ${
+                      showAllExpiring ? "max-h-96" : ""
+                    }`}
+                  >
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            User
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Expires In
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Last Activity
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Status
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {sessionsExpiringSoon
+                          .slice(
+                            0,
+                            showAllExpiring ? sessionsExpiringSoon.length : 5
+                          )
+                          .map((session, index) => {
+                            const expiresVerySoon =
+                              session.expiresIn && session.expiresIn < 60;
+
+                            return (
+                              <tr
+                                key={`expiring-${session.id}-${index}`}
+                                className={
+                                  expiresVerySoon
+                                    ? "bg-red-50 hover:bg-red-100"
+                                    : "hover:bg-gray-50"
+                                }
+                              >
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <div className="flex-shrink-0 h-8 w-8">
+                                      <img
+                                        className={`h-8 w-8 rounded-full object-cover ${
+                                          expiresVerySoon
+                                            ? "border-2 border-red-500"
+                                            : "border-2 border-amber-500"
+                                        }`}
+                                        src={
+                                          session.profileImageUrl ||
+                                          DEFAULT_AVATAR
+                                        }
+                                        alt={
+                                          session.name
+                                            ? session.name.charAt(0)
+                                            : "U"
+                                        }
+                                        onError={(e) => {
+                                          e.target.src = DEFAULT_AVATAR;
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="ml-4">
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {session.name || "Unknown"}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {session.username}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span
+                                    className={`text-sm font-medium ${
+                                      expiresVerySoon
+                                        ? "text-red-600"
+                                        : "text-amber-600"
+                                    }`}
+                                  >
+                                    {session.expiresIn
+                                      ? `${Math.floor(
+                                          session.expiresIn / 60
+                                        )}h ${session.expiresIn % 60}m`
+                                      : "Unknown"}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {formatLastActivity(session.lastActivity)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {expiresVerySoon ? (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                      Expiring Soon
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                                      Active
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <button
+                                    onClick={() =>
+                                      handleForceLogout(session.id)
+                                    }
+                                    disabled={loggingOutSessions[session.id]}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                      loggingOutSessions[session.id]
+                                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                        : "bg-red-100 text-red-700 hover:bg-red-200"
+                                    }`}
+                                  >
+                                    {loggingOutSessions[session.id] ? (
+                                      <span className="flex items-center">
+                                        <svg
+                                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700"
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                          ></circle>
+                                          <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                          ></path>
+                                        </svg>
+                                        Processing...
+                                      </span>
+                                    ) : (
+                                      "Force Logout"
+                                    )}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-gray-500">
+                    No sessions expiring soon
+                  </div>
+                )}
+
+                {sessionsExpiringSoon.length > 5 && (
+                  <div className="p-4 border-t text-center">
+                    <button
+                      onClick={() => setShowAllExpiring(!showAllExpiring)}
+                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                    >
+                      {showAllExpiring
+                        ? "Show Less"
+                        : `Show All ${sessionsExpiringSoon.length} Sessions Expiring Soon`}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Storage Information */}
-        {renderStorageSection()}
-
-        {/* System Resources */}
-        {renderSystemResources()}
-
-        {/* Samba Sync Tool */}
-        <SambaSyncTool />
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b">
-            <h2 className="text-lg font-semibold">Administrative Actions</h2>
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-              <h3 className="font-medium text-indigo-800 mb-2">
-                User Management
-              </h3>
-              <p className="text-sm text-indigo-600 mb-4">
-                Add, edit, or deactivate user accounts
-              </p>
-              <Link
-                to="/admin/users"
-                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 inline-block"
-              >
-                Manage Users
-              </Link>
+        {activeTab === "alerts" && (
+          <div className="bg-white rounded-lg shadow mb-8">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-semibold">System Alerts</h2>
             </div>
-
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-              <h3 className="font-medium text-amber-800 mb-2">
-                Class Management
-              </h3>
-              <p className="text-sm text-amber-600 mb-4">
-                Create classes and assign students
-              </p>
-              <Link
-                to="/admin/classes"
-                className="px-4 py-2 bg-amber-600 text-white text-sm rounded hover:bg-amber-700 inline-block"
-              >
-                Manage Classes
-              </Link>
-            </div>
-
-            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-              <h3 className="font-medium text-green-800 mb-2">
-                System Settings
-              </h3>
-              <p className="text-sm text-green-600 mb-4">
-                Configure application settings and preferences
-              </p>
-              <button className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                Settings
-              </button>
-            </div>
-
-            <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-              <h3 className="font-medium text-purple-800 mb-2">
-                Session Management
-              </h3>
-              <p className="text-sm text-purple-600 mb-4">
-                Monitor and manage active user sessions
-              </p>
-              <div className="flex flex-col">
-                <div className="text-sm mb-2">
-                  <span className="font-medium">{stats.expiredSessions}</span>{" "}
-                  expired sessions
-                </div>
-                <Link
-                  to="/admin/sessions"
-                  className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 text-center"
+            <div className="p-4">
+              {systemAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`mb-4 p-4 rounded-md ${
+                    alert.type === "warning"
+                      ? "bg-yellow-50 border-l-4 border-yellow-400"
+                      : alert.type === "error"
+                      ? "bg-red-50 border-l-4 border-red-400"
+                      : "bg-blue-50 border-l-4 border-blue-400"
+                  }`}
                 >
-                  View Sessions
+                  <div className="flex">
+                    <div className="flex-1">
+                      <p
+                        className={`text-sm ${
+                          alert.type === "warning"
+                            ? "text-yellow-700"
+                            : alert.type === "error"
+                            ? "text-red-700"
+                            : "text-blue-700"
+                        }`}
+                      >
+                        {alert.message}
+                      </p>
+                      <p
+                        className={`text-xs ${
+                          alert.type === "warning"
+                            ? "text-yellow-500"
+                            : alert.type === "error"
+                            ? "text-red-500"
+                            : "text-blue-500"
+                        }`}
+                      >
+                        {alert.date}
+                      </p>
+                    </div>
+                    <div>
+                      <button className="text-gray-400 hover:text-gray-500">
+                        <svg
+                          className="h-5 w-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "storage" && <div>{renderStorageSection()}</div>}
+
+        {activeTab === "system" && <div>{renderSystemResources()}</div>}
+
+        {activeTab === "samba" && (
+          <div>
+            <SambaSyncTool />
+          </div>
+        )}
+
+        {activeTab === "actions" && (
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-semibold">Administrative Actions</h2>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                <h3 className="font-medium text-indigo-800 mb-2">
+                  User Management
+                </h3>
+                <p className="text-sm text-indigo-600 mb-4">
+                  Add, edit, or deactivate user accounts
+                </p>
+                <Link
+                  to="/admin/users"
+                  className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 inline-block"
+                >
+                  Manage Users
                 </Link>
               </div>
-            </div>
 
-            {/* Student ID Verification Tool Card */}
-            <Link
-              to="/verify-id-card-test"
-              className="bg-white hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700 shadow-lg rounded-xl p-5 border-l-4 border-blue-500 transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="flex items-center">
-                <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3 mr-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold dark:text-white">Student ID Verification Tool</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Test and verify student ID cards using AI OCR</p>
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                <h3 className="font-medium text-amber-800 mb-2">
+                  Class Management
+                </h3>
+                <p className="text-sm text-amber-600 mb-4">
+                  Create classes and assign students
+                </p>
+                <Link
+                  to="/admin/classes"
+                  className="px-4 py-2 bg-amber-600 text-white text-sm rounded hover:bg-amber-700 inline-block"
+                >
+                  Manage Classes
+                </Link>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                <h3 className="font-medium text-green-800 mb-2">
+                  System Settings
+                </h3>
+                <p className="text-sm text-green-600 mb-4">
+                  Configure application settings and preferences
+                </p>
+                <button className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700">
+                  Settings
+                </button>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                <h3 className="font-medium text-purple-800 mb-2">
+                  Session Management
+                </h3>
+                <p className="text-sm text-purple-600 mb-4">
+                  Monitor and manage active user sessions
+                </p>
+                <div className="flex flex-col">
+                  <div className="text-sm mb-2">
+                    <span className="font-medium">{stats.expiredSessions}</span>{" "}
+                    expired sessions
+                  </div>
+                  <Link
+                    to="/admin/sessions"
+                    className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 text-center"
+                  >
+                    View Sessions
+                  </Link>
                 </div>
               </div>
-            </Link>
+
+              {/* Student ID Verification Tool Card */}
+              <Link
+                to="/verify-id-card-test"
+                className="bg-white hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700 shadow-lg rounded-xl p-5 border-l-4 border-blue-500 transition-all duration-300 transform hover:-translate-y-1"
+              >
+                <div className="flex items-center">
+                  <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3 mr-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-blue-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold dark:text-white">
+                      Student ID Verification Tool
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Test and verify student ID cards using AI OCR
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );
