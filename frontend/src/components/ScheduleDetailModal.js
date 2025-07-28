@@ -150,7 +150,7 @@ const ScheduleDetailModal = ({
           </div>
 
           <div className="detail-item">
-            <div className="detail-label">Statusi:</div>
+            <div className="detail-label">Status</div>
             <div className="detail-value">
               <span
                 className={`status-badge ${(
