@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Quiz from "./pages/Quiz";
 import NotFound from "./pages/NotFound";
@@ -35,7 +35,6 @@ import CalendarPage from "./pages/CalendarPage";
 import TeachingScheduleManager from "./pages/admin/TeachingScheduleManager";
 import StudentScheduleView from "./pages/student/StudentScheduleView";
 import StudentIdVerificationTester from "./components/StudentIdVerificationTester";
-
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
 import CreateQuiz from "./pages/lecturer/CreateQuiz";
@@ -55,12 +54,8 @@ import FAQPage from "./pages/help/FAQPage";
 import WebRTCCall from "./components/WebRTCCall";
 import RoomManagement from "./pages/admin/RoomManagement";
 import RoomControlPanel from "./pages/admin/RoomControlPanel";
-
-// Show developer tools only in development environment
-// const isDevelopment = process.env.NODE_ENV === 'development' ||
-//                      window.location.hostname === 'localhost' ||
-//                      window.location.hostname === '127.0.0.1';
-
+import LastLocationNotification from "./components/LastLocationNotification";
+import { saveLastVisitedPath, captureInitialSavedPath, schedulePathSave, clearSavePathTimeout } from "./utils/NavigationUtils";
 // Thêm import cho trang MyCourses
 import MyCoursesPage from "./pages/MyCourses";
 // Thêm import cho trang Classes
@@ -70,6 +65,57 @@ import LearningMaterialsPage from "./pages/LearningMaterialsPage";
 import SubjectMaterialsPage from "./pages/SubjectMaterialsPage";
 // Import Search Page
 import SearchPage from "./pages/SearchPage";
+
+// Capture the initial saved path at module load time, before any rendering happens
+captureInitialSavedPath();
+
+// Show developer tools only in development environment
+// const isDevelopment = process.env.NODE_ENV === 'development' ||
+//                      window.location.hostname === 'localhost' ||
+//                      window.location.hostname === '127.0.0.1';
+
+// Location tracker component to save path on location changes
+function LocationTracker() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Use a flag to track initial render
+    const isInitialRender = sessionStorage.getItem('initialRenderComplete') !== 'true';
+    
+    if (isInitialRender) {
+      // Mark initial render as complete but don't save the path yet
+      sessionStorage.setItem('initialRenderComplete', 'true');
+    } else {
+      // Schedule saving the path with a 5-second delay
+      const currentPath = location.pathname + location.search;
+      schedulePathSave(currentPath, 5000, () => {
+        console.log(`Path '${currentPath}' saved after delay`);
+      });
+    }
+    
+    // Clean up if component unmounts
+    return () => {
+      clearSavePathTimeout();
+    };
+  }, [location]);
+  
+  // Add a listener for beforeunload to save path when tab/window closes
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Save immediately on page close/refresh - bypass any delay
+      clearSavePathTimeout();
+      saveLastVisitedPath(location.pathname + location.search, true);
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [location]);
+  
+  return null;
+}
 
 function App() {
   useEffect(() => {
@@ -92,6 +138,8 @@ function App() {
           <DirectWebRTCProvider>
             <ThemeProvider>
               <Router>
+                {/* LocationTracker to save current path */}
+                <LocationTracker />
                 {/* <BlueCursor /> */}
                 <Routes>
                   <Route
@@ -486,6 +534,8 @@ function App() {
                 {/* Video Call Components */}
                 <EnhancedVideoCall />
                 <EnhancedIncomingCallNotification />
+                {/* Last Location Notification */}
+                <LastLocationNotification />
                 {/* {isDevelopment && <DeveloperTools />} */}
               </Router>
 
