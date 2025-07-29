@@ -273,9 +273,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (userData) => {
+    // Normalize role to lowercase if it exists
+    if (userData && userData.role) {
+      userData = {
+        ...userData,
+        role: userData.role.toLowerCase() // Always store role in lowercase
+      };
+    }
+    
     // Update user state with new data
     const updatedUser = { ...user, ...userData };
     setUser(updatedUser);
+    
+    // Log the updated user with role
+    console.log('Auth context - Updated user:', updatedUser);
+    console.log('Auth context - User role:', updatedUser.role);
     
     // Update localStorage
     localStorage.setItem('user', JSON.stringify(updatedUser));

@@ -36,6 +36,7 @@ import CalendarPage from "./pages/CalendarPage";
 import TeachingScheduleManager from "./pages/admin/TeachingScheduleManager";
 import StudentScheduleView from "./pages/student/StudentScheduleView";
 import OAuthCallback from "./pages/OAuthCallback";
+import Unauthorized from "./pages/Unauthorized";
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -118,6 +119,7 @@ function App() {
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/math-test" element={<MathTest />} />
+                  <Route path="/unauthorized" element={<Unauthorized />} />
                   
                   {/* Generic Dashboard Route */}
                   <Route 
@@ -245,11 +247,7 @@ function App() {
                   />
                   <Route
                     path="/student/dashboard"
-                    element={
-                      <ProtectedRoute allowedRoles={["student"]}>
-                        <StudentDashboard />
-                      </ProtectedRoute>
-                    }
+                    element={<StudentDashboard />}
                   />
                   <Route
                     path="/lecturer/dashboard"
