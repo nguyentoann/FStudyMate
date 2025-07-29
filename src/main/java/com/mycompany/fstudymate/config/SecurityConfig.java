@@ -1,5 +1,6 @@
 package com.mycompany.fstudymate.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -25,8 +26,24 @@ import java.util.logging.Logger;
 public class SecurityConfig {
     private static final Logger logger = Logger.getLogger(SecurityConfig.class.getName());
     
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+    
     @Bean
     @Order(1)
+    public SecurityFilterChain loginSecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring login security filter chain");
+        return http
+                .securityMatcher("/login", "/google-login", "/oauth2/authorization/**", "/login/oauth2/code/**")
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll())
+                .cors().configurationSource(corsConfigurationSource()).and()
+                .csrf().disable()
+                .build();
+    }
+    
+    @Bean
+    @Order(2)
     public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http) throws Exception {
         logger.info("Configuring admin security filter chain with CORS enabled");
         // For development purposes, allow all access to admin endpoints
@@ -43,7 +60,7 @@ public class SecurityConfig {
     }
     
     @Bean
-    @Order(2)
+    @Order(3)
     public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
         logger.info("Configuring public security filter chain with CORS enabled");
         return http
@@ -55,8 +72,25 @@ public class SecurityConfig {
                 .build();
     }
     
+    @Bean
+    @Order(4)
+    public SecurityFilterChain oauthSecurityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring OAuth2 security filter chain");
+        return http
+                .securityMatcher("/api/oauth2/**", "/oauth2/**")
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll())
+                .cors().configurationSource(corsConfigurationSource()).and()
+                .csrf().disable()
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/google-login")
+                        .defaultSuccessUrl("/api/oauth2/login/success", true)
+                        .failureUrl("/google-login?error=true"))
+                .build();
+    }
+    
     @Bean 
-    @Order(3)
+    @Order(5)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         logger.info("Configuring default security filter chain with CORS enabled");
         // Allow all other endpoints to be accessed freely for development
@@ -65,6 +99,10 @@ public class SecurityConfig {
                         .anyRequest().permitAll()) // Changed from authenticated to permitAll
                 .cors().configurationSource(corsConfigurationSource()).and() // Enable CORS
                 .csrf().disable()
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/google-login")
+                        .defaultSuccessUrl("/api/oauth2/login/success", true)
+                        .failureUrl("/google-login?error=true"))
                 .build();
     }
     
@@ -72,15 +110,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         logger.info("Creating CORS configuration source for Spring Security");
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, "http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+        
+        // Special configuration for OAuth endpoints to ensure they work with POST
+        CorsConfiguration oauthConfiguration = new CorsConfiguration(configuration);
+        source.registerCorsConfiguration("/api/oauth2/**", oauthConfiguration);
+        
         logger.info("CORS configuration source created with allowCredentials=true");
         return source;
     }

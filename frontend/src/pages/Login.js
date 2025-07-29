@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { PUBLIC_URL, API_URL } from "../services/config";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -345,6 +346,22 @@ const Login = () => {
                   {error}
                 </motion.div>
               )}
+
+              {/* Google Login Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="mb-6"
+              >
+                <GoogleLoginButton className="w-full" />
+                
+                <div className="my-4 flex items-center">
+                  <div className="flex-1 border-t border-gray-300"></div>
+                  <div className="px-4 text-sm text-gray-500">or</div>
+                  <div className="flex-1 border-t border-gray-300"></div>
+                </div>
+              </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}

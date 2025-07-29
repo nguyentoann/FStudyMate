@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FStudyMate - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .login-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-container h1 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        .login-container p {
+            margin-bottom: 2rem;
+            color: #666;
+        }
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            color: #757575;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 0 auto;
+            width: 80%;
+            transition: background-color 0.3s;
+        }
+        .google-btn:hover {
+            background-color: #f5f5f5;
+        }
+        .google-btn img {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+        .error-message {
+            color: #d32f2f;
+            margin-top: 1rem;
+        }
+        .port-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>FStudyMate</h1>
+        <p>Sign in to access your account</p>
+        
+        <div th:if="${param.error}" class="error-message">
+            Failed to authenticate with Google. Please try again.
+        </div>
+        
+        <a href="/oauth2/authorization/google" class="google-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo">
+            Sign in with Google
+        </a>
+        
+        <div class="port-info">
+            Running on port 3000
+        </div>
+    </div>
+</body>
+</html> 

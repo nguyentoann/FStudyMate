@@ -29,32 +29,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class FStudyMateApplication {
 
     public static void main(String[] args) {
-        // Set profiles programmatically to ensure security is disabled
-        System.setProperty("spring.profiles.active", "nosecurity");
+        // Enable OAuth2 profile
+        System.setProperty("spring.profiles.active", "oauth2");
         SpringApplication.run(FStudyMateApplication.class, args);
     }
     
     // CORS configuration is now managed in com.mycompany.fstudymate.config.WebConfig
-    /*
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOriginPatterns("*")  // Use patterns instead of origins for Spring Boot 2.4+
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(false);
-                
-                // Explicit mapping for login endpoint
-                registry.addMapping("/open/login")
-                        .allowedOriginPatterns("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(false);
-            }
-        };
-    }
-    */
 } 

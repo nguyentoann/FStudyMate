@@ -1,0 +1,38 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial;
+}
+
+form {
+    padding: 2rem 3rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+form h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+form label {
+    font-size: 15px;
+    margin-top: 1rem;
+}
+
+form input {
+    padding: 4px 2px;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+form button {
+    display: block;
+    padding: 8px 16px;
+    margin: 12px auto 0 auto;
+}

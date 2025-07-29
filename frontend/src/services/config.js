@@ -13,15 +13,15 @@ let API_BASE_URL;
 
 if (isLocalhost) {
   // When running locally on a browser on the same machine
-  API_BASE_URL = 'http://localhost:8080';
+  API_BASE_URL = 'http://localhost:3000';
 } else if (hostname === 'fstudy.tinymation.com') {
   // When accessing from the production domain, use specific backend
-  API_BASE_URL = 'http://toandz.ddns.net:8080';
+  API_BASE_URL = 'http://toandz.ddns.net:3000';
 } else {
   // When accessing from another device on the network (like a phone)
   // Use the same hostname that loaded the frontend, but with backend port
   // This works with port forwarding from Windows host to WSL
-  API_BASE_URL = `http://${hostname}:8080`;
+  API_BASE_URL = `http://${hostname}:3000`;
 }
 
 // Export the configurations

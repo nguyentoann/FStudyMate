@@ -6,6 +6,8 @@ import axios from 'axios';
 
 // Add API emergency URL
 const API_EMERGENCY_URL = `${API_URL}/emergency`;
+// Add OAuth2 endpoints
+const API_OAUTH2_URL = `${API_URL}/oauth2`;
 
 // Remove the hardcoded API_URL constant
 // const API_URL = 'http://localhost:8080/api';
@@ -41,6 +43,9 @@ export const AuthProvider = ({ children }) => {
       
       // Validate session immediately
       validateSession();
+    } else {
+      // Check for OAuth2 token in URL (for redirect after Google login)
+      checkForOAuth2Redirect();
     }
     
     setLoading(false);
@@ -54,6 +59,66 @@ export const AuthProvider = ({ children }) => {
     
     return () => clearInterval(sessionCheckInterval);
   }, []);
+
+  // Function to handle OAuth2 redirect after Google login
+  const checkForOAuth2Redirect = async () => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      
+      if (token) {
+        console.log('OAuth2 token found in URL');
+        
+        // Fetch user data using the token
+        const response = await fetch(`${API_OAUTH2_URL}/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to get user info');
+        }
+        
+        const userData = await response.json();
+        
+        if (userData.authenticated) {
+          console.log('OAuth2 authentication successful');
+          
+          // Create user object from OAuth data
+          const user = {
+            id: userData.email, // Using email as ID
+            email: userData.email,
+            name: userData.name,
+            username: userData.name,
+            role: 'STUDENT', // Default role
+            profilePicture: userData.picture,
+            authType: 'google'
+          };
+          
+          // Store user data
+          setUser(user);
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('userId', user.id);
+          localStorage.setItem('username', user.name);
+          
+          // Track Google login
+          trackEvent('google_login_success', {
+            userId: user.id,
+            username: user.name
+          });
+          
+          // Initialize activity tracking
+          initActivityTracking(user);
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling OAuth2 redirect:', error);
+    }
+  };
 
   // Function to validate if the current session is still active
   const validateSession = async () => {
@@ -92,6 +157,30 @@ export const AuthProvider = ({ children }) => {
       // Don't return false here to avoid unnecessary logout
       return true; // Assume session is valid if we can't validate
     }
+  };
+
+  // Google login function
+  const loginWithGoogle = () => {
+    // Redirect to the backend Google OAuth endpoint
+    console.log('Redirecting to Google login');
+    trackEvent('google_login_attempt', {});
+    
+    // Construct the Google OAuth2 authorization URL
+    const googleAuthUrl = 'https://accounts.google.com/o/oauth2/auth';
+    const clientId = '924022397797-b984aj2nuiaovp4fgal60seubtslagik.apps.googleusercontent.com';
+    const redirectUri = encodeURIComponent('http://localhost:3000/login/oauth2/code/google');
+    const scope = encodeURIComponent('email profile openid');
+    const responseType = 'code';
+    const accessType = 'offline';
+    const prompt = 'consent';
+    // Generate a random state for security
+    const state = encodeURIComponent(Math.random().toString(36).substring(2, 15));
+    
+    // Build the full authorization URL with state parameter
+    const authUrl = `${googleAuthUrl}?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}&state=${state}`;
+    
+    // Redirect the browser to the Google authorization URL
+    window.location.href = authUrl;
   };
 
   const login = async (loginIdentifier, password) => {
@@ -205,7 +294,8 @@ export const AuthProvider = ({ children }) => {
     if (user) {
       trackEvent('logout', {
         userId: user.id,
-        username: user.username
+        username: user.username,
+        authType: user.authType || 'standard'
       });
     }
     
@@ -364,6 +454,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: !!user,
       setUser: updateUser, 
       login, 
+      loginWithGoogle, // Add Google login function to context
       logout, 
       register,
       verifyOtp,

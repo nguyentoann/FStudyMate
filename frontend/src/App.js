@@ -28,12 +28,14 @@ import LecturerDashboard from "./pages/dashboards/LecturerDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import GuestDashboard from "./pages/dashboards/GuestDashboard";
 import OutsrcStudentDashboard from "./pages/dashboards/OutsrcStudentDashboard";
+import Dashboard from "./pages/Dashboard"; // Import the new Dashboard component
 import LandingPage from "./pages/LandingPage";
 import QuizGamePage from "./pages/QuizGamePage";
 import VerifyOtp from "./pages/VerifyOtp";
 import CalendarPage from "./pages/CalendarPage";
 import TeachingScheduleManager from "./pages/admin/TeachingScheduleManager";
 import StudentScheduleView from "./pages/student/StudentScheduleView";
+import OAuthCallback from "./pages/OAuthCallback";
 
 // import DeveloperTools from './components/DeveloperTools';
 import QuizManager from "./pages/lecturer/QuizManager";
@@ -96,11 +98,12 @@ function App() {
                   <Route
                     path="/"
                     element={
-                      <AuthenticatedRedirect>
-                        <LandingPage />
-                      </AuthenticatedRedirect>
+                      <LandingPage />
                     }
                   />
+                  {/* OAuth callback route */}
+                  <Route path="/login/oauth2/code/:provider" element={<OAuthCallback />} />
+                  
                   <Route
                     path="/home"
                     element={
@@ -115,6 +118,16 @@ function App() {
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/math-test" element={<MathTest />} />
+                  
+                  {/* Generic Dashboard Route */}
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
                   {/* Quiz routes */}
                   <Route
                     path="/quiz"
