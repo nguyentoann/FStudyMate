@@ -372,7 +372,7 @@ const FloatingMenu = ({
           </Link>
 
           {/* Request - simplified version */}
-          <div className="relative">
+          {/* <div className="relative">
             <button
               onClick={() => toggleSubmenu("requests")}
               className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 justify-between"
@@ -485,7 +485,7 @@ const FloatingMenu = ({
                   </Link>
                 </div>
               )}
-          </div>
+          </div> */}
 
           {/* Help - simplified version */}
           <div className="relative">
@@ -700,26 +700,6 @@ const FloatingMenu = ({
                       />
                     </svg>
                     <span className="whitespace-nowrap">Account</span>
-                  </Link>
-
-                  <Link
-                    to="/language"
-                    className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100/20 rounded-md"
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2 text-gray-500 min-w-[1rem]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
-                      />
-                    </svg>
-                    <span className="whitespace-nowrap">Language</span>
                   </Link>
 
                   <Link
