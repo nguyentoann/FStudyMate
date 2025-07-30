@@ -5,7 +5,7 @@ import "./TeachingScheduleManager.css";
 import api from "../../services/api";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const SLOTS = [1, 2, 3, 4, 5, 6, 7, 8];
+const SLOTS = [1, 2, 3, 4, 5, 6];
 const STATUS_OPTIONS = ["NotYet", "Attended", "Online", "Absent"];
 const STATUS_COLORS = {
   NotYet: "#f87171",
@@ -19,9 +19,7 @@ const TIME_SLOTS = {
   3: { start: "12:30", end: "14:45" },
   4: { start: "15:00", end: "17:15" },
   5: { start: "17:30", end: "19:45" },
-  6: { start: "19:30", end: "21:00" },
-  7: { start: "21:15", end: "23:30" },
-  8: { start: "19:30", end: "21:00" },
+  6: { start: "19:30", end: "21:00" }
 };
 
 function TeachingScheduleManager() {
@@ -1104,16 +1102,7 @@ function ScheduleModal({
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label>Building:</label>
-              <input
-                type="text"
-                name="building"
-                value={form.building}
-                onChange={handleChange}
-                placeholder="Building name/code"
-              />
-            </div>
+
 
             <div className="form-group">
               <label>Status:</label>

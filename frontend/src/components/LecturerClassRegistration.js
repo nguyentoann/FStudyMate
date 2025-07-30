@@ -34,9 +34,7 @@ const LecturerClassRegistration = () => {
     3: { start: '12:30', end: '14:45' },
     4: { start: '15:00', end: '17:15' },
     5: { start: '17:30', end: '19:45' },
-    6: { start: '19:30', end: '21:00' },
-    7: { start: '21:15', end: '23:30' },
-    8: { start: '19:30', end: '21:00' }
+    6: { start: '19:30', end: '21:00' }
   };
 
   const WEEKDAYS = [
