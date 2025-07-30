@@ -244,7 +244,7 @@ const StudentDashboard = () => {
         </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col relative">
+          <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col relative">
             {/* Top section with title and view button */}
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-sm font-medium text-gray-500">
@@ -301,19 +301,19 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-lg  p-6">
             <h3 className="text-sm font-medium text-gray-500">Average Score</h3>
             <p className="text-3xl font-semibold">{stats.averageScore}%</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-lg p-6 hover:bg-red-300 transition-colors duration-200 cursor-pointer">
             <h3 className="text-sm font-medium text-gray-500">
               Completed Courses
             </h3>
             <p className="text-3xl font-semibold">{stats.completedCourses}</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-sm font-medium text-gray-500">
               Active Courses
             </h3>
@@ -323,13 +323,10 @@ const StudentDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Progress Tracker (1/3 width on large screens) */}
-          <div className="lg:col-span-1">
-            <ProgressTracker />
-          </div>
 
           {/* My Courses Preview (2/3 width on large screens) */}
           <div
-            className={`rounded-lg shadow overflow-hidden lg:col-span-2 ${
+            className={`rounded-lg shadow-lg overflow-hidden lg:col-span-3 ${
               darkMode ? "bg-gray-800" : "bg-white"
             }`}
           >

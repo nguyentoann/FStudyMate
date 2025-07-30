@@ -418,17 +418,16 @@ const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div
-              className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={() => navigate("/course/MAE101")}
-            >
+            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
               <img
-                src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
+                src={
+                  "https://files.fullstack.edu.vn/f8-prod/courses/15/62f13d2424a47.png"
+                }
                 alt="Course"
                 className="rounded-md"
               />
               <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
-                MAE101
+                HTML, CSS
               </h3>
               <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
                 Access learning resources for subjects like{" "}
@@ -439,17 +438,14 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div
-              className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={() => navigate("/course/PRF192")}
-            >
+            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
               <img
-                src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
+                src={"https://files.fullstack.edu.vn/f8-prod/courses/2.png"}
                 alt="Course"
                 className="rounded-md"
               />
               <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
-                MAE101
+                HTML, CSS
               </h3>
               <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
                 Access learning resources for subjects like{" "}
@@ -460,17 +456,14 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div
-              className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={() => navigate("/course/PRO192")}
-            >
+            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
               <img
-                src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
+                src={"https://files.fullstack.edu.vn/f8-prod/courses/3.png"}
                 alt="Course"
                 className="rounded-md"
               />
               <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
-                MAE101
+                Responsive WEB
               </h3>
               <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
                 Access learning resources for subjects like{" "}
@@ -480,38 +473,14 @@ const LandingPage = () => {
                 , and more
               </p>
             </div>
-            <div
-              className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={() => navigate("/course/LAB211")}
-            >
+            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
               <img
                 src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
                 alt="Course"
                 className="rounded-md"
               />
               <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
-                MAE101
-              </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
-                Access learning resources for subjects like{" "}
-                <span className="font-semibold">
-                  MAE101, PRF192, PRO192, LAB211
-                </span>
-                , and more
-              </p>
-            </div>
-
-            <div
-              className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={() => navigate("/course/CSD201")}
-            >
-              <img
-                src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
-                alt="Course"
-                className="rounded-md"
-              />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
-                MAE101
+                ReactJS
               </h3>
               <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
                 Access learning resources for subjects like{" "}
@@ -522,17 +491,34 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div
-              className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={() => navigate("/course/DBI202")}
-            >
+            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
               <img
-                src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
+                src={"https://files.fullstack.edu.vn/f8-prod/courses/6.png"}
                 alt="Course"
                 className="rounded-md"
               />
               <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
-                MAE101
+                Node & ExpressJS
+              </h3>
+              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                Access learning resources for subjects like{" "}
+                <span className="font-semibold">
+                  MAE101, PRF192, PRO192, LAB211
+                </span>
+                , and more
+              </p>
+            </div>
+
+            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+              <img
+                src={
+                  "https://files.fullstack.edu.vn/f8-prod/courses/4/61a9e9e701506.png"
+                }
+                alt="Course"
+                className="rounded-md"
+              />
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+                AI
               </h3>
               <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
                 Access learning resources for subjects like{" "}

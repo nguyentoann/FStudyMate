@@ -301,16 +301,16 @@ const QuizAttemptContinue = ({ quizTakenId }) => {
       try {
         setLoading(true);
         console.log("Loading quiz attempt:", quizTakenId);
-        
+
         // Fetch the quiz attempt
         const response = await fetch(`${API_URL}/quiz-attempts/${quizTakenId}`);
         const data = await response.json();
-        
+
         console.log("Quiz attempt data:", data);
-        
+
         // Handle different response formats - check if we have the data we need
         let quizData;
-        
+
         if (data.success && data.data) {
           // Format 1: { success: true, data: {...} }
           quizData = data.data;
@@ -325,32 +325,37 @@ const QuizAttemptContinue = ({ quizTakenId }) => {
           setError("Failed to load quiz attempt. Unexpected data format.");
           return;
         }
-        
+
         console.log("Processed quiz data:", quizData);
-        
+
         // If we have the quiz object directly, use it
         if (quizData.quiz) {
           console.log("Quiz object found directly:", quizData.quiz);
           const quiz = quizData.quiz;
-          
+
           navigate(`/quiz/${quiz.maMon}/${quiz.maDe}`, {
             state: {
               quizTakenId: quizTakenId,
-              continuing: true
-            }
+              continuing: true,
+            },
           });
           return;
         }
-        
+
         // If we don't have the quiz object but have quizId, fetch the quiz details
         if (quizData.quizId) {
-          console.log("No quiz object found, fetching quiz details for quizId:", quizData.quizId);
-          
+          console.log(
+            "No quiz object found, fetching quiz details for quizId:",
+            quizData.quizId
+          );
+
           try {
-            const quizResponse = await fetch(`${API_URL}/quizzes/${quizData.quizId}`);
+            const quizResponse = await fetch(
+              `${API_URL}/quizzes/${quizData.quizId}`
+            );
             const quizDetailsData = await quizResponse.json();
             console.log("Quiz details:", quizDetailsData);
-            
+
             // Handle different response formats for quiz details
             let quiz;
             if (quizDetailsData.success && quizDetailsData.data) {
@@ -360,16 +365,16 @@ const QuizAttemptContinue = ({ quizTakenId }) => {
             } else {
               quiz = quizDetailsData;
             }
-            
+
             // Check if we got the quiz with maMon and maDe
             if (quiz && quiz.maMon && quiz.maDe) {
               console.log("Got quiz details:", quiz);
-              
+
               navigate(`/quiz/${quiz.maMon}/${quiz.maDe}`, {
                 state: {
                   quizTakenId: quizTakenId,
-                  continuing: true
-                }
+                  continuing: true,
+                },
               });
               return;
             } else {
@@ -391,17 +396,17 @@ const QuizAttemptContinue = ({ quizTakenId }) => {
         setLoading(false);
       }
     };
-    
+
     loadQuizAttempt();
   }, [quizTakenId, navigate]);
-  
+
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Loading Quiz</h1>
         </div>
-        
+
         {loading ? (
           <div className="flex flex-col justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
@@ -411,8 +416,8 @@ const QuizAttemptContinue = ({ quizTakenId }) => {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             <p className="font-semibold">Error</p>
             <p>{error}</p>
-            <button 
-              onClick={() => navigate('/quiz-history')}
+            <button
+              onClick={() => navigate("/quiz-history")}
               className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             >
               Return to Quiz History
@@ -428,13 +433,14 @@ const QuizAttemptContinue = ({ quizTakenId }) => {
 const QuizComponent = ({ maMon, maDe }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { random, timed, showTeacher, quizTakenId, continuing } = location.state || {
-    random: false,
-    timed: false,
-    showTeacher: false,
-    quizTakenId: null,
-    continuing: false
-  };
+  const { random, timed, showTeacher, quizTakenId, continuing } =
+    location.state || {
+      random: false,
+      timed: false,
+      showTeacher: false,
+      quizTakenId: null,
+      continuing: false,
+    };
   const { darkMode } = useTheme();
 
   const [questions, setQuestions] = useState([]);
@@ -528,13 +534,16 @@ const QuizComponent = ({ maMon, maDe }) => {
         // Fetch quiz metadata first
         const metadataResponse = await getQuizMetadata(maMon, maDe);
         console.log("Quiz metadata response:", metadataResponse);
-        
+
         // Handle different response formats for metadata
         let metadata;
         if (metadataResponse.success && metadataResponse.data) {
           // Format 1: { success: true, data: {...} }
           metadata = metadataResponse.data;
-        } else if (typeof metadataResponse === 'object' && metadataResponse !== null) {
+        } else if (
+          typeof metadataResponse === "object" &&
+          metadataResponse !== null
+        ) {
           // Format 2: Direct metadata object
           metadata = metadataResponse;
         } else {
@@ -544,7 +553,7 @@ const QuizComponent = ({ maMon, maDe }) => {
             description: "Failed to load quiz details",
           };
         }
-        
+
         setQuizMetadata(metadata);
 
         // If the quiz has a time limit, use it instead of the default
@@ -563,18 +572,25 @@ const QuizComponent = ({ maMon, maDe }) => {
               // Start a new quiz session
               const startResponse = await startQuiz(metadata.id);
               console.log("Start quiz response:", startResponse);
-              
+
               // Handle different response formats for startQuiz
               if (startResponse) {
                 let quizTakenId;
-                if (startResponse.success && startResponse.data && startResponse.data.id) {
+                if (
+                  startResponse.success &&
+                  startResponse.data &&
+                  startResponse.data.id
+                ) {
                   quizTakenId = startResponse.data.id;
                 } else if (startResponse.quizTakenId) {
                   quizTakenId = startResponse.quizTakenId;
                 }
-                
+
                 if (quizTakenId) {
-                  localStorage.setItem(`quiz_session_${maMon}_${maDe}`, quizTakenId);
+                  localStorage.setItem(
+                    `quiz_session_${maMon}_${maDe}`,
+                    quizTakenId
+                  );
                   console.log("Saved new quiz session ID:", quizTakenId);
                 }
               }
@@ -584,18 +600,23 @@ const QuizComponent = ({ maMon, maDe }) => {
             }
           }
         }
-        
+
         // If we're continuing an existing quiz and have a quizTakenId, save it to localStorage
         if (continuing && quizTakenId) {
-          console.log("Continuing existing quiz with quizTakenId:", quizTakenId);
+          console.log(
+            "Continuing existing quiz with quizTakenId:",
+            quizTakenId
+          );
           localStorage.setItem(`quiz_session_${maMon}_${maDe}`, quizTakenId);
-          
+
           // Also try to load any saved answers for this quiz attempt
           try {
-            const response = await fetch(`${API_URL}/quiz-attempts/${quizTakenId}`);
+            const response = await fetch(
+              `${API_URL}/quiz-attempts/${quizTakenId}`
+            );
             const data = await response.json();
             console.log("Fetched attempt data:", data);
-            
+
             // Handle different response formats
             let attemptData;
             if (data.success && data.data) {
@@ -606,7 +627,7 @@ const QuizComponent = ({ maMon, maDe }) => {
               // Direct data format
               attemptData = data;
             }
-            
+
             if (attemptData) {
               // If there are selected answers, parse them
               if (attemptData.selectedAnswers) {
@@ -614,15 +635,18 @@ const QuizComponent = ({ maMon, maDe }) => {
                   const parsedAnswers = JSON.parse(attemptData.selectedAnswers);
                   console.log("Loaded saved answers:", parsedAnswers);
                   setSelectedAnswers(parsedAnswers);
-                  
+
                   // Mark questions with answers as completed
                   const completed = new Set();
-                  Object.keys(parsedAnswers).forEach(questionId => {
+                  Object.keys(parsedAnswers).forEach((questionId) => {
                     completed.add(parseInt(questionId, 10));
                   });
                   setCompletedQuestions(completed);
                 } catch (parseError) {
-                  console.error("Failed to parse selected answers:", parseError);
+                  console.error(
+                    "Failed to parse selected answers:",
+                    parseError
+                  );
                 }
               }
             }
@@ -634,16 +658,22 @@ const QuizComponent = ({ maMon, maDe }) => {
         // Fetch questions
         const questionsResponse = await getQuestions(maMon, maDe, random);
         console.log("Questions response:", questionsResponse);
-        
+
         // Handle different response formats for questions
         let questionData;
         if (Array.isArray(questionsResponse)) {
           // Format 1: Direct array of questions
           questionData = questionsResponse;
-        } else if (questionsResponse.questions && Array.isArray(questionsResponse.questions)) {
+        } else if (
+          questionsResponse.questions &&
+          Array.isArray(questionsResponse.questions)
+        ) {
           // Format 2: { questions: [...] }
           questionData = questionsResponse.questions;
-        } else if (questionsResponse.success && Array.isArray(questionsResponse.data)) {
+        } else if (
+          questionsResponse.success &&
+          Array.isArray(questionsResponse.data)
+        ) {
           // Format 3: { success: true, data: [...] }
           questionData = questionsResponse.data;
         } else {
@@ -1175,11 +1205,11 @@ const QuizComponent = ({ maMon, maDe }) => {
       if (DEBUG_QUIZ_SUBMISSIONS) {
         console.log("DEBUG: submitQuiz response:", submitResponse);
       }
-      
+
       // Check response format and handle appropriately
-      const submitSuccess = 
-        (submitResponse && submitResponse.success) || 
-        (submitResponse && submitResponse.status === 'completed');
+      const submitSuccess =
+        (submitResponse && submitResponse.success) ||
+        (submitResponse && submitResponse.status === "completed");
 
       if (!submitSuccess) {
         console.error("Quiz submission failed:", submitResponse);
@@ -2312,7 +2342,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                 {/* Check Result Display */}
                 {isChecked && checkResult && (
                   <div
-                    className={`mt-4 p-4 rounded-lg animate-bounce-in ${
+                    className={`mt-4 mr-20 p-4 rounded-lg  ${
                       checkResult.isCorrect
                         ? darkMode
                           ? "bg-green-900 text-green-100"
