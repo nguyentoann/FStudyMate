@@ -4,6 +4,7 @@
   "private": true,
   "proxy": "http://localhost:8080",
   "dependencies": {
+    "@ant-design/plots": "^2.6.2",
     "@react-three/drei": "^9.88.17",
     "@react-three/fiber": "^8.15.11",
     "@react-three/rapier": "^1.1.2",
@@ -58,7 +59,8 @@
     "three": "^0.160.1",
     "util": "^0.12.5",
     "uuid": "^11.1.0",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "zustand": "^5.0.6"
   },
   "scripts": {
     "start": "react-app-rewired start",
@@ -91,6 +93,5 @@
     "postcss": "^8.5.3",
     "react-app-rewired": "^2.2.1",
     "webpack-bundle-analyzer": "^4.10.1"
-  },
-  "proxy": "http://localhost:8080"
+  }
 }

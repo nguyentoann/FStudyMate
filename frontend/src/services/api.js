@@ -1024,4 +1024,28 @@ export const getQuizDashboardStats = async () => {
       inProgressQuizzes: 0
     };
   }
+};
+
+// Get all users
+export const getUsers = async () => {
+  try {
+    const response = await api.get('/admin/users');
+    console.log('[API] Users fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return [];
+  }
+};
+
+// Get all classes
+export const getClasses = async () => {
+  try {
+    const response = await api.get('/api/classes');
+    console.log('[API] Classes fetched:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching classes:', error);
+    return [];
+  }
 }; 

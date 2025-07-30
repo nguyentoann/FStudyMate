@@ -13,9 +13,12 @@ import {
   forceLogoutSession,
   getSystemResources,
   performSpeedTest,
+  getUsers,
+  getClasses,
 } from "../../services/api";
 import { API_URL } from "../../services/config";
 import axios from "axios";
+import { Column, Pie } from "@ant-design/plots";
 
 // Default avatar path using the public folder (avoids CORS issues)
 const DEFAULT_AVATAR = "/images/default-avatar.svg";
@@ -62,6 +65,14 @@ const AdminDashboard = () => {
   const [isLoadingResources, setIsLoadingResources] = useState(true);
   const [speedTestResult, setSpeedTestResult] = useState(null);
   const [isRunningSpeedTest, setIsRunningSpeedTest] = useState(false);
+  const [studentsData, setStudentsData] = useState([]);
+  const [isLoadingStudentsData, setIsLoadingStudentsData] = useState(true);
+  const [studentsByBatch, setStudentsByBatch] = useState([]);
+  const [studentsByCampus, setStudentsByCampus] = useState([]);
+  const [classesData, setClassesData] = useState([]);
+  const [isLoadingClassesData, setIsLoadingClassesData] = useState(true);
+  const [studentsByClass, setStudentsByClass] = useState([]);
+  const [studentsByMajor, setStudentsByMajor] = useState([]);
 
   const [systemAlerts, setSystemAlerts] = useState([
     {
@@ -87,10 +98,11 @@ const AdminDashboard = () => {
   // Thêm state này sau các state hiện có (khoảng dòng 60)
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Thêm tabs config với đầy đủ các phần
+  // Tabs configuration
   const tabs = [
     { id: "overview", name: "Overview", icon: "📊" },
     { id: "users", name: "Users", icon: "👥" },
+    { id: "statistics", name: "Statistics", icon: "📈" },
     { id: "sessions", name: "Sessions", icon: "🔐" },
     { id: "alerts", name: "Alerts", icon: "⚠️" },
     { id: "storage", name: "Storage", icon: "💾" },
@@ -99,9 +111,145 @@ const AdminDashboard = () => {
     { id: "actions", name: "Actions", icon: "🛠️" },
   ];
 
+  // Function to process class data for chart
+  const processClassesData = (classes) => {
+    // Filter to include only active classes with currentStudents > 0
+    const activeClasses = classes.filter(cls => cls.currentStudents > 0);
+    
+    // Sort by className for better chart display
+    activeClasses.sort((a, b) => a.className.localeCompare(b.className));
+    
+    // Format for chart
+    const formattedData = activeClasses.map(cls => ({
+      className: cls.className,
+      students: cls.currentStudents,
+      // Extract program code from className (e.g., SE from SE18D01)
+      program: cls.className.substring(0, 2),
+      // Extract batch year from className (e.g., 18 from SE18D01)
+      batchYear: cls.className.substring(2, 4)
+    }));
+    
+    setClassesData(activeClasses);
+    setStudentsByClass(formattedData);
+    setIsLoadingClassesData(false);
+  };
+  
+  // Function to process student data for charts
+  const processStudentsData = (students) => {
+    // Filter to include only students
+    const onlyStudents = students.filter(user => user.role === 'student' && user.studentId);
+    
+    // Process data for batch chart
+    const batchMap = {
+      'Undefined': 0 // Initialize a category for undefined/invalid formats
+    };
+    
+    // Process data for campus chart
+    const campusMap = {
+      'D': { campus: 'Da Nang', count: 0 },
+      'S': { campus: 'Ho Chi Minh', count: 0 },
+      'H': { campus: 'Hanoi', count: 0 },
+      'Other': { campus: 'Other/Unknown', count: 0 } // For campus letters not in our map
+    };
+    
+    // Process data for major chart
+    const majorMap = {};
+
+    // Get current year's last 2 digits for batch validation
+    const currentYearLastTwoDigits = new Date().getFullYear() % 100;
+    const oldestValidBatch = currentYearLastTwoDigits - 4; // Batches older than 4 years are considered invalid
+    
+    onlyStudents.forEach(student => {
+      // Process major data
+      const major = student.academicMajor || "Undeclared";
+      if (!majorMap[major]) {
+        majorMap[major] = 0;
+      }
+      majorMap[major]++;
+      
+      if (student.studentId) {
+        // Extract the first 2 digits after the prefix for batch
+        const studentId = student.studentId;
+        const match = studentId.match(/^[A-Z]{2}(\d{2})/);
+        
+        if (match && match[1]) {
+          const batchNumber = parseInt(match[1], 10);
+          
+          // Check if the batch is valid (not too old)
+          if (batchNumber <= oldestValidBatch) { // do not change this line
+            const batchName = `K${batchNumber}`;
+            
+            if (!batchMap[batchName]) {
+              batchMap[batchName] = 0;
+            }
+            batchMap[batchName]++;
+          } else {
+            // If the batch is too old (more than 4 years old), count as undefined
+            batchMap['Undefined']++;
+          }
+        } else {
+          // If the ID doesn't match the expected pattern, count it as undefined
+          batchMap['Undefined']++;
+        }
+        
+        // Extract campus info from the first letter
+        if (studentId.length > 0) {
+          const campusLetter = studentId[0];
+          if (campusMap[campusLetter]) {
+            campusMap[campusLetter].count++;
+          } else {
+            // For any other campus letter not in our map
+            campusMap['Other'].count++;
+          }
+        }
+      }
+    });
+
+    // Convert batch map to array for chart
+    const batchData = Object.entries(batchMap)
+      .map(([batch, count]) => ({ batch, count }))
+      .sort((a, b) => a.batch.localeCompare(b.batch));
+    
+    // Convert campus map to array for chart
+    const campusData = Object.values(campusMap)
+      .filter(item => item.count > 0);
+      
+    // Convert major map to array for pie chart
+    const majorData = Object.entries(majorMap)
+      .map(([major, value]) => ({ major, value }))
+      .sort((a, b) => b.value - a.value);
+
+    setStudentsByBatch(batchData);
+    setStudentsByCampus(campusData);
+    setStudentsByMajor(majorData);
+    setStudentsData(onlyStudents);
+  };
+
   // Fetch all data function
   const fetchDashboardData = useCallback(async () => {
     setError(null);
+
+    // Fetch users data for charts
+    try {
+      setIsLoadingStudentsData(true);
+      const usersData = await getUsers();
+      processStudentsData(usersData);
+    } catch (error) {
+      console.error("Error fetching users data for charts:", error);
+    } finally {
+      setIsLoadingStudentsData(false);
+    }
+    
+    // Fetch classes data for class chart
+    try {
+      setIsLoadingClassesData(true);
+      const classesData = await getClasses();
+      processClassesData(classesData);
+    } catch (error) {
+      console.error("Error fetching classes data for chart:", error);
+    } finally {
+      setIsLoadingClassesData(false);
+    }
 
     // Fetch user statistics
     try {
@@ -1615,6 +1763,294 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "statistics" && (
+          <div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Students by Batch Chart */}
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h2 className="text-lg font-semibold">Students by Batch</h2>
+                  {isLoadingStudentsData && (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  {studentsByBatch.length > 0 ? (
+                    <div className="h-80">
+                      <Column
+                        data={studentsByBatch}
+                        xField="batch"
+                        yField="count"
+                        xAxis={{
+                          label: {
+                            autoRotate: false,
+                          },
+                          title: { text: "Batch" },
+                        }}
+                        yAxis={{
+                          title: { text: "Number of Students" },
+                        }}
+                        meta={{
+                          count: {
+                            alias: "Students",
+                          },
+                        }}
+                        colorField="batch"
+                        color={(batch) => {
+                          return batch === "Undefined" ? "#d1d5db" : "#6366f1";
+                        }}
+                        label={{
+                          position: "top",
+                          style: {
+                            fill: "#666",
+                            fontSize: 12,
+                          },
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex justify-center items-center h-60 text-gray-500">
+                      {isLoadingStudentsData
+                        ? "Loading data..."
+                        : "No batch data available"}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Students by Campus Chart */}
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h2 className="text-lg font-semibold">Students by Campus</h2>
+                  {isLoadingStudentsData && (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  {studentsByCampus.length > 0 ? (
+                    <div className="h-80">
+                      <Column
+                        data={studentsByCampus}
+                        xField="campus"
+                        yField="count"
+                        xAxis={{
+                          label: {
+                            autoRotate: false,
+                          },
+                          title: { text: "Campus" },
+                        }}
+                        yAxis={{
+                          title: { text: "Number of Students" },
+                        }}
+                        meta={{
+                          count: {
+                            alias: "Students",
+                          },
+                        }}
+                        colorField="campus"
+                        color={(campus) => {
+                          return campus === "Other/Unknown" ? "#d1d5db" : "#8b5cf6";
+                        }}
+                        label={{
+                          position: "top",
+                          style: {
+                            fill: "#666",
+                            fontSize: 12,
+                          },
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex justify-center items-center h-60 text-gray-500">
+                      {isLoadingStudentsData
+                        ? "Loading data..."
+                        : "No campus data available"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Students per Class Chart */}
+            <div className="bg-white rounded-lg shadow mb-8">
+              <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Students per Class</h2>
+                {isLoadingClassesData && (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+                )}
+              </div>
+
+              <div className="p-4">
+                {studentsByClass.length > 0 ? (
+                  <div className="h-96 overflow-x-auto">
+                    <div style={{ width: Math.max(800, studentsByClass.length * 60) + 'px', height: '350px' }}>
+                      <Column
+                        data={studentsByClass}
+                        xField="className"
+                        yField="students"
+                        xAxis={{
+                          label: {
+                            autoRotate: true,
+                            style: {
+                              fontSize: 12
+                            }
+                          },
+                          title: { text: "Class Name" },
+                        }}
+                        yAxis={{
+                          title: { text: "Number of Students" },
+                        }}
+                        meta={{
+                          students: {
+                            alias: "Students",
+                          },
+                        }}
+                        colorField="program"
+                        label={{
+                          position: "top",
+                          style: {
+                            fill: "#666",
+                            fontSize: 10,
+                          },
+                        }}
+                        tooltip={{
+                          customContent: (title, items) => {
+                            const item = items[0];
+                            if (!item) return `<div></div>`;
+                            
+                            const className = item.data.className;
+                            const students = item.data.students;
+                            const program = item.data.program;
+                            const batch = `K${item.data.batchYear}`;
+                            
+                            return `
+                              <div style="padding: 8px;">
+                                <div style="font-weight: bold; margin-bottom: 4px;">${className}</div>
+                                <div>Students: ${students}</div>
+                                <div>Program: ${program}</div>
+                                <div>Batch: ${batch}</div>
+                              </div>
+                            `;
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-center items-center h-60 text-gray-500">
+                    {isLoadingClassesData
+                      ? "Loading data..."
+                      : "No class data available"}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Students by Major Pie Chart */}
+            <div className="bg-white rounded-lg shadow mb-8">
+              <div className="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Students by Major</h2>
+                {isLoadingStudentsData && (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+                )}
+              </div>
+              
+              <div className="p-4">
+                {studentsByMajor.length > 0 ? (
+                  <div className="h-80">
+                    <Pie
+                      data={studentsByMajor}
+                      angleField="value"
+                      colorField="major"
+                      radius={0.8}
+                      innerRadius={0.5}
+                      label={false}
+                      statistic={{
+                        title: false,
+                        content: {
+                          style: {
+                            whiteSpace: 'pre-wrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontSize: '16px',
+                          },
+                          content: 'Student Majors',
+                        },
+                      }}
+                      interactions={[
+                        {
+                          type: 'element-active',
+                        },
+                      ]}
+                      tooltip={{
+                        formatter: (datum) => {
+                          return {
+                            name: datum.major,
+                            value: `${datum.value} students (${((datum.value / studentsData.length) * 100).toFixed(1)}%)`
+                          };
+                        },
+                      }}
+                      legend={{
+                        layout: 'horizontal',
+                        position: 'bottom'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex justify-center items-center h-60 text-gray-500">
+                    {isLoadingStudentsData
+                      ? "Loading data..."
+                      : "No major data available"}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Student Stats Summary */}
+            <div className="bg-white rounded-lg shadow mb-8">
+              <div className="px-4 py-3 border-b bg-gray-50">
+                <h2 className="text-lg font-semibold">Student Distribution Summary</h2>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-indigo-50 p-4 rounded-md">
+                    <div className="text-sm text-gray-600">Total Students</div>
+                    <div className="font-bold text-xl text-indigo-700">
+                      {studentsData.length}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-md">
+                    <div className="text-sm text-gray-600">Unique Batches</div>
+                    <div className="font-bold text-xl text-purple-700">
+                      {studentsByBatch.length}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-md">
+                    <div className="text-sm text-gray-600">Active Campuses</div>
+                    <div className="font-bold text-xl text-blue-700">
+                      {studentsByCampus.filter(campus => campus.count > 0).length}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-md">
+                    <div className="text-sm text-gray-600">Active Classes</div>
+                    <div className="font-bold text-xl text-green-700">
+                      {studentsByClass.length}
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 p-4 rounded-md">
+                    <div className="text-sm text-gray-600">Unique Majors</div>
+                    <div className="font-bold text-xl text-amber-700">
+                      {studentsByMajor.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
