@@ -43,12 +43,12 @@ const CalendarPage = () => {
 
   // Check if user is admin or lecturer
   const isAdminOrLecturer = () => {
-    return user && (user.role === 'admin' || user.role === 'lecturer');
+    return user && (user.role === "admin" || user.role === "lecturer");
   };
-  
+
   // Check if user is a student
   const isStudent = () => {
-    return user && user.role === 'student';
+    return user && user.role === "student";
   };
 
   if (!user) {
@@ -121,7 +121,7 @@ const CalendarPage = () => {
               Class Schedule
             </button>
           )}
-          {user.role === 'lecturer' && (
+          {user.role === "lecturer" && (
             <button
               className={`shadow-xl rounded-xl px-6 py-4 font-bold ${
                 activeTab === "classreg" ? "bg-sky-500" : "bg-white"
@@ -160,50 +160,6 @@ const CalendarPage = () => {
 
         {/* Quick Actions Sidebar */}
         <div className="quick-actions-sidebar">
-          <div className="sidebar-section">
-            <h3>Quick Actions</h3>
-            <button className="quick-action-btn">
-              <i className="fas fa-plus"></i>
-              Add Schedule
-            </button>
-            <button className="quick-action-btn">
-              <i className="fas fa-calendar-plus"></i>
-              Create Event
-            </button>
-            <button className="quick-action-btn">
-              <i className="fas fa-bell"></i>
-              Set Reminder
-            </button>
-          </div>
-
-          <div className="sidebar-section">
-            <h3>Today's Schedule</h3>
-            {loading ? (
-              <div className="loading">Loading...</div>
-            ) : (
-              <div className="today-schedule">
-                {upcomingEvents.length === 0 ? (
-                  <div className="no-events">No events scheduled for today</div>
-                ) : (
-                  upcomingEvents.map((event) => (
-                    <div key={event.id} className="event-item">
-                      <div className="event-time">
-                        {new Date(event.startDate).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                      <div className="event-details">
-                        <div className="event-title">{event.title}</div>
-                        <div className="event-location">{event.location}</div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
           <div className="sidebar-section">
             <h3>Calendar Tips</h3>
             <div className="tips-list">
