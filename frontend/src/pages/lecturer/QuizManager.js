@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../../components/DashboardLayout';
-import { useAuth } from '../../context/AuthContext';
-import { API_URL } from '../../services/config';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import DashboardLayout from "../../components/DashboardLayout";
+import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../services/config";
 
 const QuizManager = () => {
   const { user } = useAuth();
@@ -10,8 +10,8 @@ const QuizManager = () => {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -26,77 +26,77 @@ const QuizManager = () => {
       setLoading(true);
       // In a real implementation, replace this with your actual API call
       const response = await fetch(`${API_URL}/quizzes/lecturer/${user.id}`);
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch quizzes');
+        throw new Error("Failed to fetch quizzes");
       }
-      
+
       const data = await response.json();
       setQuizzes(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching quizzes:', error);
-      setError('Failed to load quizzes. Please try again later.');
+      console.error("Error fetching quizzes:", error);
+      setError("Failed to load quizzes. Please try again later.");
       setLoading(false);
-      
+
       // Mock data for development purposes
       setQuizzes([
         {
           id: 1,
-          title: 'Midterm Exam - Introduction to Programming',
-          subjectCode: 'PRF192',
-          status: 'active',
-          createdAt: '2023-10-15T10:30:00Z',
+          title: "Midterm Exam - Introduction to Programming",
+          subjectCode: "PRF192",
+          status: "active",
+          createdAt: "2023-10-15T10:30:00Z",
           totalQuestions: 30,
           timeLimit: 60,
-          attempts: 45
+          attempts: 45,
         },
         {
           id: 2,
-          title: 'Final Exam - Object-Oriented Programming',
-          subjectCode: 'PRO192',
-          status: 'active',
-          createdAt: '2023-11-05T14:15:00Z',
+          title: "Final Exam - Object-Oriented Programming",
+          subjectCode: "PRO192",
+          status: "active",
+          createdAt: "2023-11-05T14:15:00Z",
           totalQuestions: 25,
           timeLimit: 90,
-          attempts: 32
+          attempts: 32,
         },
         {
           id: 3,
-          title: 'Practice Quiz - Data Structures',
-          subjectCode: 'CSD201',
-          status: 'draft',
-          createdAt: '2023-11-10T09:45:00Z',
+          title: "Practice Quiz - Data Structures",
+          subjectCode: "CSD201",
+          status: "draft",
+          createdAt: "2023-11-10T09:45:00Z",
           totalQuestions: 15,
           timeLimit: 30,
-          attempts: 0
+          attempts: 0,
         },
         {
           id: 4,
-          title: 'Mock Test - Software Engineering',
-          subjectCode: 'SWE201',
-          status: 'completed',
-          createdAt: '2023-09-20T13:20:00Z',
+          title: "Mock Test - Software Engineering",
+          subjectCode: "SWE201",
+          status: "completed",
+          createdAt: "2023-09-20T13:20:00Z",
           totalQuestions: 40,
           timeLimit: 120,
-          attempts: 78
+          attempts: 78,
         },
         {
           id: 5,
-          title: 'Chapter 5 Quiz - Database Management',
-          subjectCode: 'DBI202',
-          status: 'active',
-          createdAt: '2023-10-28T11:00:00Z',
+          title: "Chapter 5 Quiz - Database Management",
+          subjectCode: "DBI202",
+          status: "active",
+          createdAt: "2023-10-28T11:00:00Z",
           totalQuestions: 20,
           timeLimit: 45,
-          attempts: 56
-        }
+          attempts: 56,
+        },
       ]);
     }
   };
 
   const handleCreateQuiz = () => {
-    navigate('/lecturer/create-quiz');
+    navigate("/lecturer/create-quiz");
   };
 
   const handleEditQuiz = (quizId) => {
@@ -109,34 +109,34 @@ const QuizManager = () => {
 
   const handleDeleteQuiz = async () => {
     if (!selectedQuiz) return;
-    
+
     try {
       setDeleteLoading(true);
-      
+
       // In a real implementation, replace with your actual API call
       await fetch(`${API_URL}/quizzes/${selectedQuiz.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
+
       // Remove the quiz from the local state
-      setQuizzes(quizzes.filter(quiz => quiz.id !== selectedQuiz.id));
+      setQuizzes(quizzes.filter((quiz) => quiz.id !== selectedQuiz.id));
       setSuccess(`Quiz "${selectedQuiz.title}" has been deleted.`);
-      
+
       // Clear the success message after 3 seconds
       setTimeout(() => {
         setSuccess(null);
       }, 3000);
-      
+
       // Close the modal
       setShowDeleteModal(false);
       setSelectedQuiz(null);
       setDeleteLoading(false);
     } catch (error) {
-      console.error('Error deleting quiz:', error);
-      setError('Failed to delete quiz. Please try again later.');
+      console.error("Error deleting quiz:", error);
+      setError("Failed to delete quiz. Please try again later.");
       setDeleteLoading(false);
     }
   };
@@ -157,22 +157,23 @@ const QuizManager = () => {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'draft':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "draft":
+        return "bg-yellow-100 text-yellow-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const filteredQuizzes = quizzes
-    .filter(quiz => filterStatus === 'all' || quiz.status === filterStatus)
-    .filter(quiz => 
-      quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quiz.subjectCode.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter((quiz) => filterStatus === "all" || quiz.status === filterStatus)
+    .filter(
+      (quiz) =>
+        quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        quiz.subjectCode.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
   return (
@@ -182,10 +183,15 @@ const QuizManager = () => {
           <h1 className="text-2xl font-bold">Quiz Manager</h1>
           <div className="flex space-x-4">
             <button
-              onClick={() => navigate('/lecturer/question-bank')}
+              onClick={() => navigate("/lecturer/question-bank")}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
               </svg>
               Question Bank
@@ -194,8 +200,17 @@ const QuizManager = () => {
               onClick={handleCreateQuiz}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               Create New Quiz
             </button>
@@ -252,28 +267,52 @@ const QuizManager = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Quiz Title
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Subject
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Questions
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Time
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Attempts
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Created
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Actions
                   </th>
                 </tr>
@@ -282,14 +321,23 @@ const QuizManager = () => {
                 {filteredQuizzes.map((quiz) => (
                   <tr key={quiz.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{quiz.title}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {quiz.title}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{quiz.subjectCode}</div>
+                      <div className="text-sm text-gray-500">
+                        {quiz.subjectCode}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(quiz.status)}`}>
-                        {quiz.status.charAt(0).toUpperCase() + quiz.status.slice(1)}
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(
+                          quiz.status
+                        )}`}
+                      >
+                        {quiz.status.charAt(0).toUpperCase() +
+                          quiz.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -306,25 +354,14 @@ const QuizManager = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        <button 
+                        <button
                           onClick={() => handleEditQuiz(quiz.id)}
                           className="text-indigo-600 hover:text-indigo-900"
                         >
                           Edit
                         </button>
-                        <button 
-                          onClick={() => handleViewResults(quiz.id)}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Results
-                        </button>
-                        <button 
-                          onClick={() => handleCloneQuiz(quiz.id)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Clone
-                        </button>
-                        <button 
+
+                        <button
                           onClick={() => openDeleteModal(quiz)}
                           className="text-red-600 hover:text-red-900"
                         >
@@ -340,11 +377,11 @@ const QuizManager = () => {
         ) : (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <div className="text-gray-500 mb-4">No quizzes found</div>
-            {searchTerm || filterStatus !== 'all' ? (
+            {searchTerm || filterStatus !== "all" ? (
               <button
                 onClick={() => {
-                  setSearchTerm('');
-                  setFilterStatus('all');
+                  setSearchTerm("");
+                  setFilterStatus("all");
                 }}
                 className="text-indigo-600 hover:text-indigo-900"
               >
@@ -368,7 +405,8 @@ const QuizManager = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
             <h3 className="text-lg font-medium mb-4">Confirm Deletion</h3>
             <p className="mb-6 text-gray-600">
-              Are you sure you want to delete the quiz "{selectedQuiz.title}"? This action cannot be undone.
+              Are you sure you want to delete the quiz "{selectedQuiz.title}"?
+              This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -383,7 +421,7 @@ const QuizManager = () => {
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                 disabled={deleteLoading}
               >
-                {deleteLoading ? 'Deleting...' : 'Delete'}
+                {deleteLoading ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
@@ -393,4 +431,4 @@ const QuizManager = () => {
   );
 };
 
-export default QuizManager; 
+export default QuizManager;
