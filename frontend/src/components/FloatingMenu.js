@@ -233,7 +233,7 @@ const FloatingMenu = ({
 
           {/* My Classes */}
           <Link
-            to="/classes"
+            to="/admin/classes"
             className={`flex items-center px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-600/20 w-full
               ${
                 location.pathname.includes("classes")
