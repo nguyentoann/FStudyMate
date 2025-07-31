@@ -2440,7 +2440,7 @@ const QuizComponent = ({ maMon, maDe }) => {
                     {currentIndex === questions.length - 1 && (
                       <button
                         onClick={handleSubmit}
-                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center transition-all duration-300 hover:scale-105 animate-pulse-highlight"
+                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 flex items-center transition-all duration-300 hover:scale-105"
                       >
                         Submit <i className="fas fa-check ml-2"></i>
                       </button>
