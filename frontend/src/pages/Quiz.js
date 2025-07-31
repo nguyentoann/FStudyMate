@@ -2533,20 +2533,20 @@ const QuizComponent = ({ maMon, maDe }) => {
             <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4 animate-zoomIn">
               <div className="flex items-center mb-4 text-red-600">
                 <i className="fas fa-exclamation-circle text-2xl mr-2"></i>
-                <h3 className="text-xl font-bold">Phát hiện sao chép!</h3>
+                <h3 className="text-xl font-bold">Copy detection!</h3>
               </div>
               <p className="mb-4 text-gray-800">
-                Bạn đã cố gắng sao chép nội dung bài thi. Hành động này bị
-                nghiêm cấm và được ghi nhận là hành vi gian lận. Vui lòng không
-                sử dụng chức năng sao chép (Ctrl+C) hoặc nhấp chuột phải trong
-                quá trình làm bài.
+                You have attempted to copy the content of the exam. This action
+                is strictly prohibited and will be recorded as cheating. Please
+                do not use copy-paste (Ctrl+C) or right-click to select text
+                during the exam.
               </p>
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowCopyAlert(false)}
                   className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
                 >
-                  Tôi hiểu
+                  I understand
                 </button>
               </div>
             </div>
