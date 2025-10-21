@@ -313,8 +313,8 @@ function UI() {
     audio.play();
   }, [page]);
   return (
-    <div className="pointer-events-auto select-none absolute inset-0 flex items-end justify-center p-4">
-      <div className="flex gap-2 bg-black/30 text-white rounded-xl p-2 backdrop-blur-sm">
+    <div className="pointer-events-none select-none absolute inset-0 flex items-end justify-center p-4">
+      <div className="pointer-events-auto flex gap-2 bg-black/30 text-white rounded-xl p-2 backdrop-blur-sm">
         {[...pages].map((_, index) => (
           <button
             key={index}
