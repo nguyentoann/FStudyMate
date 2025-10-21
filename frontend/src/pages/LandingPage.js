@@ -5,6 +5,7 @@ import LandingFooter from "../components/LandingFooter";
 import ModelViewer from '../components/ModelViewer';
 import { createPortal } from 'react-dom';
 import BookViewer from '../components/BookViewer';
+import { useRef } from 'react';
 import DraggableMoon from '../components/DraggableMoon';
 
 const LandingPage = () => {
@@ -24,9 +25,11 @@ const LandingPage = () => {
     preview: false,
   });
   const [moonLightPosition, setMoonLightPosition] = useState([3, 4, 3]);
-  const [moonLightStrength, setMoonLightStrength] = useState(15);
+  const [moonLightStrength, setMoonLightStrength] = useState(40);
   const [isPageShaking, setIsPageShaking] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
+  const [bookMusicMuted, setBookMusicMuted] = useState(false);
+  const bookMusicRef = useRef(null);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -102,7 +105,7 @@ const LandingPage = () => {
     setIsPageShaking(true);
     setTimeout(() => {
       setIsPageShaking(false);
-    }, 540); // 3 times longer than building animation
+    }, 1000); // 3 times longer than building animation
   };
 
   // Open book modal when ModelViewer dispatches the event
@@ -112,11 +115,28 @@ const LandingPage = () => {
     return () => window.removeEventListener('openBookModal', open);
   }, []);
 
+  // Start/stop background music when modal opens/closes
+  useEffect(() => {
+    if (!bookMusicRef.current) {
+      bookMusicRef.current = new Audio('/audios/fstudyBeat01.mp3');
+      bookMusicRef.current.loop = true;
+      bookMusicRef.current.volume = 0.5;
+    }
+    if (showBookModal) {
+      if (!bookMusicMuted) {
+        bookMusicRef.current.play().catch(() => {});
+      }
+    } else {
+      bookMusicRef.current.pause();
+      bookMusicRef.current.currentTime = 0;
+    }
+  }, [showBookModal, bookMusicMuted]);
+
   return (
     <div 
       className="min-h-screen bg-[#f9fbfc]"
       style={{
-        animation: isPageShaking ? "pageShake 0.24s ease-in-out" : "none",
+        animation: isPageShaking ? "pageShake 0.24s ease-in-out 10" : "none",
       }}
     >
       <style>
@@ -233,7 +253,7 @@ const LandingPage = () => {
                         position: 'absolute',
                         top: 10,
                         right: 10,
-                        zIndex: 1,
+                        zIndex: 2,
                         background: 'rgba(0,0,0,0.6)',
                         color: '#fff',
                         border: '1px solid rgba(255,255,255,0.3)',
@@ -243,6 +263,31 @@ const LandingPage = () => {
                       }}
                     >
                       ✕
+                    </button>
+                    <button
+                      onClick={() => {
+                        const muted = !bookMusicMuted;
+                        setBookMusicMuted(muted);
+                        if (bookMusicRef.current) {
+                          bookMusicRef.current.muted = muted;
+                          if (!muted) bookMusicRef.current.play().catch(() => {});
+                        }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        zIndex: 2,
+                        background: 'rgba(0,0,0,0.6)',
+                        color: '#fff',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: 8,
+                        padding: '8px 12px',
+                        cursor: 'pointer'
+                      }}
+                      title={bookMusicMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {bookMusicMuted ? '🔇' : '🔊'}
                     </button>
                     <div style={{ width: 960, height: 600 }}>
                       <BookViewer />
@@ -280,11 +325,11 @@ const LandingPage = () => {
               {/* ModelViewer Container */}
               <div className="relative">
                 <ModelViewer
-                  url={`${backendBaseUrl}/api/StudentImages/fpt.glb`}
+                  url="/textures/fpt.glb"
                   width={450}
                   height={450}
                   autoRotate={true}
-                  defaultZoom={1.2}
+                  defaultZoom={1.0}
                   autoRotateSpeed={0.5}
                   environmentPreset="night"
                   showLightBulb={false}

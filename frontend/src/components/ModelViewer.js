@@ -626,8 +626,14 @@ const ModelViewer = ({
 
   // Handle building animation toggle
   const handleBuildingToggle = useCallback(() => {
+    const wasOpen = isBuildingOpen;
     setIsBuildingOpen(prev => !prev);
     setIsShaking(true);
+    
+    // Play appropriate sound effect
+    const audio = new Audio(wasOpen ? "/audios/stoneSlideClose.mp3" : "/audios/stoneSlideOpen.mp3");
+    audio.volume = 0.7;
+    audio.play().catch(console.warn);
     
     // Trigger page shaking
     if (onBuildingAnimation) {
@@ -638,7 +644,7 @@ const ModelViewer = ({
     setTimeout(() => {
       setIsShaking(false);
     }, 240); // 3 times longer than building animation
-  }, [onBuildingAnimation]);
+  }, [isBuildingOpen, onBuildingAnimation]);
 
   // Book modal is handled at page level
 

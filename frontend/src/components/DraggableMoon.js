@@ -243,7 +243,7 @@ const DraggableMoon = ({
             <input
               type="range"
               min="0.1"
-              max="30.0"
+              max="100.0"
               step="0.1"
               value={lightStrength}
               onChange={(e) => handleLightStrengthChange(parseFloat(e.target.value))}
