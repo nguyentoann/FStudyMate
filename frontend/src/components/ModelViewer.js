@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 import {
   Canvas,
@@ -23,9 +24,8 @@ import {
   ContactShadows,
   Sphere,
   MeshDistortMaterial,
-  useTexture,
-  PerspectiveCamera,
 } from "@react-three/drei";
+// Book modal is handled at page level
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
 import * as THREE from "three";
 
@@ -47,6 +47,7 @@ const Loader = ({ placeholderSrc }) => {
       {placeholderSrc ? (
         <img
           src={placeholderSrc}
+          alt="Loading placeholder"
           width={128}
           height={128}
           style={
@@ -86,7 +87,6 @@ const LightBulb = ({ position, onChange, isOn = true }) => {
   
   // Plane for dragging calculations
   const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
-  const planeNormal = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const planeIntersectPoint = useMemo(() => new THREE.Vector3(), []);
   
   // Raycaster for drag operations
@@ -109,7 +109,7 @@ const LightBulb = ({ position, onChange, isOn = true }) => {
     document.addEventListener('pointerup', handlePointerUp);
   };
   
-  const handlePointerMove = (e) => {
+  const handlePointerMove = useCallback((e) => {
     if (!dragging) return;
     
     // Calculate mouse position in normalized device coordinates
@@ -130,13 +130,13 @@ const LightBulb = ({ position, onChange, isOn = true }) => {
       setLightPos(newPos);
       onChange?.({ isOn, position: newPos });
     }
-  };
+  }, [dragging, mouse, raycaster, camera, plane, planeIntersectPoint, lightPos, isOn, onChange]);
   
-  const handlePointerUp = () => {
+  const handlePointerUp = useCallback(() => {
     setDragging(false);
     document.removeEventListener('pointermove', handlePointerMove);
     document.removeEventListener('pointerup', handlePointerUp);
-  };
+  }, [handlePointerMove]);
   
   // Clean up event listeners
   useEffect(() => {
@@ -144,7 +144,7 @@ const LightBulb = ({ position, onChange, isOn = true }) => {
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
     };
-  }, []);
+  }, [handlePointerMove, handlePointerUp]);
   
   // Update position from props
   useEffect(() => {
@@ -240,6 +240,7 @@ const ModelInner = ({
   autoRotate,
   autoRotateSpeed,
   onLoaded,
+  buildingAnimationProgress,
 }) => {
   const outer = useRef(null);
   const inner = useRef(null);
@@ -259,6 +260,16 @@ const ModelInner = ({
     console.error("Unsupported format:", ext);
     return null;
   }, [url, ext]);
+
+  // Detect click on specific named meshes (e.g., book-logo)
+  const handlePointerDown = useCallback((e) => {
+    const target = e.object;
+    if (target && (target.name === "book-logo" || target.parent?.name === "book-logo")) {
+      e.stopPropagation();
+      // Dispatch a custom event so parent can open modal
+      window.dispatchEvent(new CustomEvent("openBookModal"));
+    }
+  }, []);
 
   const pivotW = useRef(new THREE.Vector3());
   useLayoutEffect(() => {
@@ -281,6 +292,14 @@ const ModelInner = ({
           o.material.transparent = true;
           o.material.opacity = 0;
         }
+      }
+    });
+
+    // Store original positions for building animation
+    const originalPositions = new Map();
+    g.traverse((o) => {
+      if (o.name === "building") {
+        originalPositions.set(o, o.position.clone());
       }
     });
 
@@ -319,6 +338,19 @@ const ModelInner = ({
     } else onLoaded?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content]);
+
+  // Building animation effect
+  useEffect(() => {
+    if (!inner.current) return;
+    
+    inner.current.traverse((o) => {
+      if (o.name === "building") {
+        const originalY = o.userData.originalY ?? o.position.y;
+        o.userData.originalY = originalY;
+        o.position.y = originalY + (buildingAnimationProgress * 1); // Increased from 3 to 5 units
+      }
+    });
+  }, [buildingAnimationProgress]);
 
   useEffect(() => {
     if (!enableManualRotation || isTouch) return;
@@ -501,7 +533,7 @@ const ModelInner = ({
   if (!content) return null;
   return (
     <group ref={outer}>
-      <group ref={inner}>
+      <group ref={inner} onPointerDown={handlePointerDown}>
         <primitive object={content} />
       </group>
     </group>
@@ -524,10 +556,7 @@ const ModelViewer = ({
   enableHoverRotation = true,
   enableManualZoom = true,
   ambientIntensity = 0.3,
-  keyLightIntensity = 1,
-  fillLightIntensity = 0.5,
-  rimLightIntensity = 0.8,
-  environmentPreset = "forest",
+  environmentPreset = "none",
   autoFrame = false,
   placeholderSrc,
   showScreenshotButton = true,
@@ -536,6 +565,9 @@ const ModelViewer = ({
   autoRotate = false,
   autoRotateSpeed = 0.35,
   onModelLoaded,
+  moonLightPosition = null,
+  moonLightStrength = 15,
+  onBuildingAnimation,
 }) => {
   useEffect(() => void useGLTF.preload(url), [url]);
   const pivot = useRef(new THREE.Vector3()).current;
@@ -544,19 +576,16 @@ const ModelViewer = ({
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   
-  // State for light bulb
+  // State for light bulb (kept for compatibility)
   const [lightBulbState, setLightBulbState] = useState({
     isOn: true,
     position: [3, 2, 3]
   });
-  
-  // State for light settings
-  const [lightSettings, setLightSettings] = useState({
-    ambient: ambientIntensity,
-    key: keyLightIntensity,
-    fill: fillLightIntensity,
-    rim: rimLightIntensity
-  });
+
+  // State for building animation
+  const [isBuildingOpen, setIsBuildingOpen] = useState(false);
+  const [buildingAnimationProgress, setBuildingAnimationProgress] = useState(0);
+  const [isShaking, setIsShaking] = useState(false);
 
   const initYaw = deg2rad(defaultRotationX);
   const initPitch = deg2rad(defaultRotationY);
@@ -590,27 +619,55 @@ const ModelViewer = ({
     if (contactRef.current) contactRef.current.visible = true;
   };
   
-  // Handle light bulb changes
+  // Handle light bulb changes (kept for compatibility)
   const handleLightBulbChange = (newState) => {
     setLightBulbState(newState);
-    
-    // Adjust light settings based on light bulb state
-    if (!newState.isOn) {
-      setLightSettings({
-        ...lightSettings,
-        key: 0.2,
-        fill: 0.1,
-        rim: 0.1
-      });
-    } else {
-      setLightSettings({
-        ...lightSettings,
-        key: keyLightIntensity,
-        fill: fillLightIntensity,
-        rim: rimLightIntensity
-      });
-    }
   };
+
+  // Handle building animation toggle
+  const handleBuildingToggle = useCallback(() => {
+    setIsBuildingOpen(prev => !prev);
+    setIsShaking(true);
+    
+    // Trigger page shaking
+    if (onBuildingAnimation) {
+      onBuildingAnimation();
+    }
+    
+    // Stop shaking after animation completes
+    setTimeout(() => {
+      setIsShaking(false);
+    }, 240); // 3 times longer than building animation
+  }, [onBuildingAnimation]);
+
+  // Book modal is handled at page level
+
+  // Animation effect for smooth building movement
+  useEffect(() => {
+    const targetProgress = isBuildingOpen ? 1 : 0;
+    const startProgress = buildingAnimationProgress;
+    const startTime = Date.now();
+    const duration = 80; // 0.4 second animation (faster)
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function (ease-in-out)
+      const easedProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      
+      const currentProgress = startProgress + (targetProgress - startProgress) * easedProgress;
+      setBuildingAnimationProgress(currentProgress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isBuildingOpen, buildingAnimationProgress]);
 
   return (
     <div
@@ -619,8 +676,25 @@ const ModelViewer = ({
         height,
         touchAction: "pan-y pinch-zoom",
         position: "relative",
+        animation: isShaking ? "shake 0.24s ease-in-out" : "none",
       }}
     >
+      <style>
+        {`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-2px) translateY(-1px); }
+            20% { transform: translateX(2px) translateY(1px); }
+            30% { transform: translateX(-1px) translateY(-2px); }
+            40% { transform: translateX(1px) translateY(2px); }
+            50% { transform: translateX(-2px) translateY(-1px); }
+            60% { transform: translateX(2px) translateY(1px); }
+            70% { transform: translateX(-1px) translateY(-2px); }
+            80% { transform: translateX(1px) translateY(2px); }
+            90% { transform: translateX(-1px) translateY(-1px); }
+          }
+        `}
+      </style>
       {showScreenshotButton && (
         <button
           onClick={capture}
@@ -641,6 +715,29 @@ const ModelViewer = ({
         </button>
       )}
 
+      {/* Open Button */}
+      <button
+        onClick={handleBuildingToggle}
+        style={{
+          position: "absolute",
+          border: "1px solid #fff",
+          right: 16,
+          top: showScreenshotButton ? 60 : 16,
+          zIndex: 10,
+          cursor: "pointer",
+          padding: "8px 16px",
+          borderRadius: 10,
+          backgroundColor: isBuildingOpen ? "rgba(255,193,7,0.8)" : "rgba(0,0,0,0.5)",
+          color: "#fff",
+          fontWeight: "bold",
+          transition: "all 0.3s ease",
+        }}
+      >
+        {isBuildingOpen ? "Close" : "Open"}
+      </button>
+
+      {null}
+
       <Canvas
         shadows
         gl={{ preserveDrawingBuffer: true }}
@@ -658,25 +755,31 @@ const ModelViewer = ({
           <Environment preset={environmentPreset} background={false} />
         )}
 
-        <ambientLight intensity={lightSettings.ambient} />
+        <ambientLight intensity={ambientIntensity} />
         
-        {/* Main directional lights */}
-        {!showLightBulb && (
+        {/* Moon-controlled lighting only */}
+        {moonLightPosition ? (
           <>
             <directionalLight
-              position={[5, 5, 5]}
-              intensity={lightSettings.key}
+              position={moonLightPosition}
+              intensity={moonLightStrength}
               castShadow
+              color="#ffe1a6"
             />
             <directionalLight
-              position={[-5, 2, 5]}
-              intensity={lightSettings.fill}
-            />
-            <directionalLight 
-              position={[0, 4, -5]} 
-              intensity={lightSettings.rim} 
+              position={[moonLightPosition[0] * -0.3, moonLightPosition[1] * 0.9, moonLightPosition[2] * -0.3]}
+              intensity={moonLightStrength * 0.3}
+              color="#ffe1a6"
             />
           </>
+        ) : (
+          /* Fallback lighting when no moon position */
+          <directionalLight
+            position={[3, 4, 3]}
+            intensity={moonLightStrength}
+            castShadow
+            color="#ffe1a6"
+          />
         )}
 
         <ContactShadows
@@ -706,6 +809,7 @@ const ModelViewer = ({
             autoRotate={autoRotate}
             autoRotateSpeed={autoRotateSpeed}
             onLoaded={onModelLoaded}
+            buildingAnimationProgress={buildingAnimationProgress}
           />
           
           {/* Interactive light bulb */}

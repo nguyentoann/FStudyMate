@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
 import LandingHeader from "../components/LandingHeader";
 import LandingFooter from "../components/LandingFooter";
+import ModelViewer from '../components/ModelViewer';
+import { createPortal } from 'react-dom';
+import BookViewer from '../components/BookViewer';
+import DraggableMoon from '../components/DraggableMoon';
 
 const LandingPage = () => {
-  const { darkMode } = useTheme();
+  const backendBaseUrl = process.env.REACT_APP_API_URL || window.location.origin.replace(/:\d+$/, ':8080');
   const navigate = useNavigate();
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -20,6 +23,10 @@ const LandingPage = () => {
     features: false,
     preview: false,
   });
+  const [moonLightPosition, setMoonLightPosition] = useState([3, 4, 3]);
+  const [moonLightStrength, setMoonLightStrength] = useState(15);
+  const [isPageShaking, setIsPageShaking] = useState(false);
+  const [showBookModal, setShowBookModal] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -83,8 +90,51 @@ const LandingPage = () => {
     document.getElementById("features").scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleMoonPositionChange = (data) => {
+    setMoonLightPosition(data.lightPosition);
+  };
+
+  const handleMoonSettingsChange = (settings) => {
+    setMoonLightStrength(settings.lightStrength);
+  };
+
+  const handleBuildingAnimation = () => {
+    setIsPageShaking(true);
+    setTimeout(() => {
+      setIsPageShaking(false);
+    }, 540); // 3 times longer than building animation
+  };
+
+  // Open book modal when ModelViewer dispatches the event
+  useEffect(() => {
+    const open = () => setShowBookModal(true);
+    window.addEventListener('openBookModal', open);
+    return () => window.removeEventListener('openBookModal', open);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#f9fbfc]">
+    <div 
+      className="min-h-screen bg-[#f9fbfc]"
+      style={{
+        animation: isPageShaking ? "pageShake 0.24s ease-in-out" : "none",
+      }}
+    >
+      <style>
+        {`
+          @keyframes pageShake {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-3px) translateY(-2px); }
+            20% { transform: translateX(3px) translateY(2px); }
+            30% { transform: translateX(-2px) translateY(-3px); }
+            40% { transform: translateX(2px) translateY(3px); }
+            50% { transform: translateX(-3px) translateY(-2px); }
+            60% { transform: translateX(3px) translateY(2px); }
+            70% { transform: translateX(-2px) translateY(-3px); }
+            80% { transform: translateX(2px) translateY(3px); }
+            90% { transform: translateX(-2px) translateY(-2px); }
+          }
+        `}
+      </style>
       <LandingHeader />
 
       {/* Hero Section */}
@@ -151,6 +201,56 @@ const LandingPage = () => {
                   </span>
                 </div>
               </div>
+              {showBookModal && createPortal(
+                <div
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    backdropFilter: 'blur(2px)'
+                  }}
+                  onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) setShowBookModal(false);
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'relative',
+                      borderRadius: 16,
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+                      background: '#0b1020',
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowBookModal(false)}
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        zIndex: 1,
+                        background: 'rgba(0,0,0,0.6)',
+                        color: '#fff',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: 8,
+                        padding: '8px 12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✕
+                    </button>
+                    <div style={{ width: 960, height: 600 }}>
+                      <BookViewer />
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
             </div>
 
             {/* Right Content - Hero Image */}
@@ -176,11 +276,39 @@ const LandingPage = () => {
                   />
                 </svg>
               </div>
-              <img
-                src="http://toandz.ddns.net/fstudy/img/landing.png"
-                alt="Student learning"
-                className="relative z-10 w-full max-w-[450px] mx-auto animate-float"
-              />
+              
+              {/* ModelViewer Container */}
+              <div className="relative">
+                <ModelViewer
+                  url={`${backendBaseUrl}/api/StudentImages/fpt.glb`}
+                  width={450}
+                  height={450}
+                  autoRotate={true}
+                  defaultZoom={1.2}
+                  autoRotateSpeed={0.5}
+                  environmentPreset="night"
+                  showLightBulb={false}
+                  enableMouseParallax={true}
+                  enableManualRotation={true}
+                  enableManualZoom={true}
+                  enableHoverRotation={true}
+                  ambientIntensity={0.1}
+                  moonLightPosition={moonLightPosition}
+                  moonLightStrength={moonLightStrength}
+                  onBuildingAnimation={handleBuildingAnimation}
+                />
+                
+                {/* Draggable Moon Overlay */}
+                <DraggableMoon
+                  onPositionChange={handleMoonPositionChange}
+                  onSettingsChange={handleMoonSettingsChange}
+                  initialPosition={{ x: 400, y: 400 }}
+                  containerWidth={450}
+                  containerHeight={450}
+                  moonSize={50}
+                  initialLightStrength={moonLightStrength}
+                />
+              </div>
             </div>
           </div>
         </div>
