@@ -294,7 +294,7 @@ export const ThemeProvider = ({ children }) => {
         .rounded-lg.shadow-lg:not(nav):not(.navbar):not(header),
         .rounded-lg.shadow-xl:not(nav):not(.navbar):not(header),
         .rounded-md.shadow-md:not(nav):not(.navbar):not(header) {
-          background-color: rgba(255, 255, 255, ${opacityValue}) !important;
+          
           backdrop-filter: ${blurFilter};
         }
 

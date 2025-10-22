@@ -7,9 +7,11 @@ import { createPortal } from 'react-dom';
 import BookViewer from '../components/BookViewer';
 import { useRef } from 'react';
 import DraggableMoon from '../components/DraggableMoon';
+import Particles from '../components/Particles.js';
 
 const LandingPage = () => {
-  const backendBaseUrl = process.env.REACT_APP_API_URL || window.location.origin.replace(/:\d+$/, ':8080');
+  // Dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -85,6 +87,40 @@ const LandingPage = () => {
     };
   }, []);
 
+  // Initialize dark mode from localStorage or system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+      return;
+    }
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+      return;
+    }
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
+    if (prefersDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const handleDarkModeToggle = () => {
+    const next = !isDarkMode;
+    setIsDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
   const handleJoinCourse = () => {
     navigate("/register");
   };
@@ -134,11 +170,38 @@ const LandingPage = () => {
 
   return (
     <div 
-      className="min-h-screen bg-[#f9fbfc]"
+      className="min-h-screen bg-[#f9fbfc] dark:bg-gray-900 dark:text-white transition-colors duration-300"
       style={{
         animation: isPageShaking ? "pageShake 0.24s ease-in-out 10" : "none",
+        position: 'relative',
+        zIndex: 2
       }}
     >
+      {/* Particles Background - Only in Dark Mode */}
+      {isDarkMode && (
+        <div 
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%', 
+            zIndex: 0,
+            pointerEvents: 'none'
+          }}
+        >
+          <Particles
+            particleColors={['#ffffff', '#ffffff']}
+            particleCount={200}
+            particleSpread={10}
+            speed={0.1}
+            particleBaseSize={100}
+            moveParticlesOnHover={true}
+            alphaParticles={false}
+            disableRotation={false}
+          />
+        </div>
+      )}
       <style>
         {`
           @keyframes pageShake {
@@ -157,8 +220,10 @@ const LandingPage = () => {
       </style>
       <LandingHeader />
 
+      {null}
+
       {/* Hero Section */}
-      <section className="bg-[#f9fbfc] relative overflow-hidden" id="home">
+      <section className="relative overflow-hidden transition-colors duration-300" id="home">
         {/* Background decorative elements */}
         <div className="absolute top-[79px] left-0 w-[53px] h-[107px] bg-[#525fe1] opacity-30 rounded-r-full"></div>
         <div className="absolute top-[610px] left-[727px] w-[80px] h-[80px] bg-[#ffcf59] rounded-full opacity-30"></div>
@@ -174,9 +239,9 @@ const LandingPage = () => {
                   : "opacity-0 translate-y-10"
               }`}
             >
-              <h1 className="text-[42px] md:text-[52px] font-medium leading-[1.3] text-[#1c1c1c] font-poppins">
+              <h1 className="text-[42px] md:text-[52px] font-medium leading-[1.3] text-[#1c1c1c] dark:text-white font-poppins transition-colors duration-300">
                 <span className="font-medium">Online </span>
-                <span className="font-extrabold text-[#525fe1]">
+                <span className="font-extrabold text-[#525fe1] dark:text-blue-400">
                   Learning
                   <br />
                   you can access any
@@ -185,16 +250,16 @@ const LandingPage = () => {
                 </span>
               </h1>
 
-              <p className="text-[15px] font-normal leading-[22px] text-[#7f7f7f] font-poppins max-w-[548px]">
+              <p className="text-[15px] font-normal leading-[22px] text-[#7f7f7f] dark:text-gray-300 font-poppins max-w-[548px] transition-colors duration-300">
                 🎓 FStudyMate – Your Smart Learning & Mock Test Companion at FPT
                 University. Study Smarter – Practice Better – Ace Every Exam.
               </p>
 
               <div className="flex items-center space-x-6">
-                <button
-                  onClick={handleJoinCourse}
-                  className="bg-[#ffcf59] hover:bg-[#f5c643] text-[#1c1c1c] text-[14px] font-bold py-[12px] px-[25px] rounded-lg transition-transform hover:scale-105"
-                >
+                  <button
+                    onClick={handleJoinCourse}
+                    className="bg-[#ffcf59] dark:bg-yellow-500 hover:bg-[#f5c643] dark:hover:bg-yellow-400 text-[#1c1c1c] dark:text-gray-900 text-[14px] font-bold py-[12px] px-[25px] rounded-lg transition-all hover:scale-105 duration-300"
+                  >
                   JOIN COURSE
                 </button>
 
@@ -202,7 +267,7 @@ const LandingPage = () => {
                   className="flex items-center space-x-3 cursor-pointer transition-transform hover:translate-x-1"
                   onClick={handleHowItWorks}
                 >
-                  <span className="bg-[#eaedff] p-2 rounded-full">
+                  <span className="bg-[#eaedff] dark:bg-blue-100 p-2 rounded-full transition-colors duration-300">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-5 w-5 text-[#525fe1]"
@@ -216,7 +281,7 @@ const LandingPage = () => {
                       />
                     </svg>
                   </span>
-                  <span className="text-[12px] font-bold leading-[18px] text-[#1c1c1c] font-poppins">
+                  <span className="text-[12px] font-bold leading-[18px] text-[#1c1c1c] dark:text-white font-poppins transition-colors duration-300">
                     See how it works?
                   </span>
                 </div>
@@ -360,7 +425,7 @@ const LandingPage = () => {
       </section>
 
       {/* Statistics Section */}
-      <section className="relative bg-[#525fe1] py-10">
+      <section className="relative bg-[#525fe1] dark:bg-gray-800 py-10 transition-colors duration-300">
         <div className="absolute bottom-0 left-0 w-[123px] h-[162px] bg-[#ffcf59] opacity-20 rounded-tr-full"></div>
         <div className="absolute top-0 right-0 w-[62px] h-[124px] bg-[#ffcf59] opacity-20 rounded-bl-full"></div>
 
@@ -395,7 +460,7 @@ const LandingPage = () => {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-16 bg-[#f9fbfc]" id="why">
+      <section className="py-16 bg-[#f9fbfc] dark:bg-gray-900 transition-colors duration-300" id="why">
         <div className="max-w-[1366px] mx-auto px-4">
           <div
             className={`text-center mb-12 transition-all duration-700 ${
@@ -404,24 +469,24 @@ const LandingPage = () => {
                 : "opacity-0 translate-y-10"
             }`}
           >
-            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] font-poppins mb-4">
-              <span className="font-bold text-[#525fe1]">Why we are</span>
-              <span className="font-normal text-[#1c1c1c]">
+            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
+              <span className="font-bold text-[#525fe1] dark:text-blue-400">Why we are</span>
+              <span className="font-normal text-[#1c1c1c] dark:text-white">
                 {" "}
                 best from others?
               </span>
             </h2>
-            <p className="text-[18px] font-normal leading-[26px] text-[#333333] font-poppins max-w-[1080px] mx-auto">
+            <p className="text-[18px] font-normal leading-[26px] text-[#333333] dark:text-gray-300 font-poppins max-w-[1080px] mx-auto transition-colors duration-300">
               FStudyMate offers unique features designed specifically for FPT
               University students
             </p>
           </div>
 
-          <ul className="space-y-6 text-gray-800 text-lg">
+          <ul className="space-y-6 text-gray-800 dark:text-gray-200 text-lg transition-colors duration-300">
             {[1, 2, 3, 4, 5].map((item, index) => (
               <li
                 key={index}
-                className={`flex items-start space-x-4 bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-500 delay-${
+                className={`flex items-start space-x-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-500 delay-${
                   index * 100
                 } ${
                   visibleSections.why
@@ -489,7 +554,7 @@ const LandingPage = () => {
       </section>
 
       {/* Who Is It For Section */}
-      <section className="py-16 bg-white" id="who">
+      <section className="py-16 bg-white dark:bg-gray-900 transition-colors duration-300" id="who">
         <div className="max-w-[1366px] mx-auto px-4">
           <div
             className={`text-center mb-12 transition-all duration-700 ${
@@ -498,9 +563,9 @@ const LandingPage = () => {
                 : "opacity-0 translate-y-10"
             }`}
           >
-            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] font-poppins mb-4">
-              <span className="font-bold text-[#525fe1]">Who Is It</span>
-              <span className="font-normal text-[#1c1c1c]"> For?</span>
+            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
+              <span className="font-bold text-[#525fe1] dark:text-blue-400">Who Is It</span>
+              <span className="font-normal text-[#1c1c1c] dark:text-white"> For?</span>
             </h2>
           </div>
 
@@ -562,14 +627,14 @@ const LandingPage = () => {
                     ></i>
                   </div>
                 </div>
-                <h4 className="font-semibold text-lg mb-2">
+                <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-white transition-colors duration-300">
                   {index === 0
                     ? "FPT University Students"
                     : index === 1
                     ? "Lecturers & Instructors"
                     : "Academic Office / Training Department"}
                 </h4>
-                <p className="text-gray-700">
+                <p className="text-gray-700 dark:text-gray-300 transition-colors duration-300">
                   {index === 0
                     ? "Who want to study efficiently, avoid retaking subjects, and improve exam results."
                     : index === 1
@@ -581,17 +646,17 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-      <section className="py-16 bg-[#f9fbfc]" id="courses">
+      <section className="py-16 bg-[#f9fbfc] dark:bg-gray-900 transition-colors duration-300" id="courses">
         <div className="max-w-[1366px] mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] font-poppins mb-4">
-              <span className="font-bold text-[#525fe1]">All</span>
-              <span className="font-normal text-[#1c1c1c]"> Courses</span>
+            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
+              <span className="font-bold text-[#525fe1] dark:text-blue-400">All</span>
+              <span className="font-normal text-[#1c1c1c] dark:text-white"> Courses</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="bg-[#f5eaff] dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
               <img
                 src={
                   "https://files.fullstack.edu.vn/f8-prod/courses/15/62f13d2424a47.png"
@@ -599,10 +664,10 @@ const LandingPage = () => {
                 alt="Course"
                 className="rounded-md"
               />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 HTML, CSS
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -611,16 +676,16 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="bg-[#f5eaff] dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
               <img
                 src={"https://files.fullstack.edu.vn/f8-prod/courses/2.png"}
                 alt="Course"
                 className="rounded-md"
               />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 HTML, CSS
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -629,16 +694,16 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="bg-[#f5eaff] dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
               <img
                 src={"https://files.fullstack.edu.vn/f8-prod/courses/3.png"}
                 alt="Course"
                 className="rounded-md"
               />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Responsive WEB
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -646,16 +711,16 @@ const LandingPage = () => {
                 , and more
               </p>
             </div>
-            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="bg-[#f5eaff] dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
               <img
                 src={"https://files.fullstack.edu.vn/f8-prod/courses/13/13.png"}
                 alt="Course"
                 className="rounded-md"
               />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 ReactJS
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -664,16 +729,16 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="bg-[#f5eaff] dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
               <img
                 src={"https://files.fullstack.edu.vn/f8-prod/courses/6.png"}
                 alt="Course"
                 className="rounded-md"
               />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Node & ExpressJS
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -682,7 +747,7 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="bg-[#f5eaff] p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="bg-[#f5eaff] dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
               <img
                 src={
                   "https://files.fullstack.edu.vn/f8-prod/courses/4/61a9e9e701506.png"
@@ -690,10 +755,10 @@ const LandingPage = () => {
                 alt="Course"
                 className="rounded-md"
               />
-              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] mt-4 font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 AI
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -705,17 +770,17 @@ const LandingPage = () => {
         </div>
       </section>
       {/* Key Features Section */}
-      <section className="py-16 bg-[#f9fbfc]" id="features">
+      <section className="py-16 bg-[#f9fbfc] dark:bg-gray-900 transition-colors duration-300" id="features">
         <div className="max-w-[1366px] mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] font-poppins mb-4">
-              <span className="font-bold text-[#525fe1]">Key</span>
-              <span className="font-normal text-[#1c1c1c]"> Features</span>
+            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
+              <span className="font-bold text-[#525fe1] dark:text-blue-400">Key</span>
+              <span className="font-normal text-[#1c1c1c] dark:text-white"> Features</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
               <div className="relative w-20 h-20 mb-6">
                 <svg
                   viewBox="0 0 200 200"
@@ -732,10 +797,10 @@ const LandingPage = () => {
                   <i className="fas fa-book"></i>
                 </div>
               </div>
-              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Learning Resources
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Access learning resources for subjects like{" "}
                 <span className="font-semibold">
                   MAE101, PRF192, PRO192, LAB211
@@ -744,7 +809,7 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
               <div className="relative w-20 h-20 mb-6">
                 <svg
                   viewBox="0 0 200 200"
@@ -761,10 +826,10 @@ const LandingPage = () => {
                   <i className="fas fa-pencil-alt"></i>
                 </div>
               </div>
-              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Mock Exams
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Take mock exams (
                 <span className="font-semibold">
                   Multiple Choice, Coding, Practical
@@ -773,7 +838,7 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
               <div className="relative w-20 h-20 mb-6">
                 <svg
                   viewBox="0 0 200 200"
@@ -790,15 +855,15 @@ const LandingPage = () => {
                   <i className="fas fa-chart-bar"></i>
                 </div>
               </div>
-              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Analytics
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Get personalized analytics and progress reports
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
               <div className="relative w-20 h-20 mb-6">
                 <svg
                   viewBox="0 0 200 200"
@@ -815,16 +880,16 @@ const LandingPage = () => {
                   <i className="fas fa-calendar-alt"></i>
                 </div>
               </div>
-              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Class Schedule
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 View class schedules by Slot (
                 <span className="font-semibold">1–4, 8</span>) and ClassID
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
               <div className="relative w-20 h-20 mb-6">
                 <svg
                   viewBox="0 0 200 200"
@@ -841,15 +906,15 @@ const LandingPage = () => {
                   <i className="fas fa-bell"></i>
                 </div>
               </div>
-              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Reminders
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Set reminders for study and exams
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
               <div className="relative w-20 h-20 mb-6">
                 <svg
                   viewBox="0 0 200 200"
@@ -866,10 +931,10 @@ const LandingPage = () => {
                   <i className="fas fa-lock"></i>
                 </div>
               </div>
-              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] font-poppins mb-4">
+              <h3 className="text-[22px] font-semibold leading-[33px] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
                 Secure Login
               </h3>
-              <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] font-poppins">
+                <p className="text-[14px] font-normal leading-[20px] text-[#4c4c4c] dark:text-gray-300 font-poppins transition-colors duration-300">
                 Login with your FPT email or personal account (depending on your
                 cohort)
               </p>
@@ -879,12 +944,12 @@ const LandingPage = () => {
       </section>
 
       {/* Platform Preview Section */}
-      <section className="py-16 bg-white" id="preview">
+      <section className="py-16 bg-white dark:bg-gray-900 transition-colors duration-300" id="preview">
         <div className="max-w-[1366px] mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] font-poppins mb-4">
-              <span className="font-bold text-[#525fe1]">Platform</span>
-              <span className="font-normal text-[#1c1c1c]"> Preview</span>
+            <h2 className="text-[42px] md:text-[52px] font-medium leading-[1.5] text-[#1c1c1c] dark:text-white font-poppins mb-4 transition-colors duration-300">
+              <span className="font-bold text-[#525fe1] dark:text-blue-400">Platform</span>
+              <span className="font-normal text-[#1c1c1c] dark:text-white"> Preview</span>
             </h2>
           </div>
 
@@ -902,13 +967,13 @@ const LandingPage = () => {
                 className="w-full h-full"
               ></iframe>
             </div>
-            <p className="text-center text-[#4c4c4c] mt-4 font-medium">
+              <p className="text-center text-[#4c4c4c] dark:text-gray-300 mt-4 font-medium transition-colors duration-300">
               Watch our platform walkthrough video
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
               <div className="relative p-2">
                 <div className="absolute inset-0 overflow-hidden">
                   <svg
@@ -929,11 +994,11 @@ const LandingPage = () => {
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
                 />
               </div>
-              <div className="p-4 font-semibold text-center text-gray-700">
+              <div className="p-4 font-semibold text-center text-gray-700 dark:text-gray-300 transition-colors duration-300">
                 Homepage with Featured Subjects & Reminders
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
               <div className="relative p-2">
                 <div className="absolute inset-0 overflow-hidden">
                   <svg
@@ -954,11 +1019,11 @@ const LandingPage = () => {
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
                 />
               </div>
-              <div className="p-4 font-semibold text-center text-gray-700">
+              <div className="p-4 font-semibold text-center text-gray-700 dark:text-gray-300 transition-colors duration-300">
                 Subject Learning Dashboard
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
               <div className="relative p-2">
                 <div className="absolute inset-0 overflow-hidden">
                   <svg
@@ -979,11 +1044,11 @@ const LandingPage = () => {
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
                 />
               </div>
-              <div className="p-4 font-semibold text-center text-gray-700">
+              <div className="p-4 font-semibold text-center text-gray-700 dark:text-gray-300 transition-colors duration-300">
                 Mock Exam Interface
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
               <div className="relative p-2">
                 <div className="absolute inset-0 overflow-hidden">
                   <svg
@@ -1004,7 +1069,7 @@ const LandingPage = () => {
                   className="relative z-10 w-full h-56 object-cover rounded-lg"
                 />
               </div>
-              <div className="p-4 font-semibold text-center text-gray-700">
+              <div className="p-4 font-semibold text-center text-gray-700 dark:text-gray-300 transition-colors duration-300">
                 Score & Progress Analytics
               </div>
             </div>
@@ -1013,14 +1078,14 @@ const LandingPage = () => {
       </section>
 
       {/* Sign Up Section */}
-      <section className="py-16 bg-[#ffcf59]" id="signup">
+        <section className="py-16 bg-[#ffcf59] dark:bg-gray-800 transition-colors duration-300" id="signup">
         <div className="max-w-[1366px] mx-auto px-4">
-          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
-            <h3 className="text-[32px] font-bold leading-[48px] text-[#1c1c1c] font-poppins mb-6">
-              <span className="text-[#525fe1]">Sign Up</span> Early and Get
+          <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center transition-colors duration-300">
+            <h3 className="text-[32px] font-bold leading-[48px] text-[#1c1c1c] dark:text-white font-poppins mb-6 transition-colors duration-300">
+              <span className="text-[#525fe1] dark:text-blue-400">Sign Up</span> Early and Get
               Exclusive Access!
             </h3>
-            <p className="text-lg mb-6 text-gray-700">
+            <p className="text-lg mb-6 text-gray-700 dark:text-gray-300 transition-colors duration-300">
               🎁 <span className="font-semibold">Beta Offer:</span> First 100
               users will receive free Premium Access for 1 term!
             </p>
@@ -1030,7 +1095,7 @@ const LandingPage = () => {
             >
               Sign Up Now
             </button>
-            <p className="mt-6 text-gray-700">
+            <p className="mt-6 text-gray-700 dark:text-gray-300 transition-colors duration-300">
               📨 Contact:{" "}
               <a
                 className="text-[#525fe1] hover:underline"
@@ -1046,10 +1111,10 @@ const LandingPage = () => {
                 +84 000 000 000
               </a>
             </p>
-            <p className="mt-4 text-gray-600 text-sm">
+            <p className="mt-4 text-gray-600 dark:text-gray-400 text-sm transition-colors duration-300">
               📍 FPT University – HCM | Danang | Hanoi Campuses
             </p>
-            <p className="mt-6 text-gray-500 text-sm italic">
+            <p className="mt-6 text-gray-500 dark:text-gray-400 text-sm italic transition-colors duration-300">
               👨‍💻 Developed by FPTU Students – Built for the FPTU Community!
             </p>
           </div>
